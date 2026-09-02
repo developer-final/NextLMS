@@ -245,7 +245,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                   </label>
                   <select
                     value={discountType}
-                    onChange={(e) => setDiscountType(e.target.value as any)}
+                    onChange={(e) => setDiscountType(e.target.value as "PERCENT" | "FIXED_AMOUNT")}
                     className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                   >
                     <option value="PERCENT">{t.admin.coupons.percentType}</option>

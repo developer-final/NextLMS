@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const body = await req.json();
     const { courseId, couponCode, paymentMethod } = body;
 

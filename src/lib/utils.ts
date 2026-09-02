@@ -30,9 +30,9 @@ export function formatDuration(seconds: number): string {
 }
 
 export function generateOrderCode(): string {
-  const timestamp = Date.now().toString().slice(-4);
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
-  return `EL-${timestamp}${randomNum}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = crypto.randomUUID().slice(0, 8).toUpperCase();
+  return `EL-${timestamp}-${random}`;
 }
 
 export function getYouTubeEmbedUrl(url: string | null | undefined): string | null {

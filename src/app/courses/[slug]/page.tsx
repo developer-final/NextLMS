@@ -64,7 +64,7 @@ export async function generateMetadata({
 export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
   const { slug } = await params;
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
 
   const course = await prisma.course.findUnique({
     where: { slug },

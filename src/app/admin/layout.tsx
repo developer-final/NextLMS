@@ -13,10 +13,10 @@ export default async function AdminLayout({
     redirect("/auth/login?callbackUrl=/admin");
   }
 
-  const user = session.user as any;
-  const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN" || user.role === "INSTRUCTOR";
+  const user = session.user;
+  const isAdminOrInstructor = user.role === "ADMIN" || user.role === "SUPER_ADMIN" || user.role === "INSTRUCTOR";
 
-  if (!isAdmin) {
+  if (!isAdminOrInstructor) {
     redirect("/");
   }
 

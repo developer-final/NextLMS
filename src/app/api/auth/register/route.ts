@@ -14,6 +14,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: "Định dạng email không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
     if (password.length < 6) {
       return NextResponse.json(
         { error: "Mật khẩu phải có ít nhất 6 ký tự" },
@@ -38,7 +46,7 @@ export async function POST(req: Request) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Check if this is the first user in system -> make SUPER_ADMIN, otherwise STUDENT
+    // Check if this is the first user in system -> make ADMIN, otherwise STUDENT
     const userCount = await prisma.user.count();
     const role = userCount === 0 ? "ADMIN" : "STUDENT";
 

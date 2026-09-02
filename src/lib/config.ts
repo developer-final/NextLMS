@@ -55,10 +55,19 @@ export const DEFAULT_CONFIG: SystemConfig = {
   refundMaxProgress: 30,
 };
 
+let cachedSettings: SystemConfig | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 60 * 1000; // 60 seconds
+
 /**
  * Fetch all system settings from database with fallback to DEFAULT_CONFIG
  */
 export async function getSystemSettings(): Promise<SystemConfig> {
+  const now = Date.now();
+  if (cachedSettings && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedSettings;
+  }
+
   try {
     const settings = await prisma.setting.findMany();
     const configMap: Record<string, string> = {};
@@ -67,7 +76,7 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       configMap[item.key] = item.value;
     }
 
-    return {
+    const result: SystemConfig = {
       appName: configMap["appName"] || DEFAULT_CONFIG.appName,
       appSlogan: configMap["appSlogan"] || DEFAULT_CONFIG.appSlogan,
       appDescription: configMap["appDescription"] || DEFAULT_CONFIG.appDescription,
@@ -93,6 +102,10 @@ export async function getSystemSettings(): Promise<SystemConfig> {
         ? parseInt(configMap["refundMaxProgress"], 10)
         : DEFAULT_CONFIG.refundMaxProgress,
     };
+
+    cachedSettings = result;
+    cacheTimestamp = now;
+    return result;
   } catch (error) {
     console.error("Error loading system settings:", error);
     return DEFAULT_CONFIG;

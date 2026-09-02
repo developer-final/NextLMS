@@ -16,8 +16,8 @@ export async function GET(
     }
 
     const { orderCode } = await params;
-    const userId = (session.user as any)?.id;
-    const userRole = (session.user as any)?.role;
+    const userId = session.user?.id;
+    const userRole = session.user?.role;
 
     if (!orderCode) {
       return NextResponse.json({ error: "Thiếu mã đơn hàng" }, { status: 400 });

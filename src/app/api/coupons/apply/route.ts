@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Vui lòng đăng nhập" }, { status: 401 });
+    }
+
     const { code, courseId } = await req.json();
 
     if (!code) {

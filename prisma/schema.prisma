@@ -117,6 +117,7 @@ model Lesson {
   progresses  LessonProgress[]
   comments    Comment[]
 
+  @@unique([sectionId, slug])
   @@index([sectionId])
   @@map("lessons")
 }

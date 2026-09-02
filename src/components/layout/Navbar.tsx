@@ -24,7 +24,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const user = session?.user as any;
+  const user = session?.user;
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const isInstructor = user?.role === "INSTRUCTOR" || isAdmin;
 

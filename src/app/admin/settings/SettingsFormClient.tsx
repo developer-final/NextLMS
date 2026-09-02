@@ -63,7 +63,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
     accountName: formData.bankAccountName,
     amount: 500000,
     description: "EL TEST99",
-    template: formData.vietqrTemplate as any,
+    template: formData.vietqrTemplate as "compact" | "compact2" | "qr_only" | "print",
   });
 
   return (

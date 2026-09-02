@@ -7,9 +7,12 @@ import { slugify } from "@/lib/utils";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -30,9 +33,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -47,12 +53,11 @@ export async function POST(req: Request) {
     const slug = slugify(cleanName);
 
     if (id) {
-      // Update
+      // Update — keep existing slug stable to avoid breaking URLs
       const updated = await prisma.category.update({
         where: { id },
         data: {
           name: cleanName,
-          slug,
           description: description?.trim() || null,
           icon: icon || "BookOpen",
           orderIndex: parseInt(orderIndex, 10) || 0,
@@ -99,9 +104,12 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

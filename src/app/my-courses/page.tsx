@@ -12,7 +12,7 @@ export default async function MyCoursesPage() {
     redirect("/auth/login?callbackUrl=/my-courses");
   }
 
-  const userId = (session.user as any).id;
+  const userId = session.user.id;
 
   const enrollments = await prisma.enrollment.findMany({
     where: {

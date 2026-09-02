@@ -7,9 +7,12 @@ import { slugify } from "@/lib/utils";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && user.role !== "INSTRUCTOR")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && user.role !== "INSTRUCTOR") {
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 

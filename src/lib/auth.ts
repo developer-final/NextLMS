@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import type { UserRole } from "@/types";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -45,7 +46,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role as UserRole,
           avatarUrl: user.avatarUrl,
         };
       },
@@ -55,8 +56,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || "STUDENT";
-        token.avatarUrl = (user as any).avatarUrl;
+        token.role = user.role || "STUDENT";
+        token.avatarUrl = user.avatarUrl;
       }
       if (trigger === "update" && session) {
         token.name = session.name || token.name;
@@ -66,12 +67,18 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user && token) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).role = (token.role as string) || "STUDENT";
-        (session.user as any).avatarUrl = token.avatarUrl as string;
+        session.user.id = token.id;
+        session.user.role = (token.role as UserRole) || "STUDENT";
+        session.user.avatarUrl = token.avatarUrl;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || "default_super_secret_for_dev_jwt_key_2026",
+  secret: (() => {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+      throw new Error("NEXTAUTH_SECRET environment variable must be set in production");
+    }
+    return secret || "default_super_secret_for_dev_jwt_key_2026";
+  })(),
 };

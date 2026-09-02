@@ -38,11 +38,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Vui lòng đăng nhập" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { lessonId, content, parentId } = await req.json();
 
     if (!lessonId || typeof content !== "string" || !content.trim()) {
       return NextResponse.json({ error: "Nội dung câu hỏi không được để trống" }, { status: 400 });
+    }
+
+    // Verify user is enrolled in the course containing this lesson
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { section: { select: { courseId: true } } },
+    });
+
+    if (!lesson) {
+      return NextResponse.json({ error: "Không tìm thấy bài học" }, { status: 404 });
+    }
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: lesson.section.courseId } },
+    });
+
+    if (!enrollment || enrollment.status !== "ACTIVE") {
+      return NextResponse.json(
+        { error: "Bạn cần đăng ký khóa học để bình luận" },
+        { status: 403 }
+      );
     }
 
     const trimmedContent = content.trim();

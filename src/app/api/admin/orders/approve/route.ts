@@ -6,9 +6,12 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 
@@ -37,32 +40,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "Đã hủy đơn hàng" });
     }
 
-    // Action: APPROVE
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { status: "COMPLETED" },
-    });
+    // Action: APPROVE — wrapped in transaction for atomicity
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: "COMPLETED" },
+      });
 
-    // Create Enrollment for each course in order
-    for (const item of order.orderItems) {
-      await prisma.enrollment.upsert({
-        where: {
-          userId_courseId: {
+      // Create Enrollment for each course in order
+      for (const item of order.orderItems) {
+        await tx.enrollment.upsert({
+          where: {
+            userId_courseId: {
+              userId: order.userId,
+              courseId: item.courseId,
+            },
+          },
+          update: {
+            status: "ACTIVE",
+          },
+          create: {
             userId: order.userId,
             courseId: item.courseId,
+            status: "ACTIVE",
+            progressPercent: 0,
           },
-        },
-        update: {
-          status: "ACTIVE",
-        },
-        create: {
-          userId: order.userId,
-          courseId: item.courseId,
-          status: "ACTIVE",
-          progressPercent: 0,
-        },
-      });
-    }
+        });
+      }
+    });
 
     return NextResponse.json({
       success: true,

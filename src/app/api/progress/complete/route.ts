@@ -10,7 +10,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = session.user.id;
     const { lessonId, courseId } = await req.json();
 
     if (!lessonId || !courseId) {
@@ -90,9 +90,7 @@ export async function POST(req: Request) {
       });
 
       if (!existingCert) {
-        const certCode = `CERT-${Date.now().toString().slice(-6)}-${Math.floor(
-          1000 + Math.random() * 9000
-        )}`;
+        const certCode = `CERT-${crypto.randomUUID().slice(0, 12).toUpperCase()}`;
         certificate = await prisma.certificate.create({
           data: {
             certificateCode: certCode,

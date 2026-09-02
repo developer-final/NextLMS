@@ -18,7 +18,7 @@ interface LessonPageProps {
 export default async function LessonPage({ params }: LessonPageProps) {
   const { courseSlug, lessonSlug } = await params;
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  const userId = session?.user?.id;
 
   // Fetch Course with all Sections and Lessons
   const course = await prisma.course.findUnique({

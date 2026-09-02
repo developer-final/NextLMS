@@ -7,9 +7,12 @@ import { getSystemSettings, DEFAULT_CONFIG } from "@/lib/config";
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -24,9 +27,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
 
-    if (!session || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

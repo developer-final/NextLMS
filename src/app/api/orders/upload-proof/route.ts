@@ -10,8 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
     }
 
-    const userId = (session.user as any)?.id;
-    const userRole = (session.user as any)?.role;
+    const userId = session.user?.id;
+    const userRole = session.user?.role;
     const { orderCode, proofImageUrl } = await req.json();
 
     if (!orderCode) {
@@ -34,10 +34,17 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!proofImageUrl?.trim()) {
+      return NextResponse.json(
+        { error: "Vui lòng cung cấp hình ảnh biên lai chuyển khoản" },
+        { status: 400 }
+      );
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { orderCode },
       data: {
-        proofImageUrl: proofImageUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80",
+        proofImageUrl: proofImageUrl.trim(),
       },
     });
 
