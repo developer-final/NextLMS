@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, PlusCircle, Search, UserCheck, X } from "lucide-react";
+import { PlusCircle, Search, UserCheck, X } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface StudentsListClientProps {
   initialStudents: any[];
@@ -13,6 +14,7 @@ export default function StudentsListClient({
   initialStudents,
   courses,
 }: StudentsListClientProps) {
+  const { t } = useLanguage();
   const [students, setStudents] = useState<any[]>(initialStudents);
   const [search, setSearch] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
@@ -40,11 +42,11 @@ export default function StudentsListClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi cấp quyền");
+        toast.error(data.error || "Error granting access");
         return;
       }
 
-      toast.success("🎉 Cấp quyền truy cập khóa học thành công!");
+      toast.success("🎉 Access granted successfully!");
       setSelectedStudent(null);
       // Update local state
       const targetCourse = courses.find((c) => c.id === selectedCourseId);
@@ -68,7 +70,7 @@ export default function StudentsListClient({
         })
       );
     } catch (err) {
-      toast.error("Lỗi cấp quyền học viên");
+      toast.error("Error granting access");
     } finally {
       setGranting(false);
     }
@@ -76,6 +78,13 @@ export default function StudentsListClient({
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-extrabold text-white">{t.admin.students.title}</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          {t.admin.students.subtitle} ({students.length})
+        </p>
+      </div>
+
       {/* Search */}
       <div className="flex justify-between items-center">
         <div className="relative w-72">
@@ -84,7 +93,7 @@ export default function StudentsListClient({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm học viên theo tên, email..."
+            placeholder={`${t.admin.students.nameHeader}, email...`}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
         </div>
@@ -95,17 +104,17 @@ export default function StudentsListClient({
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
-              <th className="px-5 py-3.5">Học viên</th>
-              <th className="px-5 py-3.5">Ngày tham gia</th>
-              <th className="px-5 py-3.5">Khóa học Đang học ({courses.length})</th>
-              <th className="px-5 py-3.5 text-right">Thao tác</th>
+              <th className="px-5 py-3.5">{t.admin.students.nameHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.students.joinedDateHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.students.enrolledCoursesHeader}</th>
+              <th className="px-5 py-3.5 text-right">{t.admin.courses.actionHeader}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-8 text-slate-500">
-                  Không tìm thấy học viên nào.
+                  -
                 </td>
               </tr>
             ) : (
@@ -117,12 +126,12 @@ export default function StudentsListClient({
                   </td>
 
                   <td className="px-5 py-4 text-slate-400">
-                    {new Date(s.createdAt).toLocaleDateString("vi-VN")}
+                    {new Date(s.createdAt).toLocaleDateString()}
                   </td>
 
                   <td className="px-5 py-4">
                     {s.enrollments.length === 0 ? (
-                      <span className="text-[11px] text-slate-500">Chưa có khóa học</span>
+                      <span className="text-[11px] text-slate-500">-</span>
                     ) : (
                       <div className="space-y-1">
                         {s.enrollments.map((enr: any) => (
@@ -146,7 +155,7 @@ export default function StudentsListClient({
                       onClick={() => setSelectedStudent(s)}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-brand-500 hover:text-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition-all"
                     >
-                      <PlusCircle className="h-3.5 w-3.5" /> Cấp quyền học
+                      <PlusCircle className="h-3.5 w-3.5" /> {t.admin.students.grantBtn}
                     </button>
                   </td>
                 </tr>
@@ -162,7 +171,7 @@ export default function StudentsListClient({
           <div className="relative max-w-md w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                <UserCheck className="h-4 w-4 text-brand-400" /> Cấp quyền Khóa học Thủ công
+                <UserCheck className="h-4 w-4 text-brand-400" /> {t.admin.students.modalTitle}
               </h3>
               <button
                 onClick={() => setSelectedStudent(null)}
@@ -173,13 +182,13 @@ export default function StudentsListClient({
             </div>
 
             <div className="text-xs text-slate-300 space-y-1">
-              <p>Học viên: <strong className="text-white">{selectedStudent.name}</strong></p>
-              <p>Email: <strong className="text-white">{selectedStudent.email}</strong></p>
+              <p>{t.admin.students.nameHeader}: <strong className="text-white">{selectedStudent.name}</strong></p>
+              <p>{t.admin.students.emailHeader}: <strong className="text-white">{selectedStudent.email}</strong></p>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Chọn Khóa học để Cấp quyền:
+                {t.admin.students.selectCourseLabel}:
               </label>
               <select
                 value={selectedCourseId}
@@ -199,14 +208,14 @@ export default function StudentsListClient({
                 onClick={() => setSelectedStudent(null)}
                 className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
               >
-                Hủy bỏ
+                {t.admin.students.cancelBtn}
               </button>
               <button
                 onClick={handleGrantAccess}
                 disabled={granting}
                 className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50"
               >
-                {granting ? "Đang xử lý..." : "Xác nhận Cấp quyền"}
+                {granting ? t.admin.students.grantingBtn : t.admin.students.grantBtn}
               </button>
             </div>
           </div>
@@ -215,3 +224,4 @@ export default function StudentsListClient({
     </div>
   );
 }
+

@@ -20,20 +20,6 @@ export default async function AdminOrdersPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">
-            Quản lý Đơn hàng & Kích hoạt Khóa học
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Kiểm tra thông tin chuyển khoản VietQR, xem ảnh biên lai và duyệt kích hoạt 1 chạm
-          </p>
-        </div>
-      </div>
-
-      <OrderListClient initialOrders={orders} />
-    </div>
-  );
+  return <OrderListClient initialOrders={orders} />;
 }
+

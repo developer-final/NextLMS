@@ -15,9 +15,12 @@ import {
   X,
   Compass
 } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
+import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
 
 export default function Navbar() {
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -40,7 +43,7 @@ export default function Navbar() {
                 PRO
               </span>
             </span>
-            <span className="text-[10px] text-slate-400 tracking-wider">Học viện Đào tạo Trading Thực chiến</span>
+            <span className="text-[10px] text-slate-400 tracking-wider">{t.common.appSlogan}</span>
           </div>
         </Link>
 
@@ -51,25 +54,28 @@ export default function Navbar() {
             className="flex items-center gap-1.5 text-sm font-medium text-slate-300 hover:text-brand-400 transition-colors"
           >
             <Compass className="h-4 w-4" />
-            Tất cả Khóa học
+            {t.nav.allCourses}
           </Link>
           <Link
             href="/categories"
             className="flex items-center gap-1.5 text-sm font-medium text-slate-300 hover:text-brand-400 transition-colors"
           >
             <BookOpen className="h-4 w-4" />
-            Chủ đề & Lĩnh vực
+            {t.nav.categories}
           </Link>
           <Link
             href="/about"
             className="text-sm font-medium text-slate-300 hover:text-brand-400 transition-colors"
           >
-            Về chúng tôi
+            {t.nav.aboutUs}
           </Link>
         </nav>
 
         {/* Right CTA / User Area */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-3">
+          {/* Language Switcher */}
+          <LanguageSwitcher variant="navbar" />
+
           {status === "loading" ? (
             <div className="h-8 w-24 animate-pulse rounded-lg bg-slate-800"></div>
           ) : session ? (
@@ -91,11 +97,11 @@ export default function Navbar() {
               {/* Dropdown Menu */}
               {userMenuOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-800 bg-slate-900/95 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-800 bg-slate-900/95 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50"
                   onMouseLeave={() => setUserMenuOpen(false)}
                 >
                   <div className="px-3 py-2 border-b border-slate-800">
-                    <p className="text-xs text-slate-400">Đăng nhập với</p>
+                    <p className="text-xs text-slate-400">{t.nav.loggedInAs}</p>
                     <p className="text-sm font-semibold text-white truncate">{user?.email}</p>
                     <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800">
                       {user?.role}
@@ -109,7 +115,7 @@ export default function Navbar() {
                       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
                     >
                       <GraduationCap className="h-4 w-4" />
-                      Khóa học của tôi
+                      {t.nav.myCourses}
                     </Link>
 
                     {isInstructor && (
@@ -119,7 +125,7 @@ export default function Navbar() {
                         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
                       >
                         <BookOpen className="h-4 w-4" />
-                        Quản lý Bài giảng
+                        {t.nav.manageCourses}
                       </Link>
                     )}
 
@@ -130,7 +136,7 @@ export default function Navbar() {
                         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-amber-300 hover:bg-amber-950/40 transition-colors"
                       >
                         <LayoutDashboard className="h-4 w-4" />
-                        Trang Quản trị Admin
+                        {t.nav.adminDashboard}
                       </Link>
                     )}
                   </div>
@@ -141,7 +147,7 @@ export default function Navbar() {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-400 hover:bg-rose-950/30 transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
-                      Đăng xuất
+                      {t.nav.logout}
                     </button>
                   </div>
                 </div>
@@ -153,20 +159,21 @@ export default function Navbar() {
                 href="/auth/login"
                 className="text-sm font-medium text-slate-300 hover:text-white px-3 py-2 transition-colors"
               >
-                Đăng nhập
+                {t.nav.login}
               </Link>
               <Link
                 href="/auth/register"
                 className="rounded-lg bg-brand-500 hover:bg-brand-400 px-4 py-2 text-sm font-semibold text-slate-950 shadow-glow transition-all hover:scale-105"
               >
-                Đăng ký ngay
+                {t.nav.register}
               </Link>
             </div>
           )}
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitcher variant="navbar" />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"
@@ -184,15 +191,23 @@ export default function Navbar() {
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
           >
-            Tất cả Khóa học
+            {t.nav.allCourses}
           </Link>
           <Link
             href="/categories"
             onClick={() => setMobileMenuOpen(false)}
             className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
           >
-            Chủ đề & Lĩnh vực
+            {t.nav.categories}
           </Link>
+          <Link
+            href="/about"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            {t.nav.aboutUs}
+          </Link>
+
           {session ? (
             <>
               <Link
@@ -200,7 +215,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="block px-3 py-2 rounded-md text-base font-medium text-brand-400 hover:bg-slate-800"
               >
-                Khóa học của tôi
+                {t.nav.myCourses}
               </Link>
               {isAdmin && (
                 <Link
@@ -208,14 +223,14 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-3 py-2 rounded-md text-base font-medium text-amber-400 hover:bg-slate-800"
                 >
-                  Trang Quản trị Admin
+                  {t.nav.adminDashboard}
                 </Link>
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-rose-400 hover:bg-rose-950/20"
               >
-                Đăng xuất ({user?.name})
+                {t.nav.logout} ({user?.name})
               </button>
             </>
           ) : (
@@ -225,19 +240,22 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2.5 rounded-lg border border-slate-700 text-sm font-medium text-white"
               >
-                Đăng nhập
+                {t.nav.login}
               </Link>
               <Link
                 href="/auth/register"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2.5 rounded-lg bg-brand-500 font-semibold text-sm text-slate-950 shadow-glow"
               >
-                Đăng ký tài khoản
+                {t.nav.register}
               </Link>
             </div>
           )}
+
+          <LanguageSwitcher variant="mobile" />
         </div>
       )}
     </header>
   );
 }
+

@@ -7,19 +7,20 @@ import {
   Clock,
   Eye,
   FileImage,
-  Filter,
   Search,
   XCircle,
   X,
   ExternalLink,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface OrderListClientProps {
   initialOrders: any[];
 }
 
 export default function OrderListClient({ initialOrders }: OrderListClientProps) {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<any[]>(initialOrders);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,23 +48,23 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi duyệt đơn");
+        toast.error(data.error || "Error approving order");
         return;
       }
 
-      toast.success("🎉 Đã duyệt đơn và kích hoạt khóa học cho học viên!");
+      toast.success(`🎉 ${t.admin.orders.approveSuccess}`);
       setOrders(
         orders.map((o) => (o.id === orderId ? { ...o, status: "COMPLETED" } : o))
       );
     } catch (err) {
-      toast.error("Lỗi duyệt đơn hàng");
+      toast.error("Error approving order");
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleCancel = async (orderId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+    if (!confirm("Are you sure you want to cancel this order?")) return;
 
     setProcessingId(orderId);
     try {
@@ -75,16 +76,16 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi hủy đơn");
+        toast.error(data.error || "Error cancelling order");
         return;
       }
 
-      toast.info("Đã hủy đơn hàng");
+      toast.info(t.admin.orders.cancelSuccess);
       setOrders(
         orders.map((o) => (o.id === orderId ? { ...o, status: "CANCELLED" } : o))
       );
     } catch (err) {
-      toast.error("Lỗi hủy đơn");
+      toast.error("Error cancelling order");
     } finally {
       setProcessingId(null);
     }
@@ -92,26 +93,32 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-extrabold text-white">{t.admin.orders.title}</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          {t.admin.orders.subtitle} ({orders.length})
+        </p>
+      </div>
+
       {/* Search and Tabs */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
-          {["ALL", "PENDING", "COMPLETED", "CANCELLED"].map((st) => (
+          {[
+            { key: "ALL", label: t.admin.orders.allFilter },
+            { key: "PENDING", label: t.admin.orders.pendingFilter },
+            { key: "COMPLETED", label: t.admin.orders.completedFilter },
+            { key: "CANCELLED", label: t.admin.orders.cancelledFilter },
+          ].map((tab) => (
             <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
+              key={tab.key}
+              onClick={() => setFilterStatus(tab.key)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                filterStatus === st
+                filterStatus === tab.key
                   ? "bg-brand-500 text-slate-950 shadow-glow"
                   : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
               }`}
             >
-              {st === "ALL"
-                ? "Tất cả"
-                : st === "PENDING"
-                ? "Chờ duyệt"
-                : st === "COMPLETED"
-                ? "Đã hoàn tất"
-                : "Đã hủy"}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -122,7 +129,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo mã đơn, email..."
+            placeholder={t.admin.orders.searchPlaceholder}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
         </div>
@@ -133,20 +140,20 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
-              <th className="px-5 py-3.5">Mã đơn & Ngày</th>
-              <th className="px-5 py-3.5">Học viên</th>
-              <th className="px-5 py-3.5">Khóa học</th>
-              <th className="px-5 py-3.5">Số tiền</th>
-              <th className="px-5 py-3.5">Biên lai</th>
-              <th className="px-5 py-3.5">Trạng thái</th>
-              <th className="px-5 py-3.5 text-right">Thao tác</th>
+              <th className="px-5 py-3.5">{t.admin.orders.orderCodeHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.orders.studentHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.courses.courseHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.orders.amountHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.orders.viewProofBtn}</th>
+              <th className="px-5 py-3.5">{t.admin.orders.statusHeader}</th>
+              <th className="px-5 py-3.5 text-right">{t.admin.orders.actionHeader}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
             {filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-8 text-slate-500">
-                  Không có đơn hàng nào phù hợp với bộ lọc.
+                  {t.admin.orders.noOrders}
                 </td>
               </tr>
             ) : (
@@ -159,7 +166,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                     <td className="px-5 py-4 font-bold text-white">
                       <div>#{order.orderCode}</div>
                       <div className="text-[10px] text-slate-500 font-normal">
-                        {new Date(order.createdAt).toLocaleString("vi-VN")}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </div>
                     </td>
 
@@ -186,10 +193,10 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                           onClick={() => setSelectedProofImg(order.proofImageUrl)}
                           className="flex items-center gap-1 rounded-lg bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-200 border border-slate-700"
                         >
-                          <FileImage className="h-3.5 w-3.5 text-brand-400" /> Xem Bill
+                          <FileImage className="h-3.5 w-3.5 text-brand-400" /> {t.admin.orders.viewProofBtn}
                         </button>
                       ) : (
-                        <span className="text-[11px] text-slate-500">Chưa tải</span>
+                        <span className="text-[11px] text-slate-500">-</span>
                       )}
                     </td>
 
@@ -204,10 +211,10 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                         }`}
                       >
                         {isCompleted
-                          ? "Đã thanh toán"
+                          ? t.admin.orders.completedFilter
                           : isPending
-                          ? "Chờ duyệt"
-                          : "Đã hủy"}
+                          ? t.admin.orders.pendingFilter
+                          : t.admin.orders.cancelledFilter}
                       </span>
                     </td>
 
@@ -219,19 +226,19 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                             disabled={processingId === order.id}
                             className="rounded-lg bg-emerald-500 hover:bg-emerald-400 px-3 py-1.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
                           >
-                            {processingId === order.id ? "Đang xử lý..." : "✓ Duyệt & Kích hoạt"}
+                            {processingId === order.id ? "..." : `✓ ${t.admin.orders.approveBtn}`}
                           </button>
                           <button
                             onClick={() => handleCancel(order.id)}
                             disabled={processingId === order.id}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/40 text-slate-400 hover:text-rose-400"
-                            title="Hủy đơn"
+                            title={t.admin.orders.cancelBtn}
                           >
                             <XCircle className="h-4 w-4" />
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-500">Hoàn tất</span>
+                        <span className="text-[11px] text-slate-500">✓</span>
                       )}
                     </td>
                   </tr>
@@ -248,7 +255,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
           <div className="relative max-w-xl w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                <FileImage className="h-4 w-4 text-brand-400" /> Ảnh Biên lai Chuyển khoản
+                <FileImage className="h-4 w-4 text-brand-400" /> {t.admin.orders.proofModalTitle}
               </h3>
               <div className="flex items-center gap-2">
                 <a
@@ -256,7 +263,6 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-brand-400 hover:bg-slate-800 transition-colors"
-                  title="Mở ảnh gốc trong tab mới"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
@@ -272,7 +278,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
             <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black flex items-center justify-center min-h-[250px]">
               <img
                 src={selectedProofImg}
-                alt="Bill thanh toan"
+                alt="Bill payment proof"
                 className="w-full max-h-[65vh] object-contain rounded-xl"
               />
             </div>
@@ -282,3 +288,4 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
     </div>
   );
 }
+

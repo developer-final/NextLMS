@@ -8,12 +8,10 @@ import {
   Plus,
   Trash2,
   Video,
-  FileText,
-  DollarSign,
-  Sparkles,
   Layers,
   ArrowRight,
 } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface CourseCreateFormProps {
   categories: any[];
@@ -21,6 +19,7 @@ interface CourseCreateFormProps {
 
 export default function CourseCreateForm({ categories }: CourseCreateFormProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   // General course info
@@ -57,7 +56,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
     setSections([
       ...sections,
       {
-        title: `Chương ${sections.length + 1}: Nội dung nâng cao`,
+        title: `Chương ${sections.length + 1}: Nội dung tiếp theo`,
         lessons: [
           {
             title: `Bài 1: Tổng quan chương ${sections.length + 1}`,
@@ -83,7 +82,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
   const addLesson = (sIdx: number) => {
     const updated = [...sections];
     updated[sIdx].lessons.push({
-      title: `Bài ${updated[sIdx].lessons.length + 1}: Thực hành chuyên sâu`,
+      title: `Bài ${updated[sIdx].lessons.length + 1}`,
       videoUrl: "",
       videoDuration: 1200,
       contentType: "VIDEO_YOUTUBE",
@@ -118,7 +117,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      toast.error("Vui lòng nhập tên khóa học");
+      toast.error(t.admin.createCourse.courseTitleLabel);
       return;
     }
 
@@ -145,15 +144,15 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi tạo khóa học");
+        toast.error(data.error || t.admin.createCourse.createError);
         return;
       }
 
-      toast.success("🎉 Tạo khóa học thành công!");
+      toast.success(`🎉 ${t.admin.createCourse.createSuccess}`);
       router.push(`/courses/${data.course.slug}`);
       router.refresh();
     } catch (err) {
-      toast.error("Đã xảy ra lỗi khi tạo khóa học");
+      toast.error(t.admin.createCourse.createError);
     } finally {
       setLoading(false);
     }
@@ -161,29 +160,36 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-16">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-extrabold text-white">{t.admin.createCourse.title}</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          {t.admin.createCourse.subtitle}
+        </p>
+      </div>
+
       {/* 1. Basic Info */}
       <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5">
         <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
-          <BookOpen className="h-4 w-4" /> 1. Thông tin Chung Khóa học
+          <BookOpen className="h-4 w-4" /> 1. {t.admin.createCourse.basicInfo}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
           <div className="md:col-span-2">
             <label className="block text-slate-300 font-semibold mb-1">
-              Tiêu đề Khóa học *
+              {t.admin.createCourse.courseTitleLabel} *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: Khóa học Phân tích Kỹ thuật Nâng cao SMC..."
+              placeholder={t.admin.createCourse.courseTitlePlaceholder}
               required
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-white focus:border-brand-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Danh mục Chủ đề</label>
+            <label className="block text-slate-300 font-semibold mb-1">{t.admin.createCourse.categoryLabel}</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
@@ -198,43 +204,43 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Trình độ</label>
+            <label className="block text-slate-300 font-semibold mb-1">{t.admin.createCourse.levelLabel}</label>
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value)}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
             >
-              <option value="ALL_LEVELS">Mọi trình độ (All Levels)</option>
-              <option value="BEGINNER">Cơ bản (Beginner)</option>
-              <option value="INTERMEDIATE">Trung cấp (Intermediate)</option>
-              <option value="ADVANCED">Nâng cao (Advanced)</option>
+              <option value="ALL_LEVELS">{t.common.allLevels}</option>
+              <option value="BEGINNER">{t.common.beginner}</option>
+              <option value="INTERMEDIATE">{t.common.intermediate}</option>
+              <option value="ADVANCED">{t.common.advanced}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-slate-300 font-semibold mb-1">
-              Giá niêm yết (VND)
+              {t.admin.createCourse.originalPriceLabel}
             </label>
             <input
               type="number"
               disabled={isFree}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="VD: 1200000"
+              placeholder="1200000"
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none disabled:opacity-40"
             />
           </div>
 
           <div>
             <label className="block text-slate-300 font-semibold mb-1">
-              Giá khuyến mãi Sale (VND)
+              {t.admin.createCourse.salePriceLabel}
             </label>
             <input
               type="number"
               disabled={isFree}
               value={salePrice}
               onChange={(e) => setSalePrice(e.target.value)}
-              placeholder="VD: 790000 (Tùy chọn)"
+              placeholder="790000"
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none disabled:opacity-40"
             />
           </div>
@@ -247,7 +253,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                 onChange={(e) => setIsFree(e.target.checked)}
                 className="rounded border-slate-700 text-brand-500 focus:ring-brand-500 h-4 w-4 bg-slate-950"
               />
-              <span>Khóa học Miễn phí (Free 100%)</span>
+              <span>{t.admin.createCourse.freeCheckbox}</span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-amber-400">
@@ -257,7 +263,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                 onChange={(e) => setIsFeatured(e.target.checked)}
                 className="rounded border-slate-700 text-amber-500 focus:ring-amber-500 h-4 w-4 bg-slate-950"
               />
-              <span>Khóa học Nổi bật (Featured)</span>
+              <span>{t.admin.createCourse.featuredCheckbox}</span>
             </label>
           </div>
         </div>
@@ -266,56 +272,56 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
       {/* 2. Media & Descriptions */}
       <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-5">
         <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
-          <Video className="h-4 w-4" /> 2. Hình ảnh, Video & Soạn thảo Mô tả
+          <Video className="h-4 w-4" /> 2. {t.admin.createCourse.thumbnailLabel} & {t.admin.createCourse.descLabel}
         </h3>
 
         <div className="space-y-4 text-xs">
           <div>
             <label className="block text-slate-300 font-semibold mb-1">
-              URL Ảnh Thumbnail Khóa học
+              {t.admin.createCourse.thumbnailLabel}
             </label>
             <input
               type="text"
               value={thumbnailUrl}
               onChange={(e) => setThumbnailUrl(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
+              placeholder={t.admin.createCourse.thumbnailPlaceholder}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-slate-300 font-semibold mb-1">
-              URL Video Giới thiệu (YouTube Embed / Intro)
+              {t.admin.createCourse.introVideoLabel}
             </label>
             <input
               type="text"
               value={introVideoUrl}
               onChange={(e) => setIntroVideoUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder={t.admin.createCourse.introVideoPlaceholder}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">Mô tả ngắn</label>
+            <label className="block text-slate-300 font-semibold mb-1">{t.admin.createCourse.shortDescLabel}</label>
             <textarea
               rows={2}
               value={shortDescription}
               onChange={(e) => setShortDescription(e.target.value)}
-              placeholder="Tóm tắt điểm cốt lõi của khóa học trong 1-2 câu..."
+              placeholder={t.admin.createCourse.shortDescPlaceholder}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
             />
           </div>
 
           <div>
             <label className="block text-slate-300 font-semibold mb-1">
-              Mô tả chi tiết bài giảng (Rich Text / Markdown)
+              {t.admin.createCourse.descLabel}
             </label>
             <textarea
               rows={5}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Nhập nội dung chi tiết, mục tiêu khóa học, các giá trị học viên nhận được..."
+              placeholder={t.admin.createCourse.descPlaceholder}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-white focus:border-brand-500 focus:outline-none font-mono"
             />
           </div>
@@ -326,14 +332,14 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
       <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
-            <Layers className="h-4 w-4" /> 3. Đề cương Giáo trình (Chương & Bài học)
+            <Layers className="h-4 w-4" /> 3. {t.admin.createCourse.curriculum}
           </h3>
           <button
             type="button"
             onClick={addSection}
             className="flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-brand-400 border border-slate-700"
           >
-            <Plus className="h-4 w-4" /> Thêm Chương mới
+            <Plus className="h-4 w-4" /> {t.admin.createCourse.addSectionBtn}
           </button>
         </div>
 
@@ -349,13 +355,13 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                   value={sec.title}
                   onChange={(e) => updateSectionTitle(sIdx, e.target.value)}
                   className="flex-1 font-bold text-sm text-white bg-transparent border-b border-slate-800 pb-1 focus:border-brand-500 focus:outline-none"
-                  placeholder="Tên chương học..."
+                  placeholder={t.admin.createCourse.sectionTitlePlaceholder}
                 />
                 <button
                   type="button"
                   onClick={() => removeSection(sIdx)}
                   className="p-1.5 text-slate-500 hover:text-rose-400"
-                  title="Xóa chương"
+                  title={t.admin.createCourse.deleteSectionBtn}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -376,7 +382,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                           updateLessonField(sIdx, lIdx, "title", e.target.value)
                         }
                         className="flex-1 font-semibold text-white bg-transparent border-b border-slate-800 pb-0.5 focus:border-brand-500 focus:outline-none"
-                        placeholder="Tên bài học..."
+                        placeholder={t.admin.createCourse.lessonTitlePlaceholder}
                       />
                       <button
                         type="button"
@@ -395,7 +401,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                           onChange={(e) =>
                             updateLessonField(sIdx, lIdx, "videoUrl", e.target.value)
                           }
-                          placeholder="URL Video YouTube hoặc CDN..."
+                          placeholder={t.admin.createCourse.videoUrlPlaceholder}
                           className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
                         />
                       </div>
@@ -407,7 +413,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                           onChange={(e) =>
                             updateLessonField(sIdx, lIdx, "videoDuration", e.target.value)
                           }
-                          placeholder="Thời lượng (giây)"
+                          placeholder={t.admin.createCourse.durationSecondsLabel}
                           className="w-24 rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
                         />
                         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-brand-400 whitespace-nowrap">
@@ -419,7 +425,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                             }
                             className="rounded border-slate-700 text-brand-500 h-3.5 w-3.5 bg-slate-950"
                           />
-                          <span>Xem thử</span>
+                          <span>{t.admin.createCourse.freePreviewCheckbox}</span>
                         </label>
                       </div>
                     </div>
@@ -431,7 +437,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                   onClick={() => addLesson(sIdx)}
                   className="flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300 pt-1"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Thêm bài học vào chương này
+                  <Plus className="h-3.5 w-3.5" /> {t.admin.createCourse.addLessonBtn}
                 </button>
               </div>
             </div>
@@ -446,10 +452,11 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
           disabled={loading}
           className="flex items-center gap-2 rounded-2xl bg-brand-500 hover:bg-brand-400 px-8 py-4 text-sm font-bold text-slate-950 shadow-glow transition-all hover:scale-105 disabled:opacity-50"
         >
-          {loading ? "Đang xuất bản khóa học..." : "Xuất bản Khóa học Ngay"}
+          {loading ? t.admin.createCourse.submittingBtn : t.admin.createCourse.submitBtn}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     </form>
   );
 }
+

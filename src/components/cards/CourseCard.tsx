@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { BookOpen, Clock, PlayCircle, Star, User, Sparkles } from "lucide-react";
 import { formatVND } from "@/lib/utils";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export interface CourseCardProps {
   course: {
@@ -32,6 +35,8 @@ export interface CourseCardProps {
 }
 
 export default function CourseCard({ course }: CourseCardProps) {
+  const { t } = useLanguage();
+
   const totalLessons = course.sections
     ? course.sections.reduce((acc, s) => acc + s.lessons.length, 0)
     : 0;
@@ -46,10 +51,10 @@ export default function CourseCard({ course }: CourseCardProps) {
   const totalHours = Math.max(1, Math.round(totalDuration / 3600));
 
   const levelLabels: Record<string, string> = {
-    BEGINNER: "Cơ bản",
-    INTERMEDIATE: "Trung cấp",
-    ADVANCED: "Nâng cao",
-    ALL_LEVELS: "Mọi trình độ",
+    BEGINNER: t.common.beginner,
+    INTERMEDIATE: t.common.intermediate,
+    ADVANCED: t.common.advanced,
+    ALL_LEVELS: t.common.allLevels,
   };
 
   const discountPercent =
@@ -75,7 +80,7 @@ export default function CourseCard({ course }: CourseCardProps) {
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
           {course.isFeatured && (
             <span className="flex items-center gap-1 rounded-md bg-amber-500/90 px-2 py-0.5 text-[11px] font-bold text-slate-950 backdrop-blur-md shadow-md">
-              <Sparkles className="h-3 w-3" /> Nổi bật
+              <Sparkles className="h-3 w-3" /> {t.courseCard.featured}
             </span>
           )}
           {course.category && (
@@ -96,7 +101,7 @@ export default function CourseCard({ course }: CourseCardProps) {
             {levelLabels[course.level] || course.level}
           </span>
           <span className="flex items-center gap-1 rounded bg-slate-950/70 px-2 py-0.5 backdrop-blur-sm">
-            <Clock className="h-3 w-3 text-brand-400" /> ~{totalHours} giờ học
+            <Clock className="h-3 w-3 text-brand-400" /> ~{totalHours} {t.courseCard.approxHours}
           </span>
         </div>
       </div>
@@ -132,7 +137,7 @@ export default function CourseCard({ course }: CourseCardProps) {
         <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-800/80">
           <div>
             {course.isFree ? (
-              <span className="text-base font-extrabold text-brand-400">Miễn phí</span>
+              <span className="text-base font-extrabold text-brand-400">{t.courseCard.free}</span>
             ) : course.salePrice ? (
               <div className="flex flex-col">
                 <span className="text-base font-extrabold text-brand-400">
@@ -153,7 +158,7 @@ export default function CourseCard({ course }: CourseCardProps) {
             href={`/courses/${course.slug}`}
             className="rounded-lg bg-slate-800 hover:bg-brand-500 hover:text-slate-950 px-3.5 py-1.5 text-xs font-semibold text-white transition-all"
           >
-            Xem khóa học
+            {t.courseCard.viewCourse}
           </Link>
         </div>
       </div>

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 import { generateVietQRUrl } from "@/lib/vietqr";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface CheckoutPageProps {
   params: Promise<{
@@ -33,6 +34,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const { slug } = use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   const [course, setCourse] = useState<any>(null);
   const [loadingCourse, setLoadingCourse] = useState(true);
@@ -87,13 +89,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         const data = await res.json();
         setCourse(data);
       } catch (err) {
-        toast.error("Không tìm thấy thông tin khóa học");
+        toast.error(language === "en" ? "Course information not found" : "Không tìm thấy thông tin khóa học");
       } finally {
         setLoadingCourse(false);
       }
     }
     loadCourse();
-  }, [slug]);
+  }, [slug, language]);
 
   // Realtime Polling for order completion status
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         const data = await res.json();
         if (data.isCompleted) {
           setIsOrderCompletedRealtime(true);
-          toast.success("🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học...");
+          toast.success(language === "en" ? "🎉 Order verified successfully! Redirecting to course..." : "🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học...");
           clearInterval(interval);
           setTimeout(() => {
             router.push(`/my-courses`);
@@ -118,7 +120,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [createdOrder?.orderCode, isOrderCompletedRealtime, router]);
+  }, [createdOrder?.orderCode, isOrderCompletedRealtime, router, language]);
 
   if (status === "loading" || loadingCourse) {
     return (
@@ -133,15 +135,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 backdrop-blur-xl">
           <Lock className="mx-auto h-12 w-12 text-brand-400 mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">Vui lòng đăng nhập</h2>
+          <h2 className="text-xl font-bold text-white mb-2">{t.checkout.requireLoginTitle}</h2>
           <p className="text-xs text-slate-400 mb-6">
-            Bạn cần đăng nhập hoặc tạo tài khoản để hoàn tất đăng ký khóa học này.
+            {t.checkout.requireLoginDesc}
           </p>
           <Link
             href={`/auth/login?callbackUrl=/checkout/${slug}`}
             className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow"
           >
-            Đăng nhập ngay <ArrowRight className="h-4 w-4" />
+            {t.checkout.loginNowBtn} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -151,7 +153,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   if (!course) {
     return (
       <div className="text-center py-20 text-slate-400">
-        Khóa học không tồn tại hoặc đã bị gỡ.
+        {language === "en" ? "Course not found or has been unpublished." : "Khóa học không tồn tại hoặc đã bị gỡ."}
       </div>
     );
   }
@@ -181,13 +183,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Mã giảm giá không hợp lệ");
+        toast.error(data.error || (language === "en" ? "Invalid coupon code" : "Mã giảm giá không hợp lệ"));
         return;
       }
       setAppliedCoupon(data.coupon);
-      toast.success(`Đã áp dụng mã giảm giá ${data.coupon.code}!`);
+      toast.success(language === "en" ? `Coupon ${data.coupon.code} applied!` : `Đã áp dụng mã giảm giá ${data.coupon.code}!`);
     } catch (err) {
-      toast.error("Lỗi áp dụng mã giảm giá");
+      toast.error(language === "en" ? "Error applying coupon" : "Lỗi áp dụng mã giảm giá");
     } finally {
       setApplyingCoupon(false);
     }
@@ -211,24 +213,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       if (!res.ok) {
         if (data.alreadyEnrolled) {
-          toast.info("Bạn đã sở hữu khóa học này rồi!");
+          toast.info(language === "en" ? "You already own this course!" : "Bạn đã sở hữu khóa học này rồi!");
           router.push(`/courses/${slug}`);
           return;
         }
-        toast.error(data.error || "Lỗi tạo đơn hàng");
+        toast.error(data.error || (language === "en" ? "Error creating order" : "Lỗi tạo đơn hàng"));
         return;
       }
 
       setCreatedOrder(data.order);
 
       if (data.isFreeOrder) {
-        toast.success("Kích hoạt khóa học thành công!");
+        toast.success(language === "en" ? "Course activated successfully!" : "Kích hoạt khóa học thành công!");
         router.push(`/my-courses`);
       } else {
-        toast.success("Đơn hàng đã được tạo! Vui lòng quét mã QR thanh toán.");
+        toast.success(language === "en" ? "Order created! Please scan QR code to pay." : "Đơn hàng đã được tạo! Vui lòng quét mã QR thanh toán.");
       }
     } catch (err) {
-      toast.error("Đã xảy ra lỗi khi tạo đơn hàng");
+      toast.error(language === "en" ? "Error occurred while creating order" : "Đã xảy ra lỗi khi tạo đơn hàng");
     } finally {
       setIsProcessingOrder(false);
     }
@@ -237,7 +239,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
-    toast.success(`Đã sao chép ${field}`);
+    toast.success(`${t.common.copied} ${field}`);
     setTimeout(() => setCopiedField(null), 2000);
   };
 
@@ -256,14 +258,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi gửi biên lai");
+        toast.error(data.error || (language === "en" ? "Error submitting proof" : "Lỗi gửi biên lai"));
         return;
       }
 
       setProofSubmitted(true);
-      toast.success(data.message);
+      toast.success(data.message || (language === "en" ? "Receipt confirmation submitted!" : "Đã gửi xác nhận biên lai!"));
     } catch (err) {
-      toast.error("Lỗi gửi biên lai");
+      toast.error(language === "en" ? "Error submitting proof" : "Lỗi gửi biên lai");
     } finally {
       setSubmittingProof(false);
     }
@@ -289,10 +291,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8 border-b border-slate-800 pb-4">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-          Thanh toán & Đăng ký Khóa học
+          {t.checkout.pageTitle}
         </h1>
         <p className="text-xs text-slate-400 mt-1">
-          Bảo mật thông tin thanh toán 100% • Kích hoạt học ngay
+          {t.checkout.pageSubtitle}
         </p>
       </div>
 
@@ -311,13 +313,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
             />
             <div className="space-y-1">
               <span className="text-[11px] font-semibold text-brand-400 uppercase">
-                {course.category?.name || "Khóa học"}
+                {course.category?.name || t.checkout.courseInfoLabel}
               </span>
               <h3 className="text-sm sm:text-base font-bold text-white line-clamp-2">
                 {course.title}
               </h3>
               <p className="text-xs text-slate-400">
-                Giảng viên: <strong className="text-slate-300">{course.instructor?.name}</strong>
+                {t.checkout.instructorLabel} <strong className="text-slate-300">{course.instructor?.name}</strong>
               </p>
             </div>
           </div>
@@ -328,14 +330,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               {/* Coupon Form */}
               <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-1.5">
-                  <Tag className="h-4 w-4 text-brand-400" /> Mã giảm giá (Coupon)
+                  <Tag className="h-4 w-4 text-brand-400" /> {t.checkout.couponTitle}
                 </h4>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Nhập WTL50 hoặc TRADER200..."
+                    placeholder={t.checkout.couponPlaceholder}
                     className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white uppercase placeholder:normal-case placeholder-slate-500 focus:border-brand-500 focus:outline-none"
                   />
                   <button
@@ -344,12 +346,12 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     disabled={applyingCoupon || !couponCode}
                     className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
                   >
-                    {applyingCoupon ? "Đang áp dụng..." : "Áp dụng"}
+                    {applyingCoupon ? t.checkout.applyingCoupon : t.checkout.applyCouponBtn}
                   </button>
                 </div>
                 {appliedCoupon && (
                   <p className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5" /> Mã {appliedCoupon.code} đã được áp dụng (-
+                    <Check className="h-3.5 w-3.5" /> {t.checkout.couponAppliedSuccess} {appliedCoupon.code} (-
                     {formatVND(discountValue)})
                   </p>
                 )}
@@ -362,14 +364,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-brand-500 hover:bg-brand-400 py-4 text-base font-bold text-slate-950 shadow-glow transition-all hover:scale-[1.01] disabled:opacity-50"
               >
                 {isProcessingOrder ? (
-                  "Đang khởi tạo đơn hàng..."
+                  t.checkout.orderInit
                 ) : isFree ? (
                   <>
-                    <Sparkles className="h-5 w-5" /> Kích hoạt Khóa học Miễn phí Ngay
+                    <Sparkles className="h-5 w-5" /> {t.checkout.activateFreeBtn}
                   </>
                 ) : (
                   <>
-                    <CreditCard className="h-5 w-5" /> Tiến hành Thanh toán ({formatVND(finalPrice)})
+                    <CreditCard className="h-5 w-5" /> {t.checkout.proceedPaymentBtn} ({formatVND(finalPrice)})
                   </>
                 )}
               </button>
@@ -382,14 +384,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div>
                   <span className="text-[11px] font-bold text-brand-400 uppercase">
-                    Đơn hàng #{createdOrder.orderCode}
+                    {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
                   </span>
                   <h3 className="text-lg font-bold text-white">
-                    Hướng dẫn Quét mã VietQR Thanh toán
+                    {t.checkout.vietqrGuideTitle}
                   </h3>
                 </div>
                 <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400 border border-amber-500/30">
-                  Chờ thanh toán
+                  {t.checkout.pendingPaymentBadge}
                 </span>
               </div>
 
@@ -399,15 +401,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                   <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                     <CheckCircle2 className="h-10 w-10 animate-bounce" />
                   </div>
-                  <h3 className="text-xl font-bold text-white">Thanh Toán Đã Được Xác Nhận!</h3>
+                  <h3 className="text-xl font-bold text-white">{t.checkout.paymentConfirmedTitle}</h3>
                   <p className="text-xs text-slate-300">
-                    Khóa học đã được mở khóa vào tài khoản của bạn. Hệ thống đang tự động chuyển hướng...
+                    {t.checkout.paymentConfirmedDesc}
                   </p>
                   <Link
                     href={`/my-courses`}
                     className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-2.5 text-xs font-bold text-slate-950 shadow-glow"
                   >
-                    Vào học ngay <ArrowRight className="h-4 w-4" />
+                    {t.checkout.learnNowBtn} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
               ) : (
@@ -427,48 +429,48 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       rel="noopener noreferrer"
                       className="text-[11px] font-semibold text-brand-400 hover:underline flex items-center gap-1"
                     >
-                      <QrCode className="h-3.5 w-3.5" /> Mở / Lưu mã QR
+                      <QrCode className="h-3.5 w-3.5" /> {t.checkout.openSaveQr}
                     </a>
                   </div>
 
                   <div className="flex-1 space-y-3 w-full text-xs">
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Ngân hàng thụ hưởng</span>
+                        <span className="text-slate-400 block text-[10px]">{t.checkout.beneficiaryBank}</span>
                         <strong className="text-white text-sm">{bankId} ({bankName})</strong>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Số tài khoản</span>
+                        <span className="text-slate-400 block text-[10px]">{t.checkout.accountNumber}</span>
                         <strong className="text-brand-400 text-sm">{bankAccountNo}</strong>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(bankAccountNo, "Số tài khoản")}
+                        onClick={() => copyToClipboard(bankAccountNo, t.checkout.accountNumber)}
                         className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
                       >
-                        {copiedField === "Số tài khoản" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        {copiedField === t.checkout.accountNumber ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       </button>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Chủ tài khoản</span>
+                        <span className="text-slate-400 block text-[10px]">{t.checkout.accountHolder}</span>
                         <strong className="text-white">{bankAccountName}</strong>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-950/40 border border-brand-500/40">
                       <div>
-                        <span className="text-brand-300 block text-[10px]">Nội dung chuyển khoản (Bắt buộc)</span>
+                        <span className="text-brand-300 block text-[10px]">{t.checkout.transferContentRequired}</span>
                         <strong className="text-brand-400 text-sm">{createdOrder.orderCode}</strong>
                       </div>
                       <button
-                        onClick={() => copyToClipboard(createdOrder.orderCode, "Nội dung")}
+                        onClick={() => copyToClipboard(createdOrder.orderCode, t.checkout.transferContentRequired)}
                         className="p-1.5 rounded-lg bg-brand-900 text-brand-300 hover:bg-brand-800"
                       >
-                        {copiedField === "Nội dung" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        {copiedField === t.checkout.transferContentRequired ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
@@ -478,17 +480,17 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               {/* Upload Proof / Confirmation */}
               <div className="border-t border-slate-800 pt-5 space-y-3">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <UploadCloud className="h-4 w-4 text-brand-400" /> Xác nhận đã chuyển khoản
+                  <UploadCloud className="h-4 w-4 text-brand-400" /> {t.checkout.confirmTransferTitle}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  Sau khi chuyển tiền xong, bạn có thể bấm nút xác nhận dưới đây để ban quản trị duyệt kích hoạt khóa học nhanh nhất.
+                  {t.checkout.confirmTransferDesc}
                 </p>
 
                 {proofSubmitted ? (
                   <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
                     <span>
-                      Đã gửi xác nhận! Khóa học sẽ được kích hoạt trong vòng 1-5 phút. Bạn có thể kiểm tra tại mục <strong>Khóa học của tôi</strong>.
+                      {t.checkout.proofSubmittedSuccess}
                     </span>
                   </div>
                 ) : (
@@ -497,7 +499,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       type="text"
                       value={proofUrl}
                       onChange={(e) => setProofUrl(e.target.value)}
-                      placeholder="Link ảnh chụp biên lai (tùy chọn)..."
+                      placeholder={t.checkout.proofInputPlaceholder}
                       className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
                     />
                     <button
@@ -505,7 +507,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       disabled={submittingProof}
                       className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
                     >
-                      {submittingProof ? "Đang gửi..." : "Tôi đã chuyển khoản xong"}
+                      {submittingProof ? t.checkout.submittingProof : t.checkout.iHaveTransferredBtn}
                     </button>
                   </div>
                 )}
@@ -518,31 +520,31 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         <div className="lg:col-span-5">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 backdrop-blur-xl shadow-2xl space-y-5 sticky top-24">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 border-b border-slate-800 pb-3">
-              Tóm tắt Đơn hàng
+              {t.checkout.orderSummaryTitle}
             </h3>
 
             <div className="space-y-3 text-xs">
               <div className="flex justify-between text-slate-400">
-                <span>Học phí gốc:</span>
+                <span>{t.checkout.originalTuition}</span>
                 <span className="text-slate-200">{formatVND(course.price)}</span>
               </div>
 
               {course.salePrice !== null && course.price > course.salePrice && (
                 <div className="flex justify-between text-emerald-400">
-                  <span>Ưu đãi khóa học:</span>
+                  <span>{t.checkout.courseDiscount}</span>
                   <span>-{formatVND(course.price - course.salePrice)}</span>
                 </div>
               )}
 
               {discountValue > 0 && (
                 <div className="flex justify-between text-emerald-400">
-                  <span>Mã giảm giá ({appliedCoupon?.code}):</span>
+                  <span>{t.checkout.couponDiscount} ({appliedCoupon?.code}):</span>
                   <span>-{formatVND(discountValue)}</span>
                 </div>
               )}
 
               <div className="border-t border-slate-800 pt-3 flex justify-between items-baseline">
-                <span className="text-sm font-bold text-white">Tổng thanh toán:</span>
+                <span className="text-sm font-bold text-white">{t.checkout.totalPayment}</span>
                 <span className="text-2xl font-black text-brand-400">
                   {formatVND(finalPrice)}
                 </span>
@@ -551,10 +553,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
             <div className="rounded-2xl bg-slate-950/60 p-4 border border-slate-800/80 space-y-2 text-[11px] text-slate-400">
               <div className="flex items-center gap-2 text-slate-300 font-semibold">
-                <ShieldCheck className="h-4 w-4 text-brand-400" /> Cam kết chất lượng 100%
+                <ShieldCheck className="h-4 w-4 text-brand-400" /> {t.checkout.qualityGuarantee}
               </div>
-              <p>• Hoàn tiền 100% trong {siteSettings.refundDays || 7} ngày nếu không hài lòng với nội dung.</p>
-              <p>• Hỗ trợ kỹ thuật và giải đáp thắc mắc 24/7 qua Zalo/Email.</p>
+              <p>• {t.checkout.refundCommitment} ({siteSettings.refundDays || 7} {language === "en" ? "days" : "ngày"}).</p>
+              <p>• {t.checkout.supportCommitment}</p>
             </div>
           </div>
         </div>
@@ -562,3 +564,4 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     </div>
   );
 }
+

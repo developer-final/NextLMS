@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  BookOpen,
   Edit2,
   Layers,
   PlusCircle,
@@ -11,12 +10,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface CategoriesListClientProps {
   initialCategories: any[];
 }
 
 export default function CategoriesListClient({ initialCategories }: CategoriesListClientProps) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<any[]>(initialCategories);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +56,7 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Vui lòng nhập tên danh mục");
+      toast.error(t.admin.categories.nameLabel);
       return;
     }
 
@@ -75,11 +76,11 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi lưu danh mục");
+        toast.error(data.error || "Error saving category");
         return;
       }
 
-      toast.success(data.message);
+      toast.success(data.message || "Saved successfully");
 
       if (editingCategory) {
         setCategories(
@@ -91,14 +92,14 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
       setShowModal(false);
     } catch (err) {
-      toast.error("Lỗi lưu danh mục");
+      toast.error("Error saving category");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string, catName: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa chuyên mục "${catName}"?`)) return;
+    if (!confirm(`Are you sure you want to delete "${catName}"?`)) return;
 
     try {
       const res = await fetch(`/api/admin/categories?id=${id}`, {
@@ -107,19 +108,26 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi xóa danh mục");
+        toast.error(data.error || "Error deleting category");
         return;
       }
 
-      toast.success("Đã xóa danh mục thành công!");
+      toast.success("Category deleted");
       setCategories(categories.filter((c) => c.id !== id));
     } catch (err) {
-      toast.error("Lỗi xóa danh mục");
+      toast.error("Error deleting category");
     }
   };
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-extrabold text-white">{t.admin.categories.title}</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          {t.admin.categories.subtitle} ({categories.length})
+        </p>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search */}
         <div className="relative w-72">
@@ -128,7 +136,7 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên danh mục..."
+            placeholder={`${t.admin.categories.nameHeader}...`}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
         </div>
@@ -137,7 +145,7 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
           onClick={openCreateModal}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-glow transition-all"
         >
-          <PlusCircle className="h-4 w-4" /> Thêm Danh Mục Mới
+          <PlusCircle className="h-4 w-4" /> {t.admin.categories.addCategoryBtn}
         </button>
       </div>
 
@@ -146,12 +154,12 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
-              <th className="px-5 py-3.5">Thứ tự</th>
-              <th className="px-5 py-3.5">Tên Chuyên mục</th>
-              <th className="px-5 py-3.5">Đường dẫn (Slug)</th>
-              <th className="px-5 py-3.5">Số khóa học</th>
-              <th className="px-5 py-3.5">Mô tả ngắn</th>
-              <th className="px-5 py-3.5 text-right">Thao tác</th>
+              <th className="px-5 py-3.5">#</th>
+              <th className="px-5 py-3.5">{t.admin.categories.nameHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.categories.slugHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.categories.coursesCountHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.categories.descLabel}</th>
+              <th className="px-5 py-3.5 text-right">{t.admin.categories.actionHeader}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
@@ -172,7 +180,7 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
                 </td>
 
                 <td className="px-5 py-4 font-semibold text-purple-400">
-                  {cat._count?.courses || 0} khóa học
+                  {cat._count?.courses || 0} {t.categories.coursesCount}
                 </td>
 
                 <td className="px-5 py-4 text-slate-400 max-w-xs truncate">
@@ -183,14 +191,14 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
                   <button
                     onClick={() => openEditModal(cat)}
                     className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                    title="Chỉnh sửa"
+                    title={t.admin.categories.editBtn}
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(cat.id, cat.name)}
                     className="p-1.5 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 transition-colors"
-                    title="Xóa danh mục"
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -208,7 +216,7 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Layers className="h-4 w-4 text-brand-400" />
-                {editingCategory ? "Chỉnh sửa Danh Mục" : "Thêm Danh Mục Mới"}
+                {editingCategory ? t.admin.categories.modalEditTitle : t.admin.categories.modalAddTitle}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -221,21 +229,21 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
             <form onSubmit={handleSaveCategory} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Tên Danh mục
+                  {t.admin.categories.nameLabel}
                 </label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="VD: Giao dịch Crypto & Web3"
+                  placeholder="e.g. Crypto & Web3 Trading"
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Thứ tự sắp xếp (Số nhỏ đứng trước)
+                  Order Index
                 </label>
                 <input
                   type="number"
@@ -247,13 +255,13 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Mô tả ngắn
+                  {t.admin.categories.descLabel}
                 </label>
                 <textarea
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Mô tả về định hướng và kỹ năng trong chuyên mục này..."
+                  placeholder="..."
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
                 />
               </div>
@@ -264,14 +272,14 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
                   onClick={() => setShowModal(false)}
                   className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700"
                 >
-                  Hủy
+                  {t.admin.categories.cancelBtn}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50"
                 >
-                  {saving ? "Đang lưu..." : editingCategory ? "Lưu Thay Đổi" : "Thêm Danh Mục"}
+                  {saving ? t.admin.categories.savingBtn : t.admin.categories.saveBtn}
                 </button>
               </div>
             </form>
@@ -281,3 +289,4 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
     </div>
   );
 }
+

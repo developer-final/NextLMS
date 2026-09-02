@@ -3,24 +3,21 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Calendar,
-  CheckCircle2,
-  Percent,
-  Plus,
   PlusCircle,
   Search,
   Tag,
   Trash2,
   X,
-  XCircle,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface CouponsListClientProps {
   initialCoupons: any[];
 }
 
 export default function CouponsListClient({ initialCoupons }: CouponsListClientProps) {
+  const { t } = useLanguage();
   const [coupons, setCoupons] = useState<any[]>(initialCoupons);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -50,7 +47,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !discountValue) {
-      toast.error("Vui lòng nhập mã code và giá trị giảm");
+      toast.error(t.admin.coupons.codeLabel);
       return;
     }
 
@@ -71,23 +68,23 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi tạo mã giảm giá");
+        toast.error(data.error || "Error creating coupon");
         return;
       }
 
-      toast.success("🎉 Tạo mã giảm giá thành công!");
+      toast.success("Coupon created successfully!");
       setCoupons([data.coupon, ...coupons]);
       setShowModal(false);
       resetForm();
     } catch (err) {
-      toast.error("Lỗi tạo mã giảm giá");
+      toast.error("Error creating coupon");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string, couponCode: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa mã giảm giá ${couponCode}?`)) return;
+    if (!confirm(`Are you sure you want to delete ${couponCode}?`)) return;
 
     try {
       const res = await fetch(`/api/admin/coupons?id=${id}`, {
@@ -96,19 +93,26 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi xóa mã");
+        toast.error(data.error || "Error deleting coupon");
         return;
       }
 
-      toast.success("Đã xóa mã giảm giá");
+      toast.success("Coupon deleted");
       setCoupons(coupons.filter((c) => c.id !== id));
     } catch (err) {
-      toast.error("Lỗi xóa mã");
+      toast.error("Error deleting coupon");
     }
   };
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-slate-800 pb-4">
+        <h1 className="text-2xl font-extrabold text-white">{t.admin.coupons.title}</h1>
+        <p className="text-xs text-slate-400 mt-1">
+          {t.admin.coupons.subtitle} ({coupons.length})
+        </p>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search */}
         <div className="relative w-72">
@@ -117,7 +121,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo mã coupon..."
+            placeholder={`${t.admin.coupons.codeHeader}...`}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
         </div>
@@ -129,7 +133,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
           }}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-glow transition-all"
         >
-          <PlusCircle className="h-4 w-4" /> Thêm Mã Giảm Giá
+          <PlusCircle className="h-4 w-4" /> {t.admin.coupons.addCouponBtn}
         </button>
       </div>
 
@@ -138,20 +142,18 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
-              <th className="px-5 py-3.5">Mã Coupon</th>
-              <th className="px-5 py-3.5">Mức giảm</th>
-              <th className="px-5 py-3.5">Lượt sử dụng</th>
-              <th className="px-5 py-3.5">Đơn tối thiểu</th>
-              <th className="px-5 py-3.5">Hạn sử dụng</th>
-              <th className="px-5 py-3.5">Trạng thái</th>
-              <th className="px-5 py-3.5 text-right">Thao tác</th>
+              <th className="px-5 py-3.5">{t.admin.coupons.codeHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.coupons.valueHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.coupons.usageHeader}</th>
+              <th className="px-5 py-3.5">{t.admin.coupons.statusHeader}</th>
+              <th className="px-5 py-3.5 text-right">{t.admin.coupons.actionHeader}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-slate-500">
-                  Chưa có mã giảm giá nào. Bấm "Thêm Mã Giảm Giá" để tạo mới.
+                <td colSpan={5} className="text-center py-8 text-slate-500">
+                  -
                 </td>
               </tr>
             ) : (
@@ -176,20 +178,6 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                       <span className="font-semibold text-white">{c.usedCount}</span> / {c.maxUsage}
                     </td>
 
-                    <td className="px-5 py-4 text-slate-400">
-                      {c.minOrderValue > 0 ? formatVND(c.minOrderValue) : "Không giới hạn"}
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-400">
-                      {c.expiresAt ? (
-                        <span className={isExpired ? "text-rose-400 font-semibold" : ""}>
-                          {new Date(c.expiresAt).toLocaleDateString("vi-VN")}
-                        </span>
-                      ) : (
-                        "Vô thời hạn"
-                      )}
-                    </td>
-
                     <td className="px-5 py-4">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -198,7 +186,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                             : "bg-emerald-950 text-emerald-400 border border-emerald-800"
                         }`}
                       >
-                        {isExpired ? "Đã hết hạn" : c.isActive ? "Đang hoạt động" : "Vô hiệu"}
+                        {isExpired ? t.admin.coupons.inactive : c.isActive ? t.admin.coupons.active : t.admin.coupons.inactive}
                       </span>
                     </td>
 
@@ -206,7 +194,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                       <button
                         onClick={() => handleDelete(c.id, c.code)}
                         className="p-1.5 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 transition-colors"
-                        title="Xóa mã"
+                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -225,7 +213,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
           <div className="relative w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Tag className="h-4 w-4 text-brand-400" /> Tạo Mã Giảm Giá Mới
+                <Tag className="h-4 w-4 text-brand-400" /> {t.admin.coupons.modalAddTitle}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -238,14 +226,14 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
             <form onSubmit={handleCreateCoupon} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Mã Giảm Giá (Code)
+                  {t.admin.coupons.codeLabel}
                 </label>
                 <input
                   type="text"
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="VD: WTL50, CHAOMUNG..."
+                  placeholder="e.g. DISCOUNT50"
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white uppercase font-mono placeholder:normal-case placeholder-slate-500 focus:border-brand-500 focus:outline-none"
                 />
               </div>
@@ -253,21 +241,21 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Loại giảm giá
+                    {t.admin.coupons.typeLabel}
                   </label>
                   <select
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value as any)}
                     className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                   >
-                    <option value="PERCENT">Theo % Giảm</option>
-                    <option value="FIXED_AMOUNT">Số tiền cố định (VNĐ)</option>
+                    <option value="PERCENT">{t.admin.coupons.percentType}</option>
+                    <option value="FIXED_AMOUNT">{t.admin.coupons.fixedType}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Mức giảm {discountType === "PERCENT" ? "(%)" : "(VNĐ)"}
+                    {t.admin.coupons.valueLabel}
                   </label>
                   <input
                     type="number"
@@ -284,7 +272,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Số lượt dùng tối đa
+                    {t.admin.coupons.maxUsesLabel}
                   </label>
                   <input
                     type="number"
@@ -297,7 +285,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Hạn dùng (Tùy chọn)
+                    Expires At
                   </label>
                   <input
                     type="date"
@@ -314,14 +302,14 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                   onClick={() => setShowModal(false)}
                   className="rounded-xl bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-700"
                 >
-                  Hủy
+                  {t.admin.coupons.cancelBtn}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50"
                 >
-                  {saving ? "Đang lưu..." : "Tạo Mã"}
+                  {saving ? t.admin.coupons.savingBtn : t.admin.coupons.saveBtn}
                 </button>
               </div>
             </form>
@@ -331,3 +319,4 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
     </div>
   );
 }
+
