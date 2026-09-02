@@ -1,0 +1,11 @@
+# Sample .cbmignore file to exclude files from codebase-memory-mcp index
+# Uses standard gitignore pattern syntax
+
+# Ignore specific compiled MetaTrader binary files
+*.ex5
+*.ex4
+
+# Ignore other binary files
+*.dll
+*.so
+*.csv
