@@ -12,10 +12,14 @@
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
     "ci": "npm run db:generate && npm run type-check && npm run lint && npm test",
-    "db:push": "prisma db push",
+    "db:push": "dotenv -e .env.development.local -- prisma db push",
+    "db:push:prod": "dotenv -e .env.production.local -- prisma db push",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "dotenv -e .env.development.local -- node prisma/seed.js",
+    "db:seed:prod": "dotenv -e .env.production.local -- node prisma/seed.js",
+    "db:studio": "dotenv -e .env.development.local -- prisma studio",
+    "db:studio:prod": "dotenv -e .env.production.local -- prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -35,6 +39,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.0.3",
     "postcss": "^8.4.49",
