@@ -48,6 +48,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const [proofUrl, setProofUrl] = useState("");
   const [submittingProof, setSubmittingProof] = useState(false);
   const [proofSubmitted, setProofSubmitted] = useState(false);
+  const [isOrderCompletedRealtime, setIsOrderCompletedRealtime] = useState(false);
 
   // Fetch course info
   useEffect(() => {
@@ -65,6 +66,31 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }
     loadCourse();
   }, [slug]);
+
+  // Realtime Polling for order completion status
+  useEffect(() => {
+    if (!createdOrder?.orderCode || isOrderCompletedRealtime) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/status/${createdOrder.orderCode}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.isCompleted) {
+          setIsOrderCompletedRealtime(true);
+          toast.success("🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học...");
+          clearInterval(interval);
+          setTimeout(() => {
+            router.push(`/my-courses`);
+          }, 2000);
+        }
+      } catch (e) {
+        // Silent fail for polling
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [createdOrder?.orderCode, isOrderCompletedRealtime, router]);
 
   if (status === "loading" || loadingCourse) {
     return (
@@ -338,57 +364,86 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               </div>
 
               {/* VietQR Display */}
-              <div className="flex flex-col sm:flex-row gap-6 items-center">
-                <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500/50 p-2 bg-white flex-shrink-0 shadow-lg">
-                  <img
-                    src={vietQRUrl}
-                    alt="VietQR Payment Code"
-                    className="w-48 h-auto object-contain"
-                  />
+              {isOrderCompletedRealtime ? (
+                <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/50 p-6 text-center space-y-4">
+                  <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <CheckCircle2 className="h-10 w-10 animate-bounce" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Thanh Toán Đã Được Xác Nhận!</h3>
+                  <p className="text-xs text-slate-300">
+                    Khóa học đã được mở khóa vào tài khoản của bạn. Hệ thống đang tự động chuyển hướng...
+                  </p>
+                  <Link
+                    href={`/my-courses`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-2.5 text-xs font-bold text-slate-950 shadow-glow"
+                  >
+                    Vào học ngay <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
-
-                <div className="flex-1 space-y-3 w-full text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Ngân hàng thụ hưởng</span>
-                      <strong className="text-white text-sm">{bankId} (MB Bank)</strong>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-6 items-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500/50 p-2 bg-white flex-shrink-0 shadow-lg">
+                      <img
+                        src={vietQRUrl}
+                        alt="VietQR Payment Code"
+                        className="w-48 h-auto object-contain"
+                      />
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Số tài khoản</span>
-                      <strong className="text-brand-400 text-sm">{bankAccountNo}</strong>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(bankAccountNo, "Số tài khoản")}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                    <a
+                      href={vietQRUrl}
+                      download={`vietqr-${createdOrder.orderCode}.png`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-semibold text-brand-400 hover:underline flex items-center gap-1"
                     >
-                      {copiedField === "Số tài khoản" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                    </button>
+                      <QrCode className="h-3.5 w-3.5" /> Mở / Lưu mã QR
+                    </a>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Chủ tài khoản</span>
-                      <strong className="text-white">{bankAccountName}</strong>
+                  <div className="flex-1 space-y-3 w-full text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Ngân hàng thụ hưởng</span>
+                        <strong className="text-white text-sm">{bankId} (MB Bank)</strong>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-950/40 border border-brand-500/40">
-                    <div>
-                      <span className="text-brand-300 block text-[10px]">Nội dung chuyển khoản (Bắt buộc)</span>
-                      <strong className="text-brand-400 text-sm">{createdOrder.orderCode}</strong>
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Số tài khoản</span>
+                        <strong className="text-brand-400 text-sm">{bankAccountNo}</strong>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(bankAccountNo, "Số tài khoản")}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      >
+                        {copiedField === "Số tài khoản" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => copyToClipboard(createdOrder.orderCode, "Nội dung")}
-                      className="p-1.5 rounded-lg bg-brand-900 text-brand-300 hover:bg-brand-800"
-                    >
-                      {copiedField === "Nội dung" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                    </button>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Chủ tài khoản</span>
+                        <strong className="text-white">{bankAccountName}</strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-950/40 border border-brand-500/40">
+                      <div>
+                        <span className="text-brand-300 block text-[10px]">Nội dung chuyển khoản (Bắt buộc)</span>
+                        <strong className="text-brand-400 text-sm">{createdOrder.orderCode}</strong>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(createdOrder.orderCode, "Nội dung")}
+                        className="p-1.5 rounded-lg bg-brand-900 text-brand-300 hover:bg-brand-800"
+                      >
+                        {copiedField === "Nội dung" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Upload Proof / Confirmation */}
               <div className="border-t border-slate-800 pt-5 space-y-3">

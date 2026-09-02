@@ -44,83 +44,115 @@ export async function POST(req: Request) {
       );
     }
 
+    // Calculate pricing and validate coupon
     const originalPrice = course.salePrice !== null ? course.salePrice : course.price;
     let discountAmount = 0;
+    let validCouponId: string | null = null;
 
-    // Process coupon if any
     if (couponCode) {
+      const cleanCouponCode = couponCode.toUpperCase().trim();
       const coupon = await prisma.coupon.findUnique({
-        where: { code: couponCode.toUpperCase().trim() },
+        where: { code: cleanCouponCode },
       });
 
-      if (coupon && coupon.isActive) {
-        if (coupon.discountType === "PERCENT") {
-          discountAmount = (originalPrice * coupon.discountValue) / 100;
-        } else {
-          discountAmount = coupon.discountValue;
-        }
+      if (!coupon || !coupon.isActive) {
+        return NextResponse.json(
+          { error: "Mã giảm giá không tồn tại hoặc đã bị vô hiệu hóa" },
+          { status: 400 }
+        );
+      }
 
-        // Increment usage
-        await prisma.coupon.update({
-          where: { id: coupon.id },
-          data: { usedCount: { increment: 1 } },
-        });
+      if (coupon.expiresAt && new Date() > coupon.expiresAt) {
+        return NextResponse.json(
+          { error: "Mã giảm giá đã hết hạn sử dụng" },
+          { status: 400 }
+        );
+      }
+
+      if (coupon.usedCount >= coupon.maxUsage) {
+        return NextResponse.json(
+          { error: "Mã giảm giá đã hết lượt sử dụng" },
+          { status: 400 }
+        );
+      }
+
+      if (originalPrice < coupon.minOrderValue) {
+        return NextResponse.json(
+          { error: `Đơn hàng tối thiểu để áp dụng mã là ${coupon.minOrderValue.toLocaleString("vi-VN")}đ` },
+          { status: 400 }
+        );
+      }
+
+      validCouponId = coupon.id;
+      if (coupon.discountType === "PERCENT") {
+        discountAmount = (originalPrice * coupon.discountValue) / 100;
+      } else {
+        discountAmount = coupon.discountValue;
       }
     }
 
     const finalAmount = Math.max(0, originalPrice - discountAmount);
     const orderCode = generateOrderCode();
-
-    // Check if Course is FREE or Final Amount is 0
     const isFreeOrder = course.isFree || finalAmount === 0;
 
-    const order = await prisma.order.create({
-      data: {
-        orderCode,
-        userId,
-        totalAmount: originalPrice,
-        discountAmount,
-        finalAmount,
-        paymentMethod: isFreeOrder ? "FREE" : paymentMethod || "BANK_TRANSFER_MANUAL",
-        status: isFreeOrder ? "COMPLETED" : "PENDING",
-        orderItems: {
-          create: {
-            courseId: course.id,
-            price: finalAmount,
+    // Use Prisma transaction for atomic order creation and coupon decrement
+    const order = await prisma.$transaction(async (tx) => {
+      // If coupon used, atomically increment count
+      if (validCouponId) {
+        await tx.coupon.update({
+          where: { id: validCouponId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      const createdOrder = await tx.order.create({
+        data: {
+          orderCode,
+          userId,
+          totalAmount: originalPrice,
+          discountAmount,
+          finalAmount,
+          paymentMethod: isFreeOrder ? "FREE" : paymentMethod || "BANK_TRANSFER_MANUAL",
+          status: isFreeOrder ? "COMPLETED" : "PENDING",
+          orderItems: {
+            create: {
+              courseId: course.id,
+              price: finalAmount,
+            },
           },
         },
-      },
+      });
+
+      // If Free -> Auto activate Enrollment inside transaction
+      if (isFreeOrder) {
+        await tx.enrollment.upsert({
+          where: { userId_courseId: { userId, courseId } },
+          update: { status: "ACTIVE" },
+          create: {
+            userId,
+            courseId,
+            status: "ACTIVE",
+            progressPercent: 0,
+          },
+        });
+      }
+
+      return createdOrder;
     });
-
-    // If Free -> Auto activate Enrollment!
-    if (isFreeOrder) {
-      await prisma.enrollment.upsert({
-        where: { userId_courseId: { userId, courseId } },
-        update: { status: "ACTIVE" },
-        create: {
-          userId,
-          courseId,
-          status: "ACTIVE",
-          progressPercent: 0,
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        order,
-        isFreeOrder: true,
-        message: "Đăng ký khóa học thành công!",
-      });
-    }
 
     return NextResponse.json({
       success: true,
       order,
-      isFreeOrder: false,
-      message: "Tạo đơn hàng thành công!",
+      isFreeOrder,
+      message: isFreeOrder
+        ? "Đăng ký khóa học thành công!"
+        : "Tạo đơn hàng thành công!",
     });
   } catch (error: any) {
     console.error("Order Creation Error:", error);
-    return NextResponse.json({ error: "Không thể tạo đơn hàng. Vui lòng thử lại." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Không thể tạo đơn hàng. Vui lòng thử lại." },
+      { status: 500 }
+    );
   }
 }

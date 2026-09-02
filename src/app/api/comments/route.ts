@@ -41,8 +41,13 @@ export async function POST(req: Request) {
     const userId = (session.user as any).id;
     const { lessonId, content, parentId } = await req.json();
 
-    if (!lessonId || !content?.trim()) {
+    if (!lessonId || typeof content !== "string" || !content.trim()) {
       return NextResponse.json({ error: "Nội dung câu hỏi không được để trống" }, { status: 400 });
+    }
+
+    const trimmedContent = content.trim();
+    if (trimmedContent.length > 2000) {
+      return NextResponse.json({ error: "Nội dung bình luận tối đa 2,000 ký tự" }, { status: 400 });
     }
 
     const comment = await prisma.comment.create({
@@ -50,7 +55,7 @@ export async function POST(req: Request) {
         lessonId,
         userId,
         parentId: parentId || null,
-        content: content.trim(),
+        content: trimmedContent,
       },
       include: {
         user: {

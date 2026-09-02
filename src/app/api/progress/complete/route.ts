@@ -17,6 +17,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Thiếu tham số" }, { status: 400 });
     }
 
+    // Security Check: Verify user is actively enrolled in the course
+    const activeEnrollment = await prisma.enrollment.findUnique({
+      where: {
+        userId_courseId: { userId, courseId },
+      },
+    });
+
+    if (!activeEnrollment || activeEnrollment.status !== "ACTIVE") {
+      return NextResponse.json(
+        { error: "Bạn chưa đăng ký hoặc chưa được kích hoạt khóa học này." },
+        { status: 403 }
+      );
+    }
+
     // 1. Mark lesson progress as completed
     await prisma.lessonProgress.upsert({
       where: {

@@ -245,23 +245,35 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
       {/* Modal View Proof Image */}
       {selectedProofImg && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
-          <div className="relative max-w-lg w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-4">
+          <div className="relative max-w-xl w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
                 <FileImage className="h-4 w-4 text-brand-400" /> Ảnh Biên lai Chuyển khoản
               </h3>
-              <button
-                onClick={() => setSelectedProofImg(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedProofImg}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-brand-400 hover:bg-slate-800 transition-colors"
+                  title="Mở ảnh gốc trong tab mới"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+                <button
+                  onClick={() => setSelectedProofImg(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black">
+
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black flex items-center justify-center min-h-[250px]">
               <img
                 src={selectedProofImg}
                 alt="Bill thanh toan"
-                className="w-full max-h-[70vh] object-contain"
+                className="w-full max-h-[65vh] object-contain rounded-xl"
               />
             </div>
           </div>

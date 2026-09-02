@@ -70,6 +70,9 @@ export default function LessonPlayerClient({
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  // Mobile Curriculum Drawer State
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
   // Certificate Modal State
   const [showCertModal, setShowCertModal] = useState(false);
 
@@ -182,7 +185,7 @@ export default function LessonPlayerClient({
             className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Về trang Khóa học
+            <span className="hidden sm:inline">Về trang Khóa học</span>
           </Link>
 
           <h2 className="hidden md:block text-xs font-bold text-white max-w-md truncate">
@@ -190,11 +193,11 @@ export default function LessonPlayerClient({
           </h2>
         </div>
 
-        {/* Progress Bar & Certificate CTA */}
-        <div className="flex items-center gap-4">
+        {/* Progress Bar & Mobile Curriculum Button */}
+        <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-[11px] text-slate-400">Tiến độ:</span>
-            <div className="h-2 w-28 rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-2 w-24 sm:w-28 rounded-full bg-slate-800 overflow-hidden">
               <div
                 className="h-full bg-brand-500 rounded-full transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
@@ -209,9 +212,18 @@ export default function LessonPlayerClient({
               className="flex items-center gap-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 text-xs font-bold hover:bg-amber-500 hover:text-slate-950 transition-colors"
             >
               <Award className="h-3.5 w-3.5" />
-              Xem Chứng chỉ
+              <span className="hidden sm:inline">Xem Chứng chỉ</span>
             </button>
           )}
+
+          {/* Mobile Curriculum Toggle */}
+          <button
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+            className="lg:hidden flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-brand-400 hover:bg-slate-800 transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Bài học
+          </button>
         </div>
       </div>
 
@@ -361,8 +373,13 @@ export default function LessonPlayerClient({
                             </div>
                             <span className="text-xs font-bold text-white">{comm.user.name}</span>
                             {comm.user.role === "INSTRUCTOR" && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-brand-950 text-brand-400 border border-brand-800 font-bold">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800 font-bold">
                                 Giảng viên
+                              </span>
+                            )}
+                            {(comm.user.role === "ADMIN" || comm.user.role === "SUPER_ADMIN") && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800 font-bold">
+                                Quản trị viên
                               </span>
                             )}
                           </div>
@@ -381,7 +398,8 @@ export default function LessonPlayerClient({
                     href={`/learn/${course.slug}/${prevLesson.slug}`}
                     className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors"
                   >
-                    <ChevronLeft className="h-4 w-4" /> Bài trước: {prevLesson.title}
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="truncate max-w-[140px] sm:max-w-xs">Bài trước: {prevLesson.title}</span>
                   </Link>
                 ) : (
                   <div />
@@ -392,7 +410,8 @@ export default function LessonPlayerClient({
                     href={`/learn/${course.slug}/${nextLesson.slug}`}
                     className="flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow transition-all"
                   >
-                    Bài tiếp theo: {nextLesson.title} <ChevronRight className="h-4 w-4" />
+                    <span className="truncate max-w-[140px] sm:max-w-xs">Bài tiếp theo: {nextLesson.title}</span>
+                    <ChevronRight className="h-4 w-4" />
                   </Link>
                 )}
               </div>
@@ -400,8 +419,8 @@ export default function LessonPlayerClient({
           )}
         </div>
 
-        {/* Right Column: Curriculum Sidebar */}
-        <div className="lg:col-span-4 xl:col-span-3 bg-slate-950/60 p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-3.5rem)]">
+        {/* Right Column: Curriculum Sidebar (Desktop) */}
+        <div className="hidden lg:block lg:col-span-4 xl:col-span-3 bg-slate-950/60 p-4 space-y-4 overflow-y-auto max-h-[calc(100vh-3.5rem)]">
           <div className="border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <BookOpen className="h-4 w-4 text-brand-400" /> Danh sách Bài học
@@ -459,6 +478,80 @@ export default function LessonPlayerClient({
           </div>
         </div>
       </div>
+
+      {/* Mobile Curriculum Drawer (Overlay) */}
+      {showMobileSidebar && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowMobileSidebar(false)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in"
+          />
+
+          {/* Drawer content */}
+          <div className="relative ml-auto w-full max-w-xs h-full bg-slate-900 border-l border-slate-800 p-4 space-y-4 overflow-y-auto shadow-2xl animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-brand-400" /> Danh sách Bài học
+              </h3>
+              <button
+                onClick={() => setShowMobileSidebar(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {course.sections.map((section: any) => (
+                <div
+                  key={section.id}
+                  className="overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950/60"
+                >
+                  <div className="bg-slate-950 px-3.5 py-2 text-xs font-bold text-white border-b border-slate-800/60">
+                    {section.title}
+                  </div>
+
+                  <div className="divide-y divide-slate-800/40">
+                    {section.lessons.map((lesson: any) => {
+                      const isCurrent = lesson.id === currentLesson.id;
+                      const isDone = completedIds.includes(lesson.id);
+                      const canView = isEnrolled || lesson.isPreview;
+
+                      return (
+                        <Link
+                          key={lesson.id}
+                          href={canView ? `/learn/${course.slug}/${lesson.slug}` : `#`}
+                          onClick={() => setShowMobileSidebar(false)}
+                          className={`flex items-center justify-between p-3 text-xs transition-colors ${
+                            isCurrent
+                              ? "bg-brand-950/60 border-l-4 border-brand-500 text-brand-300 font-bold"
+                              : "hover:bg-slate-800/40 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            {isDone ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                            ) : canView ? (
+                              <PlayCircle className="h-4 w-4 text-brand-400 flex-shrink-0" />
+                            ) : (
+                              <Lock className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{lesson.title}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 ml-1.5 flex-shrink-0">
+                            {formatDuration(lesson.videoDuration)}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Certificate Completion Modal */}
       {showCertModal && (

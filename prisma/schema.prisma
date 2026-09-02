@@ -75,6 +75,10 @@ model Course {
   reviews      Review[]
   certificates Certificate[]
 
+  @@index([status])
+  @@index([categoryId])
+  @@index([instructorId])
+  @@index([isFeatured])
   @@map("courses")
 }
 
@@ -90,6 +94,7 @@ model Section {
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
 
+  @@index([courseId])
   @@map("sections")
 }
 
@@ -112,6 +117,7 @@ model Lesson {
   progresses  LessonProgress[]
   comments    Comment[]
 
+  @@index([sectionId])
   @@map("lessons")
 }
 
@@ -126,6 +132,7 @@ model Attachment {
 
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
+  @@index([lessonId])
   @@map("attachments")
 }
 
@@ -145,6 +152,9 @@ model Enrollment {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
   @@map("enrollments")
 }
 
@@ -161,6 +171,8 @@ model LessonProgress {
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
   @@map("lesson_progress")
 }
 
@@ -182,6 +194,8 @@ model Order {
   orderItems   OrderItem[]
   transactions Transaction[]
 
+  @@index([userId])
+  @@index([status])
   @@map("orders")
 }
 
@@ -194,6 +208,8 @@ model OrderItem {
   order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
+  @@index([courseId])
   @@map("order_items")
 }
 
@@ -209,6 +225,7 @@ model Transaction {
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@index([orderId])
   @@map("transactions")
 }
 
@@ -225,6 +242,8 @@ model Coupon {
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
 
+  @@index([code])
+  @@index([isActive])
   @@map("coupons")
 }
 
@@ -241,6 +260,8 @@ model Review {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
+  @@index([userId])
   @@map("reviews")
 }
 
@@ -257,6 +278,9 @@ model Comment {
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([lessonId])
+  @@index([userId])
+  @@index([parentId])
   @@map("comments")
 }
 
@@ -273,5 +297,7 @@ model Certificate {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
   @@map("certificates")
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
@@ -26,6 +27,54 @@ interface CourseDetailPageProps {
   params: Promise<{
     slug: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: CourseDetailPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const course = await prisma.course.findUnique({
+    where: { slug },
+    include: {
+      instructor: { select: { name: true } },
+      category: { select: { name: true } },
+    },
+  });
+
+  if (!course) {
+    return {
+      title: "Khóa học không tồn tại | World Trading Lab",
+    };
+  }
+
+  const title = `${course.title} | World Trading Lab`;
+  const description =
+    course.shortDescription ||
+    `Khóa học ${course.title} giảng dạy bởi ${course.instructor.name} tại World Trading Lab.`;
+
+  return {
+    title,
+    description,
+    keywords: [
+      course.title,
+      course.category?.name || "Trading",
+      "World Trading Lab",
+      "Khóa học trực tuyến",
+      "Học giao dịch",
+    ],
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: course.thumbnailUrl ? [{ url: course.thumbnailUrl }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: course.thumbnailUrl ? [course.thumbnailUrl] : [],
+    },
+  };
 }
 
 export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
@@ -99,8 +148,72 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   // Find first lesson to start learning
   const firstLesson = course.sections[0]?.lessons[0];
 
+  // Course JSON-LD Schema for Google Search Rich Snippets
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.shortDescription || course.title,
+    provider: {
+      "@type": "Organization",
+      name: "World Trading Lab",
+      sameAs: "https://worldtradinglab.edu.vn",
+    },
+    instructor: {
+      "@type": "Person",
+      name: course.instructor.name,
+    },
+    offers: {
+      "@type": "Offer",
+      price: course.isFree ? "0" : (course.salePrice ?? course.price).toString(),
+      priceCurrency: "VND",
+      category: course.isFree ? "Free" : "Paid",
+      availability: "https://schema.org/InStock",
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "online",
+      courseWorkload: `PT${totalHours}H`,
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Trang chủ",
+        item: "https://worldtradinglab.edu.vn",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Khóa học",
+        item: "https://worldtradinglab.edu.vn/courses",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: course.title,
+        item: `https://worldtradinglab.edu.vn/courses/${course.slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="flex flex-col pb-20">
+      {/* Schema.org Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+
       {/* 1. Header Banner */}
       <section className="border-b border-slate-800 bg-slate-950/90 py-10 md:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
