@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDuration, getYouTubeEmbedUrl } from "@/lib/utils";
+import { formatDuration, getYouTubeEmbedUrl, serializePrisma } from "@/lib/utils";
 import LessonPlayerClient from "./LessonPlayerClient";
 
 export const revalidate = 0;
@@ -158,7 +158,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <LessonPlayerClient
-      course={safeCourse}
+      course={serializePrisma(safeCourse)}
       currentSection={currentSection}
       currentLesson={safeCurrentLesson}
       allLessons={allLessons}

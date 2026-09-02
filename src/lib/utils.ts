@@ -31,8 +31,8 @@ export function formatDuration(seconds: number): string {
 
 export function generateOrderCode(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = crypto.randomUUID().slice(0, 8).toUpperCase();
-  return `EL-${timestamp}-${random}`;
+  const random = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `EL${timestamp}${random}`;
 }
 
 export function getYouTubeEmbedUrl(url: string | null | undefined): string | null {
@@ -90,5 +90,37 @@ export function calculatePagination(
     hasPrevPage: currentPage > 1,
     hasNextPage: currentPage < totalPages,
   };
+}
+
+/**
+ * Recursively converts Prisma Decimal objects to plain JavaScript numbers
+ * and preserves Dates, Arrays, and Plain Objects so they can be safely
+ * passed from React Server Components to Client Components without serialization errors.
+ */
+export function serializePrisma<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  if (typeof data === "object") {
+    // Check if it's a Decimal object (Prisma Decimal / Decimal.js)
+    if (
+      typeof (data as any).toNumber === "function" &&
+      typeof (data as any).toFixed === "function"
+    ) {
+      return (data as any).toNumber();
+    }
+    if (data instanceof Date) {
+      return data;
+    }
+    if (Array.isArray(data)) {
+      return data.map((item) => serializePrisma(item)) as any;
+    }
+    const result: any = {};
+    for (const key of Object.keys(data)) {
+      result[key] = serializePrisma((data as any)[key]);
+    }
+    return result;
+  }
+  return data;
 }
 

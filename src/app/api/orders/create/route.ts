@@ -113,6 +113,43 @@ export async function POST(req: Request) {
     const orderCode = generateOrderCode();
     const isFreeOrder = course.isFree || finalAmount === 0;
 
+    // Check if there is an active PENDING order created within the last 30 minutes with identical pricing
+    if (!isFreeOrder) {
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const existingPendingOrder = await prisma.order.findFirst({
+        where: {
+          userId,
+          status: "PENDING",
+          createdAt: { gte: thirtyMinutesAgo },
+          orderItems: {
+            some: { courseId: course.id },
+          },
+          finalAmount,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existingPendingOrder) {
+        // Reuse existing order and update payment method if changed
+        const updatedOrder = await prisma.order.update({
+          where: { id: existingPendingOrder.id },
+          data: {
+            paymentMethod: paymentMethod || existingPendingOrder.paymentMethod,
+            couponId: validCouponId,
+            discountAmount,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          order: updatedOrder,
+          isFreeOrder: false,
+          reused: true,
+          message: "Order ready. Please complete payment.",
+        });
+      }
+    }
+
     // Use Prisma transaction with strict concurrency check on coupon count
     const order = await prisma.$transaction(async (tx) => {
       if (validCouponId) {
@@ -158,8 +195,21 @@ export async function POST(req: Request) {
         },
       });
 
-      // If Free -> Auto activate Enrollment inside transaction
+      // If Free -> Auto activate Enrollment and create audit Transaction record
       if (isFreeOrder) {
+        await tx.transaction.create({
+          data: {
+            orderId: createdOrder.id,
+            gatewayRef: `FREE-ENROLL-${Date.now()}`,
+            bankCode: "FREE",
+            transferContent: "Free course enrollment",
+            amount: 0,
+            rawWebhookData: JSON.stringify({
+              enrolledAt: new Date().toISOString(),
+            }),
+          },
+        });
+
         await tx.enrollment.upsert({
           where: { userId_courseId: { userId, courseId } },
           update: { status: "ACTIVE" },

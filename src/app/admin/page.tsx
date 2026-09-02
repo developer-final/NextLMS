@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import AdminDashboardClient from "./AdminDashboardClient";
 
 export const revalidate = 0;
@@ -56,8 +57,8 @@ export default async function AdminDashboardPage() {
       pendingOrdersCount={pendingOrdersCount}
       totalStudentsCount={totalStudentsCount}
       totalCoursesCount={totalCoursesCount}
-      recentOrders={recentOrders}
-      popularCourses={popularCourses}
+      recentOrders={serializePrisma(recentOrders)}
+      popularCourses={serializePrisma(popularCourses)}
     />
   );
 }

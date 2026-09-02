@@ -37,7 +37,7 @@ export async function completeOrderAndEnroll({
 }: ProcessPaymentParams): Promise<ProcessPaymentResult> {
   const cleanOrderCode = orderCode.trim();
 
-  const order = await prisma.order.findUnique({
+  let order = await prisma.order.findUnique({
     where: { orderCode: cleanOrderCode },
     include: {
       orderItems: {
@@ -47,6 +47,29 @@ export async function completeOrderAndEnroll({
       coupon: true,
     },
   });
+
+  // Fallback: Support banking apps that stripped hyphens from legacy order codes
+  if (!order && typeof prisma.order?.findMany === "function") {
+    const unhyphenated = cleanOrderCode.replace(/-/g, "").toUpperCase();
+    const candidateOrders = await prisma.order.findMany({
+      where: {
+        status: "PENDING",
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        orderItems: {
+          include: { course: true },
+        },
+        user: true,
+        coupon: true,
+      },
+    });
+
+    order = candidateOrders.find(
+      (o) => o.orderCode.replace(/-/g, "").toUpperCase() === unhyphenated
+    ) || null;
+  }
 
   if (!order) {
     return {

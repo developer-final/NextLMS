@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import CourseEditForm from "./CourseEditForm";
 
 export const revalidate = 0;
@@ -48,7 +49,7 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
 
   return (
     <div className="max-w-5xl">
-      <CourseEditForm course={course} categories={categories} />
+      <CourseEditForm course={serializePrisma(course)} categories={categories} />
     </div>
   );
 }

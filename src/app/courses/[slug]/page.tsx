@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { safeJsonLdStringify } from "@/lib/validation";
+import { serializePrisma } from "@/lib/utils";
 import CourseDetailClient from "./CourseDetailClient";
 
 export const revalidate = 300; // ISR: 5 minutes
@@ -198,7 +199,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(breadcrumbJsonLd) }}
       />
       <CourseDetailClient
-        course={course}
+        course={serializePrisma(course)}
         isEnrolled={isEnrolled}
         totalLessons={totalLessons}
         totalHours={totalHours}

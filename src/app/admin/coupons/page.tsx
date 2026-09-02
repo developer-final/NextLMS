@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import CouponsListClient from "./CouponsListClient";
 
 export const revalidate = 0;
@@ -18,7 +19,7 @@ export default async function AdminCouponsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  return <CouponsListClient initialCoupons={coupons} />;
+  return <CouponsListClient initialCoupons={serializePrisma(coupons)} />;
 }
 
 

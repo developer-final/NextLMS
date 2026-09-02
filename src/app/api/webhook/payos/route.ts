@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     const description = String(data.description || "");
 
     if (!targetOrderCode || targetOrderCode.length < 6) {
-      const match = description.match(/(?:WTL|EL)[A-Z0-9]+/i);
+      const match = description.match(/(?:WTL|EL)-?[A-Z0-9]+(?:-[A-Z0-9]+)*/i);
       if (match) {
         targetOrderCode = match[0].toUpperCase();
       }

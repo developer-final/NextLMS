@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSystemSettings } from "@/lib/config";
+import { serializePrisma } from "@/lib/utils";
 import HomePageClient from "./HomePageClient";
 
 export const revalidate = 300; // ISR: Revalidate every 5 minutes
@@ -52,7 +53,7 @@ export default async function HomePage() {
   return (
     <HomePageClient
       settings={settings}
-      featuredCourses={featuredCourses as any}
+      featuredCourses={serializePrisma(featuredCourses) as any}
       categories={categories}
       freeCourseHref={freeCourseHref}
     />

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import StudentsListClient from "./StudentsListClient";
 
 export const revalidate = 0;
@@ -32,7 +33,7 @@ export default async function AdminStudentsPage() {
     }),
   ]);
 
-  return <StudentsListClient initialStudents={students} courses={courses} />;
+  return <StudentsListClient initialStudents={serializePrisma(students)} courses={courses} />;
 }
 
 

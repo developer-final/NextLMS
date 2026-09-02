@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import CoursesPageClient from "./CoursesPageClient";
 
 export const revalidate = 180; // ISR: 3 minutes
@@ -83,7 +84,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
 
   return (
     <CoursesPageClient
-      courses={courses as any}
+      courses={serializePrisma(courses) as any}
       categories={categories}
       category={category}
       level={level}

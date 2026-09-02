@@ -95,9 +95,8 @@ export const authOptions: NextAuthOptions = {
             });
           }
         } else {
-          // Auto-provision student account for new Google sign-in
-          const userCount = await prisma.user.count();
-          const role = userCount === 0 ? "ADMIN" : "STUDENT";
+          const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+          const role = adminEmail && cleanEmail === adminEmail ? "ADMIN" : "STUDENT";
 
           dbUser = await prisma.user.create({
             data: {

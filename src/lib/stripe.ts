@@ -35,6 +35,7 @@ export async function getStripeInstance(): Promise<Stripe> {
 export interface CreateStripeCheckoutSessionParams {
   orderCode: string;
   courseTitle: string;
+  courseSlug?: string;
   amountVnd: number;
   customerEmail?: string;
   origin: string;
@@ -46,6 +47,7 @@ export interface CreateStripeCheckoutSessionParams {
 export async function createStripeCheckoutSession({
   orderCode,
   courseTitle,
+  courseSlug,
   amountVnd,
   customerEmail,
   origin,
@@ -92,7 +94,9 @@ export async function createStripeCheckoutSession({
       orderCode,
     },
     success_url: `${origin}/my-courses?session_id={CHECKOUT_SESSION_ID}&orderCode=${encodeURIComponent(orderCode)}`,
-    cancel_url: `${origin}/checkout/${orderCode}?cancelled=true`,
+    cancel_url: courseSlug
+      ? `${origin}/checkout/${courseSlug}?cancelled=true`
+      : `${origin}/courses`,
   });
 
   if (!session.url) {

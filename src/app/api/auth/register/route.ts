@@ -59,8 +59,8 @@ export async function POST(req: Request) {
 
     // 5. Atomic user creation and verification token generation
     const { newUser, verificationToken } = await prisma.$transaction(async (tx) => {
-      const userCount = await tx.user.count();
-      const role = userCount === 0 ? "ADMIN" : "STUDENT";
+      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+      const role = adminEmail && cleanEmail === adminEmail ? "ADMIN" : "STUDENT";
 
       const createdUser = await tx.user.create({
         data: {

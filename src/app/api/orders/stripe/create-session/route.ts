@@ -80,10 +80,12 @@ export async function POST(req: Request) {
 
     const courseTitle =
       order.orderItems[0]?.course?.title || "Trading Course";
+    const courseSlug = order.orderItems[0]?.course?.slug;
 
     const stripeSession = await createStripeCheckoutSession({
       orderCode: order.orderCode,
       courseTitle,
+      courseSlug,
       amountVnd: Number(order.finalAmount),
       customerEmail: order.user?.email || undefined,
       origin: origin.replace(/\/$/, ""),

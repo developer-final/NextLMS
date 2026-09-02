@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { completeOrderAndEnroll } from "@/lib/payment-service";
 
 export async function POST(req: Request) {
   try {
@@ -59,75 +59,25 @@ export async function POST(req: Request) {
         );
       }
 
-      // Execute approval atomically
-      await prisma.$transaction(async (tx) => {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: "COMPLETED" },
-        });
-
-        // Create transaction audit record for manual approval
-        await tx.transaction.create({
-          data: {
-            orderId: order.id,
-            gatewayRef: `ADMIN-APPROVAL-${session.user.id}`,
-            bankCode: order.paymentMethod,
-            transferContent:
-              order.proofImageUrl || "Admin manual verification",
-            amount: order.finalAmount,
-            rawWebhookData: JSON.stringify({
-              approvedBy: session.user.id,
-              approvedAt: new Date().toISOString(),
-            }),
-          },
-        });
-
-        // If order used a coupon, increment coupon's usedCount now upon approval
-        if (order.couponId) {
-          await tx.coupon.update({
-            where: { id: order.couponId },
-            data: { usedCount: { increment: 1 } },
-          });
-        }
-
-        // Create Enrollment for each course in order
-        for (const item of order.orderItems) {
-          await tx.enrollment.upsert({
-            where: {
-              userId_courseId: {
-                userId: order.userId,
-                courseId: item.courseId,
-              },
-            },
-            update: {
-              status: "ACTIVE",
-            },
-            create: {
-              userId: order.userId,
-              courseId: item.courseId,
-              status: "ACTIVE",
-              progressPercent: 0,
-            },
-          });
-        }
+      const result = await completeOrderAndEnroll({
+        orderCode: order.orderCode,
+        gatewayRef: `ADMIN-APPROVAL-${session.user.id}`,
+        bankCode: order.paymentMethod,
+        transferContent:
+          order.proofImageUrl || "Admin manual verification",
+        amount: Number(order.finalAmount),
+        rawWebhookData: JSON.stringify({
+          approvedBy: session.user.id,
+          approvedAt: new Date().toISOString(),
+        }),
+        paymentMethod: order.paymentMethod,
       });
 
-      // Asynchronously send transactional confirmation & welcome email
-      if (order.user?.email) {
-        const emailItems = order.orderItems.map((item) => ({
-          title: item.course.title,
-          price: `${Number(item.price).toLocaleString("vi-VN")} đ`,
-        }));
-
-        sendOrderConfirmationEmail({
-          to: order.user.email,
-          name: order.user.name,
-          orderCode: order.orderCode,
-          totalAmount: `${Number(order.finalAmount).toLocaleString("vi-VN")} đ`,
-          items: emailItems,
-        }).catch((err) => {
-          console.error("[Approve Order] Failed to send invoice email:", err);
-        });
+      if (!result.success && !result.alreadyCompleted) {
+        return NextResponse.json(
+          { error: result.message },
+          { status: result.status || 400 }
+        );
       }
 
       return NextResponse.json({

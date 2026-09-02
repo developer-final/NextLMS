@@ -7,6 +7,7 @@ import {
   slugify,
   cn,
   calculatePagination,
+  serializePrisma,
 } from "./utils";
 
 describe("Utils Library", () => {
@@ -43,9 +44,9 @@ describe("Utils Library", () => {
   });
 
   describe("generateOrderCode", () => {
-    it("should generate a code with prefix 'EL-'", () => {
+    it("should generate a code with prefix 'EL'", () => {
       const code = generateOrderCode();
-      expect(code.startsWith("EL-")).toBe(true);
+      expect(code.startsWith("EL")).toBe(true);
     });
 
     it("should generate unique order codes on successive calls", () => {
@@ -54,13 +55,10 @@ describe("Utils Library", () => {
       expect(code1).not.toBe(code2);
     });
 
-    it("should match format EL-[TIMESTAMP]-[HASH]", () => {
+    it("should match alphanumeric format EL[TIMESTAMP][RANDOM]", () => {
       const code = generateOrderCode();
-      const parts = code.split("-");
-      expect(parts.length).toBe(3);
-      expect(parts[0]).toBe("EL");
-      expect(parts[1].length).toBeGreaterThan(0);
-      expect(parts[2].length).toBe(8);
+      expect(code).toMatch(/^EL[A-Z0-9]+$/);
+      expect(code.length).toBeGreaterThanOrEqual(12);
     });
   });
 
@@ -175,6 +173,52 @@ describe("Utils Library", () => {
       expect(result.totalPages).toBe(1);
       expect(result.hasPrevPage).toBe(false);
       expect(result.hasNextPage).toBe(false);
+    });
+  });
+
+  describe("serializePrisma", () => {
+    it("should return primitives, null and undefined untouched", () => {
+      expect(serializePrisma(null)).toBeNull();
+      expect(serializePrisma(undefined)).toBeUndefined();
+      expect(serializePrisma("hello")).toBe("hello");
+      expect(serializePrisma(123)).toBe(123);
+      expect(serializePrisma(true)).toBe(true);
+    });
+
+    it("should preserve Date instances", () => {
+      const now = new Date();
+      expect(serializePrisma(now)).toBe(now);
+    });
+
+    it("should convert Prisma Decimal objects to numbers", () => {
+      const mockDecimal = {
+        toNumber: () => 500000,
+        toFixed: () => "500000.00",
+      };
+      expect(serializePrisma(mockDecimal)).toBe(500000);
+    });
+
+    it("should recursively convert nested objects and arrays containing Decimals", () => {
+      const now = new Date();
+      const rawData = {
+        id: "course-1",
+        title: "Trading Course",
+        price: { toNumber: () => 1000000, toFixed: () => "1000000.00" },
+        createdAt: now,
+        orders: [
+          {
+            id: "order-1",
+            finalAmount: { toNumber: () => 900000, toFixed: () => "900000.00" },
+          },
+        ],
+      };
+
+      const serialized = serializePrisma(rawData);
+
+      expect(serialized.price).toBe(1000000);
+      expect(serialized.createdAt).toBe(now);
+      expect(serialized.orders[0].finalAmount).toBe(900000);
+      expect(typeof serialized.orders[0].finalAmount).toBe("number");
     });
   });
 });

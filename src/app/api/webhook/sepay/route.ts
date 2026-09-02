@@ -70,10 +70,10 @@ export async function POST(req: Request) {
     const content = String(body.content || body.description || "");
     const receivedAmount = Number(body.transferAmount || body.amount || 0);
 
-    // Extract order code from content (pattern: WTLxxxxx or ELxxxxx or code directly)
+    // Extract order code from content (pattern: ELxxx, WTLxxx, EL-xxx-xxx, or body.code)
     let targetOrderCode = String(body.code || "").trim();
     if (!targetOrderCode || targetOrderCode === "null") {
-      const match = content.match(/(?:WTL|EL)[A-Z0-9]+/i);
+      const match = content.match(/(?:WTL|EL)-?[A-Z0-9]+(?:-[A-Z0-9]+)*/i);
       if (match) {
         targetOrderCode = match[0].toUpperCase();
       }

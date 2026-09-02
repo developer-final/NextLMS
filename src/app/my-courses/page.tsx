@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { serializePrisma } from "@/lib/utils";
 import MyCoursesClient from "./MyCoursesClient";
 
 export const revalidate = 0;
@@ -40,6 +41,6 @@ export default async function MyCoursesPage() {
     orderBy: { updatedAt: "desc" },
   });
 
-  return <MyCoursesClient enrollments={enrollments} />;
+  return <MyCoursesClient enrollments={serializePrisma(enrollments)} />;
 }
 

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { GraduationCap, Lock, Mail, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-export default function RegisterPage() {
+function RegisterFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { t, language } = useLanguage();
 
   const [name, setName] = useState("");
@@ -23,7 +25,7 @@ export default function RegisterPage() {
   const handleGoogleRegister = async () => {
     setGoogleLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/" });
+      await signIn("google", { callbackUrl });
     } catch {
       toast.error(t.auth.googleNotConfigured);
       setGoogleLoading(false);
@@ -69,7 +71,25 @@ export default function RegisterPage() {
         toast.success(data.message || t.auth.registerSuccess);
       } else {
         toast.success(t.auth.registerSuccess);
-        router.push("/auth/login");
+        // Automatically sign in the user for frictionless checkout flow
+        const loginRes = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (loginRes?.ok) {
+          router.push(callbackUrl);
+          router.refresh();
+        } else {
+          router.push(
+            `/auth/login${
+              callbackUrl !== "/"
+                ? `?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : ""
+            }`
+          );
+        }
       }
     } catch (error) {
       toast.error(language === "en" ? "Connection error. Please try again." : "Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
@@ -96,7 +116,11 @@ export default function RegisterPage() {
           </div>
           <div className="pt-2">
             <Link
-              href="/auth/login"
+              href={
+                callbackUrl !== "/"
+                  ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                  : "/auth/login"
+              }
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 py-3 text-sm font-bold text-slate-950 shadow-glow transition-all"
             >
               {t.auth.loginNowLink}
@@ -256,12 +280,33 @@ export default function RegisterPage() {
         {/* Footer */}
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800/80">
           {t.auth.alreadyHaveAccount}{" "}
-          <Link href="/auth/login" className="font-bold text-brand-400 hover:underline">
+          <Link
+            href={
+              callbackUrl !== "/"
+                ? `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/auth/login"
+            }
+            className="font-bold text-brand-400 hover:underline"
+          >
             {t.auth.loginNowLink}
           </Link>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+        </div>
+      }
+    >
+      <RegisterFormContent />
+    </Suspense>
   );
 }
 
