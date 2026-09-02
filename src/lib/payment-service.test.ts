@@ -10,6 +10,7 @@ vi.mock("@/lib/prisma", () => {
       order: {
         findUnique: vi.fn(),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       transaction: {
         create: vi.fn(),
@@ -22,7 +23,10 @@ vi.mock("@/lib/prisma", () => {
       },
       $transaction: vi.fn((callback) =>
         callback({
-          order: { update: vi.fn() },
+          order: {
+            update: vi.fn(),
+            updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+          },
           transaction: { create: vi.fn() },
           enrollment: { upsert: vi.fn() },
           coupon: { update: vi.fn() },

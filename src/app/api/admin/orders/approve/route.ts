@@ -8,24 +8,24 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
     const user = session.user;
 
     if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { orderId, action } = await req.json();
 
     if (!orderId) {
-      return NextResponse.json({ error: "Thiếu orderId" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required orderId" }, { status: 400 });
     }
 
     // Strict action validation
     if (action !== "APPROVE" && action !== "CANCEL") {
       return NextResponse.json(
-        { error: "Thao tác không hợp lệ. Chỉ chấp nhận APPROVE hoặc CANCEL." },
+        { error: "Invalid action. Only APPROVE or CANCEL is supported." },
         { status: 400 }
       );
     }
@@ -41,20 +41,20 @@ export async function POST(req: Request) {
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // State machine check
     if (action === "APPROVE") {
       if (order.status === "COMPLETED") {
         return NextResponse.json(
-          { error: "Đơn hàng này đã được duyệt trước đó." },
+          { error: "This order has already been approved." },
           { status: 400 }
         );
       }
       if (order.status === "CANCELLED") {
         return NextResponse.json(
-          { error: "Không thể duyệt đơn hàng đã bị hủy." },
+          { error: "Cannot approve a cancelled order." },
           { status: 400 }
         );
       }
@@ -64,6 +64,22 @@ export async function POST(req: Request) {
         await tx.order.update({
           where: { id: orderId },
           data: { status: "COMPLETED" },
+        });
+
+        // Create transaction audit record for manual approval
+        await tx.transaction.create({
+          data: {
+            orderId: order.id,
+            gatewayRef: `ADMIN-APPROVAL-${session.user.id}`,
+            bankCode: order.paymentMethod,
+            transferContent:
+              order.proofImageUrl || "Admin manual verification",
+            amount: order.finalAmount,
+            rawWebhookData: JSON.stringify({
+              approvedBy: session.user.id,
+              approvedAt: new Date().toISOString(),
+            }),
+          },
         });
 
         // If order used a coupon, increment coupon's usedCount now upon approval
@@ -116,29 +132,62 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Duyệt đơn hàng và kích hoạt khóa học thành công!",
+        message: "Order approved and course access activated successfully.",
       });
     }
 
     if (action === "CANCEL") {
       if (order.status === "CANCELLED") {
         return NextResponse.json(
-          { error: "Đơn hàng này đã bị hủy trước đó." },
+          { error: "This order has already been cancelled." },
           { status: 400 }
         );
       }
 
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status: "CANCELLED" },
+      const wasCompleted = order.status === "COMPLETED";
+
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "CANCELLED" },
+        });
+
+        // If previously completed, revoke access and refund coupon usage
+        if (wasCompleted) {
+          for (const item of order.orderItems) {
+            await tx.enrollment.deleteMany({
+              where: {
+                userId: order.userId,
+                courseId: item.courseId,
+              },
+            });
+          }
+
+          if (order.couponId) {
+            await tx.coupon.update({
+              where: { id: order.couponId },
+              data: {
+                usedCount: { decrement: 1 },
+              },
+            });
+          }
+        }
       });
 
-      return NextResponse.json({ success: true, message: "Đã hủy đơn hàng" });
+      return NextResponse.json({
+        success: true,
+        message: wasCompleted
+          ? "Order cancelled and course access revoked successfully."
+          : "Order cancelled successfully.",
+      });
     }
 
-    return NextResponse.json({ error: "Yêu cầu không hợp lệ" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   } catch (error: any) {
     console.error("Approve Order Error:", error);
-    return NextResponse.json({ error: "Lỗi xử lý duyệt đơn hàng" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to process order status change." },
+      { status: 500 }
+    );
   }
 }

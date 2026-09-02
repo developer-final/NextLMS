@@ -23,7 +23,8 @@ export interface ProcessPaymentResult {
 
 /**
  * Atomic processor for completing paid orders and activating enrollments.
- * Ensures Idempotency, prevents double activation, and sends confirmation emails.
+ * Ensures Idempotency, prevents double activation with optimistic concurrency locking,
+ * supports currency exchange tolerances, and sends confirmation emails.
  */
 export async function completeOrderAndEnroll({
   orderCode,
@@ -76,8 +77,15 @@ export async function completeOrderAndEnroll({
   }
 
   const expectedAmount = Number(order.finalAmount);
-  // Ensure the received amount meets the required finalAmount (allow small rounding tolerance)
-  if (amount < expectedAmount - 1) {
+
+  // Currency rounding tolerance check:
+  // For international gateways (PAYPAL, STRIPE), allow up to 25,000 VND tolerance
+  // to account for 2-decimal cent rounding variations during exchange rate conversion.
+  const isInternationalGateway =
+    paymentMethod === "PAYPAL" || paymentMethod === "STRIPE";
+  const tolerance = isInternationalGateway ? 25000 : 1;
+
+  if (amount < expectedAmount - tolerance) {
     return {
       success: false,
       message: `Insufficient payment: received ${amount}, expected ${expectedAmount}`,
@@ -85,16 +93,24 @@ export async function completeOrderAndEnroll({
     };
   }
 
-  // Atomic database transaction
-  await prisma.$transaction(async (tx) => {
-    // 1. Update Order status
-    await tx.order.update({
-      where: { id: order.id },
+  // Atomic database transaction with Optimistic Concurrency Control
+  const txSuccess = await prisma.$transaction(async (tx) => {
+    // 1. Optimistic Locking: Only update if status is still PENDING
+    const updateResult = await tx.order.updateMany({
+      where: {
+        id: order.id,
+        status: "PENDING",
+      },
       data: {
         status: "COMPLETED",
         paymentMethod,
       },
     });
+
+    // If another concurrent request already updated this order, exit gracefully
+    if (updateResult.count === 0) {
+      return false;
+    }
 
     // 2. Create Transaction audit record
     await tx.transaction.create({
@@ -138,7 +154,20 @@ export async function completeOrderAndEnroll({
         },
       });
     }
+
+    return true;
   });
+
+  if (!txSuccess) {
+    return {
+      success: true,
+      alreadyCompleted: true,
+      orderId: order.id,
+      orderCode: order.orderCode,
+      message: `Order #${cleanOrderCode} has already been completed and processed.`,
+      status: 200,
+    };
+  }
 
   // Asynchronous transactional confirmation email
   if (order.user?.email) {
@@ -154,7 +183,7 @@ export async function completeOrderAndEnroll({
       totalAmount: `${Number(order.finalAmount).toLocaleString("vi-VN")} đ`,
       items: emailItems,
     }).catch((err) => {
-      console.error("[Payment Webhook] Failed to send invoice email:", err);
+      console.error("[Payment Fulfillment] Failed to send invoice email:", err);
     });
   }
 

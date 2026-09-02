@@ -3,8 +3,10 @@ import { POST as payosWebhookHandler } from "@/app/api/webhook/payos/route";
 import { POST as sepayWebhookHandler } from "@/app/api/webhook/sepay/route";
 import { POST as paypalWebhookHandler } from "@/app/api/webhook/paypal/route";
 import { POST as paypalCaptureHandler } from "@/app/api/orders/paypal-capture/route";
+import { POST as stripeWebhookHandler } from "@/app/api/webhook/stripe/route";
 import * as configModule from "@/lib/config";
 import * as paymentServiceModule from "@/lib/payment-service";
+import * as paypalModule from "@/lib/paypal";
 
 vi.mock("next-auth", () => ({
   getServerSession: vi.fn().mockResolvedValue({
@@ -18,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn().mockResolvedValue({
         id: "order-123",
         orderCode: "WTL123456",
+        userId: "user-test",
         finalAmount: 1000000,
         status: "PENDING",
       }),
@@ -51,7 +54,7 @@ describe("Payment Webhooks Integration Handlers", () => {
         ...configModule.DEFAULT_CONFIG,
         paymentVietqrAutoEnabled: true,
         paymentVietqrProvider: "PAYOS",
-        payosChecksumKey: "", // simulation mode
+        payosChecksumKey: "", // dev simulation
       });
 
       const completeOrderSpy = vi
@@ -95,7 +98,7 @@ describe("Payment Webhooks Integration Handlers", () => {
       vi.spyOn(configModule, "getSystemSettings").mockResolvedValue({
         ...configModule.DEFAULT_CONFIG,
         paymentVietqrAutoEnabled: true,
-        paymentVietqrProvider: "PAYOS", // configured for PayOS instead of SePay
+        paymentVietqrProvider: "PAYOS",
       });
 
       const req = new Request("http://localhost/api/webhook/sepay", {
@@ -148,11 +151,18 @@ describe("Payment Webhooks Integration Handlers", () => {
   });
 
   describe("PayPal Capture & Webhook Handlers", () => {
-    it("should fulfill order via PayPal capture endpoint", async () => {
+    it("should fulfill order via PayPal capture endpoint with PayPal REST verification", async () => {
       vi.spyOn(configModule, "getSystemSettings").mockResolvedValue({
         ...configModule.DEFAULT_CONFIG,
         paymentPaypalEnabled: true,
         usdExchangeRate: 25400,
+      });
+
+      vi.spyOn(paypalModule, "capturePayPalOrder").mockResolvedValue({
+        captureId: "CAP-PAYPAL-REAL-999",
+        status: "COMPLETED",
+        amountReceivedUsd: 39.37,
+        rawResponse: { id: "CAP-PAYPAL-REAL-999", status: "COMPLETED" },
       });
 
       const completeOrderSpy = vi
@@ -166,8 +176,7 @@ describe("Payment Webhooks Integration Handlers", () => {
         method: "POST",
         body: JSON.stringify({
           orderCode: "WTL123456",
-          paypalCaptureId: "PAYPAL-CAP-999",
-          amountUsd: 39.37,
+          paypalOrderId: "PAYPAL-ORDER-123",
         }),
       });
 
@@ -216,6 +225,49 @@ describe("Payment Webhooks Integration Handlers", () => {
         expect.objectContaining({
           orderCode: "WTL123456",
           paymentMethod: "PAYPAL",
+        })
+      );
+    });
+  });
+
+  describe("Stripe Webhook Handler", () => {
+    it("should handle Stripe checkout.session.completed event", async () => {
+      vi.spyOn(configModule, "getSystemSettings").mockResolvedValue({
+        ...configModule.DEFAULT_CONFIG,
+        paymentStripeEnabled: true,
+      });
+
+      const completeOrderSpy = vi
+        .spyOn(paymentServiceModule, "completeOrderAndEnroll")
+        .mockResolvedValue({
+          success: true,
+          message: "Success",
+        });
+
+      const req = new Request("http://localhost/api/webhook/stripe", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: "cs_test_123",
+              metadata: { orderCode: "WTL123456" },
+              currency: "vnd",
+              amount_total: 1000000,
+            },
+          },
+        }),
+      });
+
+      const res = await stripeWebhookHandler(req);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.received).toBe(true);
+      expect(completeOrderSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderCode: "WTL123456",
+          paymentMethod: "STRIPE",
         })
       );
     });

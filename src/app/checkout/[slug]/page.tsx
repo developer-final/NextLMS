@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import {
   ArrowRight,
   Check,
@@ -23,6 +24,7 @@ import {
   Globe,
   Clock,
   Coins,
+  ImageIcon,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 import { generateVietQRUrl } from "@/lib/vietqr";
@@ -53,8 +55,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
   const [proofUrl, setProofUrl] = useState("");
   const [submittingProof, setSubmittingProof] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [proofSubmitted, setProofSubmitted] = useState(false);
   const [isOrderCompletedRealtime, setIsOrderCompletedRealtime] = useState(false);
+  const [processingStripe, setProcessingStripe] = useState(false);
 
   // Dynamic Site & Payment Settings
   const [siteSettings, setSiteSettings] = useState<any>({
@@ -68,7 +72,9 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     paymentVietqrAutoEnabled: true,
     paymentVietqrProvider: "PAYOS",
     paymentPaypalEnabled: true,
+    paypalClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
     paymentStripeEnabled: false,
+    stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
     paymentCryptoEnabled: true,
     cryptoBep20Address: "",
     cryptoTrc20Address: "",
@@ -80,8 +86,6 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   >("VIETQR_AUTO");
   const [selectedCryptoNetwork, setSelectedCryptoNetwork] = useState<"BEP20" | "TRC20">("BEP20");
   const [countdownSeconds, setCountdownSeconds] = useState(15 * 60);
-  const [processingPaypal, setProcessingPaypal] = useState(false);
-  const [simulatingWebhook, setSimulatingWebhook] = useState(false);
 
   // Fetch public site and payment settings
   useEffect(() => {
@@ -149,7 +153,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         const data = await res.json();
         if (data.isCompleted) {
           setIsOrderCompletedRealtime(true);
-          toast.success(language === "en" ? "🎉 Order verified successfully! Redirecting to course..." : "🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học...");
+          toast.success(
+            language === "en"
+              ? "🎉 Order verified successfully! Redirecting to course..."
+              : "🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học..."
+          );
           clearInterval(interval);
           setTimeout(() => {
             router.push(`/my-courses`);
@@ -203,7 +211,9 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const basePrice = course.salePrice !== null ? course.salePrice : course.price;
   let discountValue = 0;
   if (appliedCoupon) {
-    if (appliedCoupon.discountType === "PERCENT") {
+    if (appliedCoupon.calculatedDiscount !== undefined) {
+      discountValue = appliedCoupon.calculatedDiscount;
+    } else if (appliedCoupon.discountType === "PERCENT") {
       discountValue = (basePrice * appliedCoupon.discountValue) / 100;
     } else {
       discountValue = appliedCoupon.discountValue;
@@ -231,7 +241,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         return;
       }
       setAppliedCoupon(data.coupon);
-      toast.success(language === "en" ? `Coupon ${data.coupon.code} applied!` : `Đã áp dụng mã giảm giá ${data.coupon.code}!`);
+      toast.success(
+        language === "en"
+          ? `Coupon ${data.coupon.code} applied!`
+          : `Đã áp dụng mã giảm giá ${data.coupon.code}!`
+      );
     } catch (err) {
       toast.error(language === "en" ? "Error applying coupon" : "Lỗi áp dụng mã giảm giá");
     } finally {
@@ -293,7 +307,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         toast.success(language === "en" ? "Course activated successfully!" : "Kích hoạt khóa học thành công!");
         router.push(`/my-courses`);
       } else {
-        toast.success(language === "en" ? "Order created! Please scan QR code to pay." : "Đơn hàng đã được tạo! Vui lòng quét mã QR thanh toán.");
+        toast.success(
+          language === "en"
+            ? "Order created! Please complete payment below."
+            : "Đơn hàng đã được tạo! Vui lòng hoàn tất thanh toán bên dưới."
+        );
       }
     } catch (err) {
       toast.error(language === "en" ? "Error occurred while creating order" : "Đã xảy ra lỗi khi tạo đơn hàng");
@@ -302,85 +320,57 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }
   };
 
-  // PayPal Payment Handler
-  const handlePaypalPayment = async () => {
+  // Stripe Checkout Session Redirect Handler
+  const handleStripePayment = async () => {
     if (!createdOrder) return;
-    setProcessingPaypal(true);
+    setProcessingStripe(true);
     try {
-      const exchangeRate = siteSettings.usdExchangeRate || 25400;
-      const amountUsd = parseFloat((finalPrice / exchangeRate).toFixed(2));
-      const res = await fetch("/api/orders/paypal-capture", {
+      const res = await fetch("/api/orders/stripe/create-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderCode: createdOrder.orderCode,
-          paypalCaptureId: `PAYPAL-TX-${Date.now()}`,
-          amountUsd,
-        }),
+        body: JSON.stringify({ orderCode: createdOrder.orderCode }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi thanh toán PayPal");
+        toast.error(data.error || "Lỗi khởi tạo cổng Stripe");
         return;
       }
-      toast.success(language === "en" ? "🎉 PayPal payment confirmed!" : "🎉 Thanh toán PayPal thành công!");
-      setIsOrderCompletedRealtime(true);
-      setTimeout(() => {
-        router.push("/my-courses");
-      }, 1500);
+      toast.loading(language === "en" ? "Redirecting to Stripe Checkout..." : "Đang chuyển hướng sang cổng Stripe Checkout...");
+      window.location.href = data.url;
     } catch (e) {
-      toast.error("Lỗi kết nối PayPal");
+      toast.error("Lỗi kết nối cổng thanh toán Stripe");
     } finally {
-      setProcessingPaypal(false);
+      setProcessingStripe(false);
     }
   };
 
-  // Webhook Test Simulation (Sandbox Helper for Admin/Tester)
-  const handleSimulatePayment = async () => {
-    if (!createdOrder) return;
-    setSimulatingWebhook(true);
+  // Handle Receipt File Upload
+  const handleReceiptFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingReceipt(true);
     try {
-      const isSepay = siteSettings.paymentVietqrProvider === "SEPAY";
-      const endpoint = isSepay ? "/api/webhook/sepay" : "/api/webhook/payos";
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const payload = isSepay
-        ? {
-            id: Date.now(),
-            transferType: "in",
-            transferAmount: finalPrice,
-            content: `${createdOrder.orderCode} thanh toan`,
-            gateway: "MBBank",
-          }
-        : {
-            code: "00",
-            desc: "success",
-            data: {
-              orderCode: createdOrder.orderCode,
-              amount: finalPrice,
-              description: createdOrder.orderCode,
-            },
-          };
-
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Simulation error");
+        toast.error(data.error || "Lỗi tải ảnh biên lai");
         return;
       }
-      toast.success(language === "en" ? "⚡ Payment simulated successfully!" : "⚡ Giả lập thanh toán thành công!");
-      setIsOrderCompletedRealtime(true);
-      setTimeout(() => {
-        router.push("/my-courses");
-      }, 1500);
+
+      setProofUrl(data.url);
+      toast.success(language === "en" ? "Receipt image attached!" : "Đã đính kèm ảnh biên lai thành công!");
     } catch (err) {
-      toast.error("Error simulating payment");
+      toast.error("Lỗi khi tải ảnh lên máy chủ");
     } finally {
-      setSimulatingWebhook(false);
+      setUploadingReceipt(false);
     }
   };
 
@@ -393,6 +383,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
   const handleSendProof = async () => {
     if (!createdOrder) return;
+    if (!proofUrl.trim()) {
+      toast.error(language === "en" ? "Please attach receipt image or transaction ID" : "Vui lòng đính kèm ảnh biên lai hoặc mã giao dịch");
+      return;
+    }
     setSubmittingProof(true);
     try {
       const res = await fetch("/api/orders/upload-proof", {
@@ -400,7 +394,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           orderCode: createdOrder.orderCode,
-          proofImageUrl: proofUrl || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80",
+          proofImageUrl: proofUrl,
         }),
       });
 
@@ -455,78 +449,108 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Course Details & Checkout Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Course Summary & Payment Gateway Selection */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Selected Course Card */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex gap-4 items-center">
-            <img
-              src={
-                course.thumbnailUrl ||
-                "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=300&q=80"
-              }
-              alt={course.title}
-              className="h-20 w-32 object-cover rounded-xl border border-slate-800 flex-shrink-0"
-            />
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-brand-400 uppercase">
-                {course.category?.name || t.checkout.courseInfoLabel}
-              </span>
-              <h3 className="text-sm sm:text-base font-bold text-white line-clamp-2">
-                {course.title}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {t.checkout.instructorLabel} <strong className="text-slate-300">{course.instructor?.name}</strong>
-              </p>
+          {/* Course Details Card */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4">
+            <div className="flex gap-4 items-center">
+              <div className="h-16 w-24 rounded-2xl bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-700/50">
+                {course.thumbnailUrl ? (
+                  <img
+                    src={course.thumbnailUrl}
+                    alt={course.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-slate-600">
+                    <GraduationCap className="h-8 w-8" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="inline-block rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-400 uppercase tracking-wider mb-1">
+                  {course.category?.name || "Trading Pro"}
+                </span>
+                <h2 className="text-base font-bold text-white truncate">
+                  {course.title}
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-bold text-brand-400">
+                    {formatVND(finalPrice)}
+                  </span>
+                  {course.salePrice !== null && course.price > course.salePrice && (
+                    <span className="text-[11px] text-slate-500 line-through">
+                      {formatVND(course.price)}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* If Order is NOT yet created */}
-          {!createdOrder && (
-            <>
-              {/* Coupon Form */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-1.5">
-                  <Tag className="h-4 w-4 text-brand-400" /> {t.checkout.couponTitle}
-                </h4>
+            {/* Coupon Application */}
+            {!createdOrder && !isFree && (
+              <div className="border-t border-slate-800/80 pt-4">
+                <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-brand-400" />
+                  {t.checkout.couponTitle}
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    onChange={(e) => setCouponCode(e.target.value)}
                     placeholder={t.checkout.couponPlaceholder}
-                    className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white uppercase placeholder:normal-case placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+                    disabled={!!appliedCoupon || applyingCoupon}
+                    className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none uppercase font-mono disabled:opacity-50"
                   />
-                  <button
-                    type="button"
-                    onClick={handleApplyCoupon}
-                    disabled={applyingCoupon || !couponCode}
-                    className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-semibold text-white transition-colors disabled:opacity-50"
-                  >
-                    {applyingCoupon ? t.checkout.applyingCoupon : t.checkout.applyCouponBtn}
-                  </button>
+                  {appliedCoupon ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponCode("");
+                      }}
+                      className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 transition-all"
+                    >
+                      {language === "en" ? "Remove" : "Bỏ mã"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={applyingCoupon || !couponCode.trim()}
+                      className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all disabled:opacity-50"
+                    >
+                      {applyingCoupon ? t.checkout.applyingCoupon : t.checkout.applyCouponBtn}
+                    </button>
+                  )}
                 </div>
                 {appliedCoupon && (
-                  <p className="mt-2 text-xs text-emerald-400 flex items-center gap-1">
-                    <Check className="h-3.5 w-3.5" /> {t.checkout.couponAppliedSuccess} {appliedCoupon.code} (-
-                    {formatVND(discountValue)})
+                  <p className="mt-1.5 text-[11px] text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {t.checkout.couponAppliedSuccess} {appliedCoupon.code}
                   </p>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Payment Methods Selection */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <CreditCard className="h-4 w-4 text-brand-400" />
+          {/* Payment Gateway Tabs (Only visible before order creation) */}
+          {!createdOrder && !isFree && (
+            <>
+              <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
                   {language === "en" ? "Select Payment Method" : "Chọn Phương Thức Thanh Toán"}
-                </h4>
+                </h3>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* VietQR Auto */}
+                  {/* VietQR Auto (PayOS / SePay) */}
                   {siteSettings.paymentVietqrAutoEnabled && (
                     <button
                       type="button"
                       onClick={() => setSelectedPaymentMethod("VIETQR_AUTO")}
-                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                      className={`p-3.5 rounded-xl border text-left transition-all relative ${
                         selectedPaymentMethod === "VIETQR_AUTO"
                           ? "border-emerald-500 bg-emerald-500/10 text-white shadow-glow"
                           : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
@@ -535,19 +559,19 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <Zap className="h-4 w-4 text-emerald-400" />
-                          <span className="text-xs font-bold text-white">VietQR Tự Động</span>
+                          <span className="text-xs font-bold text-white">VietQR Tự Động 24/7</span>
                         </div>
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">
-                          Tự động 3s
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1">
+                          Nhanh 3s
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {language === "en" ? "Instant scan & auto enroll" : "Quét mã chuyển khoản, vào học tức thì 24/7"}
+                        Quét mã VietQR chuyển khoản, tự động kích hoạt tức thì.
                       </p>
                     </button>
                   )}
 
-                  {/* Manual Transfer */}
+                  {/* Manual Bank Transfer */}
                   {siteSettings.paymentManualEnabled && (
                     <button
                       type="button"
@@ -560,20 +584,20 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
-                          <QrCode className="h-4 w-4 text-brand-400" />
-                          <span className="text-xs font-bold text-white">CK Ngân Hàng</span>
+                          <CreditCard className="h-4 w-4 text-brand-400" />
+                          <span className="text-xs font-bold text-white">CK Ngân Hàng (Thủ công)</span>
                         </div>
                         <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-semibold">
-                          Duyệt tay
+                          Duyệt thủ công
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {language === "en" ? "Manual transfer with receipt upload" : "Chuyển khoản thường và gửi ảnh biên lai"}
+                        Chuyển khoản truyền thống kèm tải ảnh biên lai.
                       </p>
                     </button>
                   )}
 
-                  {/* PayPal (Default International) */}
+                  {/* PayPal */}
                   {siteSettings.paymentPaypalEnabled && (
                     <button
                       type="button"
@@ -587,14 +611,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <Globe className="h-4 w-4 text-blue-400" />
-                          <span className="text-xs font-bold text-white">PayPal / Visa / Master</span>
+                          <span className="text-xs font-bold text-white">PayPal Quốc Tế</span>
                         </div>
                         <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-semibold">
-                          Quốc tế
+                          USD (${amountUsd})
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {language === "en" ? "PayPal wallet or international cards" : "Ví PayPal, Thẻ tín dụng/ghi nợ quốc tế"}
+                        Ví PayPal, Thẻ tín dụng/ghi nợ quốc tế (Visa, Master).
                       </p>
                     </button>
                   )}
@@ -613,14 +637,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <CreditCard className="h-4 w-4 text-purple-400" />
-                          <span className="text-xs font-bold text-white">Thẻ Stripe</span>
+                          <span className="text-xs font-bold text-white">Thẻ Quốc Tế (Stripe)</span>
                         </div>
                         <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-semibold">
                           Credit Card
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {language === "en" ? "Direct credit/debit card" : "Thanh toán thẻ tín dụng trực tiếp"}
+                        Apple Pay, Google Pay và Thẻ tín dụng quốc tế an toàn.
                       </p>
                     </button>
                   )}
@@ -646,14 +670,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        {language === "en" ? "Tether USDT (BNB Chain / Tron)" : "Chuyển tiền mã hóa USDT (BNB Chain / Tron)"}
+                        Chuyển tiền mã hóa USDT (BNB Chain / Tron Network).
                       </p>
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Action Button */}
+              {/* Action Button: Create Order */}
               <button
                 onClick={handleCreateOrder}
                 disabled={isProcessingOrder}
@@ -667,11 +691,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                   </>
                 ) : selectedPaymentMethod === "PAYPAL" ? (
                   <>
-                    <Globe className="h-5 w-5" /> {language === "en" ? `Pay with PayPal ($${amountUsd} USD)` : `Thanh toán qua PayPal ($${amountUsd} USD)`}
+                    <Globe className="h-5 w-5" /> Thanh toán qua PayPal (${amountUsd} USD)
+                  </>
+                ) : selectedPaymentMethod === "STRIPE" ? (
+                  <>
+                    <CreditCard className="h-5 w-5" /> Thanh toán qua Thẻ Stripe ({formatVND(finalPrice)})
                   </>
                 ) : selectedPaymentMethod === "CRYPTO_MANUAL" ? (
                   <>
-                    <Coins className="h-5 w-5" /> {language === "en" ? `Pay with Crypto (${amountUsd} USDT)` : `Thanh toán qua Crypto (${amountUsd} USDT)`}
+                    <Coins className="h-5 w-5" /> Thanh toán qua Crypto ({amountUsd} USDT)
                   </>
                 ) : (
                   <>
@@ -682,7 +710,9 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
             </>
           )}
 
-          {/* If Order IS CREATED */}
+          {/* ================================================================= */}
+          {/* AFTER ORDER IS CREATED (PAYMENT EXECUTION SECTION) */}
+          {/* ================================================================= */}
           {createdOrder && !isFree && (
             <div className="space-y-6">
               {/* Order Success Banner if completed */}
@@ -703,7 +733,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                   </Link>
                 </div>
               ) : createdOrder.paymentMethod === "PAYPAL" ? (
-                /* PAYPAL PAYMENT CARD */
+                /* OFFICIAL PAYPAL SMART BUTTONS CARD */
                 <div className="rounded-3xl border border-blue-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
@@ -715,53 +745,148 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       </h3>
                     </div>
                     <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-500/30">
-                      PayPal Checkout
+                      PayPal Official Checkout
                     </span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                     <div className="flex justify-between text-xs text-slate-400">
-                      <span>{language === "en" ? "Amount in USD:" : "Số tiền thanh toán (USD):"}</span>
+                      <span>Số tiền thanh toán (USD):</span>
                       <strong className="text-white text-base">${amountUsd} USD</strong>
                     </div>
                     <div className="flex justify-between text-xs text-slate-400">
-                      <span>{language === "en" ? "Exchange Rate:" : "Tỷ giá quy đổi:"}</span>
+                      <span>Tỷ giá quy đổi:</span>
                       <span className="text-slate-300">1 USD = {Number(exchangeRate).toLocaleString("vi-VN")} VND</span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-400">
-                      <span>{language === "en" ? "Equivalent VND:" : "Tương đương giá trị khóa học:"}</span>
+                      <span>Tương đương giá trị khóa học:</span>
                       <span className="text-slate-300">{formatVND(finalPrice)}</span>
                     </div>
                   </div>
 
-                  {/* PayPal Yellow Checkout Button */}
+                  {/* Official PayPal Buttons SDK */}
+                  <div className="space-y-3">
+                    {siteSettings.paypalClientId ? (
+                      <div className="relative z-10">
+                        <PayPalScriptProvider
+                          options={{
+                            clientId: siteSettings.paypalClientId,
+                            currency: "USD",
+                            intent: "capture",
+                          }}
+                        >
+                          <PayPalButtons
+                            style={{
+                              layout: "vertical",
+                              shape: "rect",
+                              color: "gold",
+                              label: "pay",
+                            }}
+                            createOrder={async () => {
+                              const res = await fetch("/api/orders/paypal/create", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ orderCode: createdOrder.orderCode }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) {
+                                throw new Error(data.error || "Không thể tạo đơn hàng PayPal");
+                              }
+                              return data.paypalOrderId;
+                            }}
+                            onApprove={async (data) => {
+                              toast.loading("Đang xác thực giao dịch PayPal...");
+                              const res = await fetch("/api/orders/paypal-capture", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  orderCode: createdOrder.orderCode,
+                                  paypalOrderId: data.orderID,
+                                }),
+                              });
+                              const result = await res.json();
+                              if (!res.ok) {
+                                throw new Error(result.error || "Lỗi xác thực giao dịch PayPal");
+                              }
+                              setIsOrderCompletedRealtime(true);
+                              toast.success("🎉 Thanh toán PayPal thành công! Khóa học đã được kích hoạt.");
+                              setTimeout(() => {
+                                router.push("/my-courses");
+                              }, 1500);
+                            }}
+                            onError={(err: any) => {
+                              console.error("PayPal Smart Button Error:", err);
+                              toast.error("Giao dịch PayPal bị gián đoạn hoặc bạn đã hủy thao tác.");
+                            }}
+                          />
+                        </PayPalScriptProvider>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-amber-500/40 bg-amber-950/40 p-4 text-xs text-amber-200 text-center">
+                        Hệ thống chưa cấu hình PayPal Client ID. Vui lòng liên hệ ban quản trị.
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-center text-slate-400">
+                      Hỗ trợ số dư tài khoản PayPal và các loại thẻ tín dụng / ghi nợ quốc tế (Visa, MasterCard, Amex).
+                    </p>
+                  </div>
+                </div>
+              ) : createdOrder.paymentMethod === "STRIPE" ? (
+                /* OFFICIAL STRIPE CHECKOUT CARD */
+                <div className="rounded-3xl border border-purple-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[11px] font-bold text-purple-400 uppercase">
+                        {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <CreditCard className="h-5 w-5 text-purple-400" /> Thanh Toán Thẻ Quốc Tế Stripe
+                      </h3>
+                    </div>
+                    <span className="rounded-full bg-purple-500/20 px-3 py-1 text-xs font-bold text-purple-400 border border-purple-500/30">
+                      Stripe Official
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Số tiền thanh toán:</span>
+                      <strong className="text-white text-base">{formatVND(finalPrice)}</strong>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Chuẩn bảo mật:</span>
+                      <span className="text-emerald-400 font-semibold">PCI-DSS Level 1 & 3D Secure</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>Phương thức hỗ trợ:</span>
+                      <span className="text-slate-300">Visa, MasterCard, JCB, Apple Pay, Google Pay</span>
+                    </div>
+                  </div>
+
                   <div className="space-y-3">
                     <button
                       type="button"
-                      onClick={handlePaypalPayment}
-                      disabled={processingPaypal}
-                      className="w-full flex items-center justify-center gap-3 rounded-2xl bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] py-3.5 text-sm font-extrabold shadow-lg transition-transform hover:scale-[1.01] disabled:opacity-50"
+                      onClick={handleStripePayment}
+                      disabled={processingStripe}
+                      className="w-full flex items-center justify-center gap-3 rounded-2xl bg-[#635BFF] hover:bg-[#5851EA] text-white py-4 text-base font-bold shadow-glow transition-transform hover:scale-[1.01] disabled:opacity-50"
                     >
-                      {processingPaypal ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#003087] border-t-transparent" />
+                      {processingStripe ? (
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       ) : (
                         <>
-                          <span className="italic font-black text-lg text-[#003087]">Pay</span>
-                          <span className="italic font-black text-lg text-[#0079C1]">Pal</span>
-                          <span className="font-bold text-slate-900 ml-1">Thanh toán ${amountUsd} USD</span>
+                          <CreditCard className="h-5 w-5" />
+                          <span>Thanh toán Thẻ với Stripe ({formatVND(finalPrice)})</span>
                         </>
                       )}
                     </button>
-
                     <p className="text-[11px] text-center text-slate-400">
-                      {language === "en"
-                        ? "Supports PayPal Balance, Visa, MasterCard, American Express."
-                        : "Hỗ trợ số dư tài khoản PayPal và các loại thẻ tín dụng / ghi nợ quốc tế."}
+                      Hệ thống sẽ chuyển tiếp bạn đến cổng thanh toán bảo mật chính thức của Stripe.
                     </p>
                   </div>
                 </div>
               ) : createdOrder.paymentMethod === "BANK_TRANSFER_MANUAL" ? (
-                /* MANUAL BANK TRANSFER WITH PROOF UPLOAD */
+                /* MANUAL BANK TRANSFER WITH FILE UPLOAD */
                 <div className="rounded-3xl border border-brand-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
@@ -840,38 +965,64 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     </div>
                   </div>
 
-                  {/* Upload Proof / Confirmation */}
+                  {/* Upload Proof / Confirmation with File Upload */}
                   <div className="border-t border-slate-800 pt-5 space-y-3">
                     <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                       <UploadCloud className="h-4 w-4 text-brand-400" /> {t.checkout.confirmTransferTitle}
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      {t.checkout.confirmTransferDesc}
+                      Tải lên ảnh chụp màn hình biên lai chuyển khoản hoặc dán link ảnh để ban quản trị đối soát:
                     </p>
 
                     {proofSubmitted ? (
                       <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-center gap-2">
                         <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                        <span>
-                          {t.checkout.proofSubmittedSuccess}
-                        </span>
+                        <span>{t.checkout.proofSubmittedSuccess}</span>
                       </div>
                     ) : (
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          type="text"
-                          value={proofUrl}
-                          onChange={(e) => setProofUrl(e.target.value)}
-                          placeholder={t.checkout.proofInputPlaceholder}
-                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
-                        />
-                        <button
-                          onClick={handleSendProof}
-                          disabled={submittingProof}
-                          className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
-                        >
-                          {submittingProof ? t.checkout.submittingProof : t.checkout.iHaveTransferredBtn}
-                        </button>
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <label className="flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer transition-all border border-slate-700">
+                            <ImageIcon className="h-4 w-4 text-brand-400" />
+                            <span>{uploadingReceipt ? "Đang tải ảnh..." : "Chọn ảnh biên lai"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingReceipt}
+                              onChange={handleReceiptFileUpload}
+                            />
+                          </label>
+
+                          <input
+                            type="text"
+                            value={proofUrl}
+                            onChange={(e) => setProofUrl(e.target.value)}
+                            placeholder={t.checkout.proofInputPlaceholder}
+                            className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+                          />
+
+                          <button
+                            onClick={handleSendProof}
+                            disabled={submittingProof || !proofUrl.trim()}
+                            className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
+                          >
+                            {submittingProof ? t.checkout.submittingProof : t.checkout.iHaveTransferredBtn}
+                          </button>
+                        </div>
+
+                        {proofUrl && (
+                          <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-950 border border-slate-800">
+                            <img
+                              src={proofUrl}
+                              alt="Receipt Preview"
+                              className="h-12 w-12 object-cover rounded-lg border border-slate-700"
+                            />
+                            <span className="text-[11px] text-emerald-400 font-medium truncate flex-1">
+                              ✓ Đã đính kèm ảnh biên lai thành công
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -922,7 +1073,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       </button>
                     </div>
 
-                    {/* Dynamic Wallet Box or Empty Warning */}
+                    {/* Dynamic Wallet Box */}
                     {(() => {
                       const currentAddress =
                         selectedCryptoNetwork === "BEP20"
@@ -945,13 +1096,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                               Chưa cấu hình địa chỉ ví cho mạng {currentNetworkName}
                             </h4>
                             <p className="text-xs text-slate-300 max-w-md mx-auto">
-                              Quản trị viên chưa nhập địa chỉ ví nhận USDT cho mạng này. Vui lòng chuyển sang tab mạng còn lại hoặc liên hệ bộ phận hỗ trợ (Hotline/Zalo/Telegram) để được cấp địa chỉ ví chuyển tiền trực tiếp.
+                              Quản trị viên chưa nhập địa chỉ ví nhận USDT cho mạng này. Vui lòng chuyển sang tab mạng còn lại hoặc liên hệ bộ phận hỗ trợ.
                             </p>
                           </div>
                         );
                       }
 
-                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(currentAddress)}`;
+                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(
+                        currentAddress
+                      )}`;
 
                       return (
                         <div className="space-y-4">
@@ -1007,20 +1160,20 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                           </div>
 
                           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200">
-                            <strong>Lưu ý quan trọng:</strong> Vui lòng chọn chính xác mạng <strong>{currentNetworkName}</strong> trên ví/sàn của bạn để tránh thất thoát tài sản. Sau khi chuyển, hãy nhập mã TXID vào ô bên dưới.
+                            <strong>Lưu ý quan trọng:</strong> Vui lòng chọn chính xác mạng <strong>{currentNetworkName}</strong> trên ví/sàn của bạn để tránh thất thoát tài sản.
                           </div>
                         </div>
                       );
                     })()}
                   </div>
 
-                  {/* Upload TXID / Proof Section */}
+                  {/* Upload TXID / Proof Section with File Upload */}
                   <div className="border-t border-slate-800 pt-5 space-y-3">
                     <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                       <UploadCloud className="h-4 w-4 text-amber-400" /> Xác Nhận Giao Dịch Chuyển Tiền Crypto
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Điền mã băm giao dịch (TxHash / TXID từ ví Binance, OKX, TrustWallet, MetaMask) hoặc dán link ảnh biên lai:
+                      Điền mã băm giao dịch (TXID / Hash) hoặc đính kèm ảnh chụp màn hình lịch sử rút tiền:
                     </p>
 
                     {proofSubmitted ? (
@@ -1031,27 +1184,50 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                         </span>
                       </div>
                     ) : (
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          type="text"
-                          value={proofUrl}
-                          onChange={(e) => setProofUrl(e.target.value)}
-                          placeholder="Ví dụ: 0xabc123... hoặc dán link ảnh chụp giao dịch"
-                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono"
-                        />
-                        <button
-                          onClick={handleSendProof}
-                          disabled={submittingProof}
-                          className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
-                        >
-                          {submittingProof ? "Đang gửi..." : "Gửi Xác Nhận TXID"}
-                        </button>
+                      <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <label className="flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2.5 text-xs font-bold text-white cursor-pointer transition-all border border-slate-700">
+                            <ImageIcon className="h-4 w-4 text-amber-400" />
+                            <span>{uploadingReceipt ? "Đang tải ảnh..." : "Chọn ảnh biên lai"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingReceipt}
+                              onChange={handleReceiptFileUpload}
+                            />
+                          </label>
+
+                          <input
+                            type="text"
+                            value={proofUrl}
+                            onChange={(e) => setProofUrl(e.target.value)}
+                            placeholder="Mã TXID: 0xabc123... hoặc link ảnh chụp giao dịch"
+                            className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono"
+                          />
+
+                          <button
+                            onClick={handleSendProof}
+                            disabled={submittingProof || !proofUrl.trim()}
+                            className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
+                          >
+                            {submittingProof ? "Đang gửi..." : "Gửi Xác Nhận TXID"}
+                          </button>
+                        </div>
+
+                        {proofUrl && (
+                          <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-950 border border-slate-800">
+                            <span className="text-[11px] text-amber-300 font-medium truncate flex-1">
+                              ✓ Đã đính kèm: {proofUrl.slice(0, 45)}...
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
               ) : (
-                /* VIETQR AUTO DYNAMIC (PAYOS / SEPAY) */
+                /* VIETQR AUTO DYNAMIC (PAYOS / SEPAY) - NO SIMULATION BUTTON */
                 <div className="rounded-3xl border border-emerald-500/40 bg-slate-900/90 p-6 space-y-6 shadow-glow">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
@@ -1132,21 +1308,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     </div>
                   </div>
 
-                  {/* Automation Status & Sandbox Test Helper */}
-                  <div className="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span>Đang lắng nghe biến động số dư từ ngân hàng...</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSimulatePayment}
-                      disabled={simulatingWebhook}
-                      className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
-                    >
-                      {simulatingWebhook ? "Đang giả lập..." : "⚡ Giả lập thanh toán thành công (Dev Test)"}
-                    </button>
+                  {/* Automation Status */}
+                  <div className="border-t border-slate-800 pt-4 flex items-center gap-2 text-xs text-slate-400">
+                    <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Hệ thống đang tự động lắng nghe giao dịch chuyển khoản từ ngân hàng...</span>
                   </div>
                 </div>
               )}
@@ -1202,4 +1367,3 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     </div>
   );
 }
-

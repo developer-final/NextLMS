@@ -4,13 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generateOrderCode } from "@/lib/utils";
 import { getClientIp, orderRateLimiter } from "@/lib/rate-limit";
+import { validateCoupon, calculateOrderPricing } from "@/lib/billing";
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để tiếp tục thanh toán" },
+        { error: "Please log in to proceed with checkout" },
         { status: 401 }
       );
     }
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
       const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Bạn đã tạo quá nhiều đơn hàng liên tục. Vui lòng chờ ${waitSeconds} giây trước khi thử lại.`,
+          error: `Too many order creation requests. Please wait ${waitSeconds} seconds before trying again.`,
         },
         {
           status: 429,
@@ -37,7 +38,10 @@ export async function POST(req: Request) {
     const { courseId, couponCode, paymentMethod } = body;
 
     if (!courseId) {
-      return NextResponse.json({ error: "Thiếu thông tin khóa học" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required courseId" },
+        { status: 400 }
+      );
     }
 
     const course = await prisma.course.findUnique({
@@ -45,7 +49,10 @@ export async function POST(req: Request) {
     });
 
     if (!course || course.status !== "PUBLISHED") {
-      return NextResponse.json({ error: "Khóa học không tồn tại hoặc chưa mở bán" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Course not found or has not been published" },
+        { status: 404 }
+      );
     }
 
     // Check if already enrolled
@@ -57,15 +64,17 @@ export async function POST(req: Request) {
 
     if (existingEnrollment && existingEnrollment.status === "ACTIVE") {
       return NextResponse.json(
-        { error: "Bạn đã sở hữu khóa học này rồi!", alreadyEnrolled: true },
+        { error: "You already own this course!", alreadyEnrolled: true },
         { status: 400 }
       );
     }
 
-    // Calculate pricing and validate coupon preliminary data
-    const originalPrice = Number(course.salePrice !== null ? course.salePrice : course.price);
-    let discountAmount = 0;
+    // Calculate pricing using standardized billing library
+    const originalPrice = Number(
+      course.salePrice !== null ? course.salePrice : course.price
+    );
     let validCouponId: string | null = null;
+    let validCouponData: any = null;
 
     if (couponCode) {
       const cleanCouponCode = couponCode.toUpperCase().trim();
@@ -73,45 +82,34 @@ export async function POST(req: Request) {
         where: { code: cleanCouponCode },
       });
 
-      if (!coupon || !coupon.isActive) {
+      if (!coupon) {
         return NextResponse.json(
-          { error: "Mã giảm giá không tồn tại hoặc đã bị vô hiệu hóa" },
+          { error: "Coupon does not exist or has been disabled" },
           { status: 400 }
         );
       }
 
-      if (coupon.expiresAt && new Date() > coupon.expiresAt) {
-        return NextResponse.json(
-          { error: "Mã giảm giá đã hết hạn sử dụng" },
-          { status: 400 }
-        );
-      }
+      const couponObj = {
+        ...coupon,
+        discountValue: Number(coupon.discountValue),
+        minOrderValue: Number(coupon.minOrderValue),
+      };
 
-      if (coupon.usedCount >= coupon.maxUsage) {
+      const validation = validateCoupon(couponObj, originalPrice);
+      if (!validation.isValid) {
         return NextResponse.json(
-          { error: "Mã giảm giá đã hết lượt sử dụng" },
-          { status: 400 }
-        );
-      }
-
-      const minOrderVal = Number(coupon.minOrderValue);
-      if (originalPrice < minOrderVal) {
-        return NextResponse.json(
-          { error: `Đơn hàng tối thiểu để áp dụng mã là ${minOrderVal.toLocaleString("vi-VN")}đ` },
+          { error: validation.error || "Invalid coupon code" },
           { status: 400 }
         );
       }
 
       validCouponId = coupon.id;
-      const discountVal = Number(coupon.discountValue);
-      if (coupon.discountType === "PERCENT") {
-        discountAmount = (originalPrice * discountVal) / 100;
-      } else {
-        discountAmount = discountVal;
-      }
+      validCouponData = couponObj;
     }
 
-    const finalAmount = Math.max(0, originalPrice - discountAmount);
+    const pricing = calculateOrderPricing(originalPrice, validCouponData);
+    const finalAmount = pricing.finalAmount;
+    const discountAmount = pricing.discountAmount;
     const orderCode = generateOrderCode();
     const isFreeOrder = course.isFree || finalAmount === 0;
 
@@ -122,7 +120,11 @@ export async function POST(req: Request) {
           where: { id: validCouponId },
         });
 
-        if (!couponToUse || !couponToUse.isActive || couponToUse.usedCount >= couponToUse.maxUsage) {
+        if (
+          !couponToUse ||
+          !couponToUse.isActive ||
+          couponToUse.usedCount >= couponToUse.maxUsage
+        ) {
           throw new Error("COUPON_LIMIT_EXCEEDED");
         }
 
@@ -143,12 +145,14 @@ export async function POST(req: Request) {
           totalAmount: originalPrice,
           discountAmount,
           finalAmount,
-          paymentMethod: isFreeOrder ? "FREE" : paymentMethod || "BANK_TRANSFER_MANUAL",
+          paymentMethod: isFreeOrder
+            ? "FREE"
+            : paymentMethod || "BANK_TRANSFER_MANUAL",
           status: isFreeOrder ? "COMPLETED" : "PENDING",
           orderItems: {
             create: {
               courseId: course.id,
-              price: finalAmount,
+              price: originalPrice,
             },
           },
         },
@@ -176,19 +180,19 @@ export async function POST(req: Request) {
       order,
       isFreeOrder,
       message: isFreeOrder
-        ? "Đăng ký khóa học thành công!"
-        : "Tạo đơn hàng thành công!",
+        ? "Course enrollment successful!"
+        : "Order created successfully!",
     });
   } catch (error: any) {
     if (error?.message === "COUPON_LIMIT_EXCEEDED") {
       return NextResponse.json(
-        { error: "Mã giảm giá vừa hết lượt sử dụng. Vui lòng kiểm tra lại." },
+        { error: "Coupon usage limit has been reached. Please try another coupon." },
         { status: 400 }
       );
     }
     console.error("Order Creation Error:", error);
     return NextResponse.json(
-      { error: "Không thể tạo đơn hàng. Vui lòng thử lại." },
+      { error: "Failed to create order. Please try again." },
       { status: 500 }
     );
   }
