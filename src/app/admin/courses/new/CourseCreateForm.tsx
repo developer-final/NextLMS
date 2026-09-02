@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
+  ArrowLeft,
   BookOpen,
   Plus,
   Trash2,
@@ -160,9 +162,15 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-16">
-      <div className="border-b border-slate-800 pb-4">
+      <div className="border-b border-slate-800 pb-4 space-y-1">
+        <Link
+          href="/admin/courses"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> {t.admin.editCourse.backToCourses}
+        </Link>
         <h1 className="text-2xl font-extrabold text-white">{t.admin.createCourse.title}</h1>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-400">
           {t.admin.createCourse.subtitle}
         </p>
       </div>

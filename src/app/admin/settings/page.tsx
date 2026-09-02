@@ -1,10 +1,19 @@
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getSystemSettings } from "@/lib/config";
 import SettingsFormClient from "./SettingsFormClient";
-import { Settings } from "lucide-react";
 
 export const revalidate = 0;
 
 export default async function AdminSettingsPage() {
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
+
+  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
+    redirect("/admin/courses");
+  }
+
   const currentSettings = await getSystemSettings();
 
   return (
@@ -13,4 +22,5 @@ export default async function AdminSettingsPage() {
     </div>
   );
 }
+
 

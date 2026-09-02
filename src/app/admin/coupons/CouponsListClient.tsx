@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  Edit2,
   PlusCircle,
   Search,
   Tag,
   Trash2,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -21,6 +23,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
   const [coupons, setCoupons] = useState<any[]>(initialCoupons);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form states
@@ -30,21 +33,39 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
   const [maxUsage, setMaxUsage] = useState("100");
   const [minOrderValue, setMinOrderValue] = useState("0");
   const [expiresAt, setExpiresAt] = useState("");
+  const [isActive, setIsActive] = useState(true);
 
   const filtered = coupons.filter((c) =>
     c.code.toLowerCase().includes(search.toLowerCase())
   );
 
-  const resetForm = () => {
+  const openCreateModal = () => {
+    setEditingCoupon(null);
     setCode("");
     setDiscountType("PERCENT");
     setDiscountValue("");
     setMaxUsage("100");
     setMinOrderValue("0");
     setExpiresAt("");
+    setIsActive(true);
+    setShowModal(true);
   };
 
-  const handleCreateCoupon = async (e: React.FormEvent) => {
+  const openEditModal = (coupon: any) => {
+    setEditingCoupon(coupon);
+    setCode(coupon.code);
+    setDiscountType(coupon.discountType || "PERCENT");
+    setDiscountValue(String(coupon.discountValue || ""));
+    setMaxUsage(String(coupon.maxUsage || 100));
+    setMinOrderValue(String(coupon.minOrderValue || 0));
+    setExpiresAt(
+      coupon.expiresAt ? new Date(coupon.expiresAt).toISOString().split("T")[0] : ""
+    );
+    setIsActive(coupon.isActive !== undefined ? Boolean(coupon.isActive) : true);
+    setShowModal(true);
+  };
+
+  const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !discountValue) {
       toast.error(t.admin.coupons.codeLabel);
@@ -57,34 +78,47 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingCoupon?.id,
           code,
           discountType,
           discountValue,
           maxUsage,
           minOrderValue,
           expiresAt: expiresAt || null,
+          isActive,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error creating coupon");
+        toast.error(data.error || "Error saving coupon");
         return;
       }
 
-      toast.success("Coupon created successfully!");
-      setCoupons([data.coupon, ...coupons]);
+      toast.success(
+        editingCoupon
+          ? t.admin.coupons.updateSuccess
+          : "🎉 " + (data.message || "Tạo coupon thành công")
+      );
+
+      if (editingCoupon) {
+        setCoupons(
+          coupons.map((c) => (c.id === editingCoupon.id ? { ...c, ...data.coupon } : c))
+        );
+      } else {
+        setCoupons([data.coupon, ...coupons]);
+      }
+
       setShowModal(false);
-      resetForm();
     } catch (err) {
-      toast.error("Error creating coupon");
+      toast.error("Error saving coupon");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string, couponCode: string) => {
-    if (!confirm(`Are you sure you want to delete ${couponCode}?`)) return;
+    if (!confirm(`${t.admin.coupons.deleteConfirm} (${couponCode})`)) return;
 
     try {
       const res = await fetch(`/api/admin/coupons?id=${id}`, {
@@ -127,10 +161,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
         </div>
 
         <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
+          onClick={openCreateModal}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-glow transition-all"
         >
           <PlusCircle className="h-4 w-4" /> {t.admin.coupons.addCouponBtn}
@@ -186,11 +217,22 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
                             : "bg-emerald-950 text-emerald-400 border border-emerald-800"
                         }`}
                       >
-                        {isExpired ? t.admin.coupons.inactive : c.isActive ? t.admin.coupons.active : t.admin.coupons.inactive}
+                        {isExpired
+                          ? t.admin.coupons.inactive
+                          : c.isActive
+                          ? t.admin.coupons.active
+                          : t.admin.coupons.inactive}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-4 text-right space-x-1.5">
+                      <button
+                        onClick={() => openEditModal(c)}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        title={t.admin.coupons.editBtn}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => handleDelete(c.id, c.code)}
                         className="p-1.5 rounded-lg bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 transition-colors"
@@ -207,13 +249,14 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
         </table>
       </div>
 
-      {/* Modal Create Coupon */}
+      {/* Modal Add / Edit Coupon */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Tag className="h-4 w-4 text-brand-400" /> {t.admin.coupons.modalAddTitle}
+                <Tag className="h-4 w-4 text-brand-400" />
+                {editingCoupon ? t.admin.coupons.modalEditTitle : t.admin.coupons.modalAddTitle}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -223,7 +266,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
               </button>
             </div>
 
-            <form onSubmit={handleCreateCoupon} className="space-y-4">
+            <form onSubmit={handleSaveCoupon} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
                   {t.admin.coupons.codeLabel}
@@ -285,15 +328,40 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Expires At
+                    {t.admin.coupons.minOrderLabel}
                   </label>
                   <input
-                    type="date"
-                    value={expiresAt}
-                    onChange={(e) => setExpiresAt(e.target.value)}
+                    type="number"
+                    value={minOrderValue}
+                    onChange={(e) => setMinOrderValue(e.target.value)}
+                    placeholder="0"
                     className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {t.admin.coupons.expiresAtLabel}
+                </label>
+                <input
+                  type="date"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    className="rounded border-slate-700 text-brand-500 h-4 w-4 bg-slate-950"
+                  />
+                  <span>{t.admin.coupons.activeCheckbox}</span>
+                </label>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
@@ -319,4 +387,3 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
     </div>
   );
 }
-

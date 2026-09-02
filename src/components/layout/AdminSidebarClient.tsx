@@ -92,7 +92,14 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
 
         {/* Navigation Links */}
         <nav className="space-y-1 text-xs">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => {
+              if (userRole === "INSTRUCTOR") {
+                return ["/admin", "/admin/courses", "/admin/courses/new"].includes(item.href);
+              }
+              return true;
+            })
+            .map((item) => {
             const Icon = item.icon;
             const isActive = item.exact
               ? pathname === item.href

@@ -331,6 +331,17 @@ export interface DictionaryType {
       draft: string;
       viewPage: string;
       authorLabel: string;
+      editBtn: string;
+      deleteBtn: string;
+      deleteConfirm: string;
+      deleteSuccess: string;
+      deleteError: string;
+      statusUpdated: string;
+      featuredUpdated: string;
+      searchPlaceholder: string;
+      allStatus: string;
+      filterCategory: string;
+      noCoursesFound: string;
     };
     createCourse: {
       title: string;
@@ -369,6 +380,24 @@ export interface DictionaryType {
       submittingBtn: string;
       createSuccess: string;
       createError: string;
+    };
+    editCourse: {
+      title: string;
+      subtitle: string;
+      saveChangesBtn: string;
+      savingChangesBtn: string;
+      saveSuccess: string;
+      saveError: string;
+      deleteCourseBtn: string;
+      deleteConfirm: string;
+      statusLabel: string;
+      publishedOption: string;
+      draftOption: string;
+      archivedOption: string;
+      certificateCheckbox: string;
+      contentBodyLabel: string;
+      contentBodyPlaceholder: string;
+      backToCourses: string;
     };
     orders: {
       title: string;
@@ -429,10 +458,18 @@ export interface DictionaryType {
       active: string;
       inactive: string;
       modalAddTitle: string;
+      modalEditTitle: string;
       codeLabel: string;
       typeLabel: string;
       valueLabel: string;
       maxUsesLabel: string;
+      minOrderLabel: string;
+      expiresAtLabel: string;
+      activeCheckbox: string;
+      editBtn: string;
+      deleteConfirm: string;
+      updateSuccess: string;
+      toggleStatusSuccess: string;
       saveBtn: string;
       savingBtn: string;
       cancelBtn: string;
@@ -452,6 +489,13 @@ export interface DictionaryType {
       grantBtn: string;
       grantingBtn: string;
       cancelBtn: string;
+      revokeBtn: string;
+      revokeConfirm: string;
+      revokeSuccess: string;
+      statusActive: string;
+      statusBlocked: string;
+      toggleStatusBtn: string;
+      statusUpdated: string;
     };
     settings: {
       title: string;
