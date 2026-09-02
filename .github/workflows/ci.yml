@@ -17,8 +17,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
-      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/testdb?schema=public"
+      DATABASE_URL: "postgresql://postgres:password@localhost:5432/testdb?schema=public"
       NEXTAUTH_SECRET: "ci-secret-key-for-testing-only-1234567890"
       NEXTAUTH_URL: "http://localhost:3000"
       NEXT_PUBLIC_APP_NAME: "World Trading Lab"
@@ -41,6 +56,11 @@ jobs:
 
       - name: Generate Prisma Client
         run: npm run db:generate
+
+      - name: Setup CI Database Schema & Seed
+        run: |
+          npx prisma db push --skip-generate
+          npm run db:seed
 
       - name: Type Check (TypeScript)
         run: npm run type-check
