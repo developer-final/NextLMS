@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { GraduationCap, Lock, Mail, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -16,6 +17,18 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+
+  const handleGoogleRegister = async () => {
+    setGoogleLoading(true);
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch {
+      toast.error(t.auth.googleNotConfigured);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +64,49 @@ export default function RegisterPage() {
         return;
       }
 
-      toast.success(t.auth.registerSuccess);
-      router.push("/auth/login");
+      if (data.requiresVerification) {
+        setRegisteredEmail(email);
+        toast.success(data.message || t.auth.registerSuccess);
+      } else {
+        toast.success(t.auth.registerSuccess);
+        router.push("/auth/login");
+      }
     } catch (error) {
       toast.error(language === "en" ? "Connection error. Please try again." : "Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
       setLoading(false);
     }
   };
+
+  if (registeredEmail) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-800 bg-slate-900/80 p-8 backdrop-blur-xl shadow-2xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/20 text-brand-400 border border-brand-500/30">
+            <Mail className="h-8 w-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">Kiểm Tra Hộp Thư Của Bạn 📧</h2>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Chúng tôi đã gửi một liên kết kích hoạt tài khoản tới:
+            <br />
+            <strong className="text-brand-400">{registeredEmail}</strong>
+          </p>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-400 text-left space-y-2">
+            <p>• Vui lòng mở email và nhấn vào nút <strong>"Kích Hoạt Tài Khoản Ngay"</strong>.</p>
+            <p>• Kiểm tra cả thư mục <em>Spam / Thư rác</em> nếu bạn không tìm thấy trong Hộp thư chính.</p>
+          </div>
+          <div className="pt-2">
+            <Link
+              href="/auth/login"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 py-3 text-sm font-bold text-slate-950 shadow-glow transition-all"
+            >
+              {t.auth.loginNowLink}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
@@ -73,6 +122,45 @@ export default function RegisterPage() {
           <p className="mt-1.5 text-xs text-slate-400">
             {t.auth.registerSubtitle}
           </p>
+        </div>
+
+        {/* Google One-Click Register */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleGoogleRegister}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800/90 hover:bg-slate-700/80 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:scale-[1.01] hover:border-slate-600 disabled:opacity-50"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+              />
+            </svg>
+            {googleLoading ? t.auth.submittingRegister : t.auth.registerWithGoogle}
+          </button>
+
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-800" />
+            </div>
+            <span className="relative bg-slate-900 px-3 text-[11px] font-medium text-slate-500">
+              {t.auth.orContinueWithEmail}
+            </span>
+          </div>
         </div>
 
         {/* Benefits list */}

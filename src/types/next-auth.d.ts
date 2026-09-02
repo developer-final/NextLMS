@@ -9,6 +9,7 @@ declare module "next-auth" {
       role: UserRole;
       status?: string;
       avatarUrl?: string | null;
+      emailVerified?: Date | null;
     };
   }
   interface User {
@@ -18,6 +19,7 @@ declare module "next-auth" {
     role: UserRole;
     status?: string;
     avatarUrl?: string | null;
+    emailVerified?: Date | null;
   }
 }
 
@@ -27,6 +29,7 @@ declare module "next-auth/jwt" {
     role: UserRole;
     status?: string;
     avatarUrl?: string | null;
+    emailVerified?: Date | null;
   }
 }
 

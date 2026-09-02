@@ -113,3 +113,8 @@ export const commentRateLimiter = new MemoryRateLimiter({
   windowMs: 10 * 60 * 1000, // 10 minutes
   maxRequests: 20, // max 20 comments per 10 mins per IP/User
 });
+
+export const forgotPasswordRateLimiter = new MemoryRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 5, // max 5 reset/verification requests per 15 mins per IP
+});

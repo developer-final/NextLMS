@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { validateRegisterInput } from "@/lib/validation";
 import { getClientIp, registerRateLimiter } from "@/lib/rate-limit";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -53,18 +55,20 @@ export async function POST(req: Request) {
 
     // 4. Hash password
     const passwordHash = await bcrypt.hash(password, 10);
+    const isStrictVerify = process.env.REQUIRE_EMAIL_VERIFICATION === "true";
 
-    // 5. Atomic check and user creation within transaction
-    const newUser = await prisma.$transaction(async (tx) => {
+    // 5. Atomic user creation and verification token generation
+    const { newUser, verificationToken } = await prisma.$transaction(async (tx) => {
       const userCount = await tx.user.count();
       const role = userCount === 0 ? "ADMIN" : "STUDENT";
 
-      return tx.user.create({
+      const createdUser = await tx.user.create({
         data: {
           name: cleanName,
           email: cleanEmail,
           passwordHash,
           role,
+          emailVerified: isStrictVerify ? null : new Date(),
           avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(
             cleanName
           )}`,
@@ -78,11 +82,40 @@ export async function POST(req: Request) {
           createdAt: true,
         },
       });
+
+      // Generate verification token (valid for 24 hours)
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await tx.verificationToken.create({
+        data: {
+          email: cleanEmail,
+          token,
+          type: "EMAIL_VERIFY",
+          expiresAt,
+        },
+      });
+
+      return { newUser: createdUser, verificationToken: token };
     });
+
+    // Send verification email in background
+    sendVerificationEmail({
+      to: cleanEmail,
+      name: cleanName,
+      token: verificationToken,
+    }).catch((err) => {
+      console.error("[Register] Failed to send verification email:", err);
+    });
+
+    const responseMessage = isStrictVerify
+      ? "Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản trước khi đăng nhập."
+      : "Đăng ký tài khoản thành công!";
 
     return NextResponse.json(
       {
-        message: "Đăng ký tài khoản thành công!",
+        message: responseMessage,
+        requiresVerification: isStrictVerify,
         user: newUser,
       },
       { status: 201 }

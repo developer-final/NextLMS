@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, commentRateLimiter } from "@/lib/rate-limit";
 import { validateCommentInput } from "@/lib/validation";
+import { sendQAReplyEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   try {
@@ -110,6 +111,48 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Notify original question author if this is a reply
+    if (parentId) {
+      prisma.comment
+        .findUnique({
+          where: { id: parentId },
+          include: {
+            user: true,
+            lesson: {
+              select: {
+                title: true,
+                slug: true,
+                section: {
+                  select: {
+                    course: { select: { slug: true } },
+                  },
+                },
+              },
+            },
+          },
+        })
+        .then((parentComment) => {
+          if (
+            parentComment &&
+            parentComment.userId !== userId &&
+            parentComment.user?.email
+          ) {
+            sendQAReplyEmail({
+              to: parentComment.user.email,
+              studentName: parentComment.user.name,
+              replierName: session.user.name || "Giảng viên",
+              lessonTitle: parentComment.lesson.title,
+              replyContent: trimmedContent,
+              courseSlug: parentComment.lesson.section.course.slug,
+              lessonSlug: parentComment.lesson.slug,
+            }).catch((err) =>
+              console.error("[Comments] Error sending QA reply email:", err)
+            );
+          }
+        })
+        .catch((err) => console.error("[Comments] Error looking up parent comment:", err));
+    }
 
     return NextResponse.json({ success: true, comment });
   } catch (error: any) {

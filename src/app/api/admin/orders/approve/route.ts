@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +33,10 @@ export async function POST(req: Request) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        orderItems: true,
+        user: true,
+        orderItems: {
+          include: { course: true },
+        },
       },
     });
 
@@ -91,6 +95,24 @@ export async function POST(req: Request) {
           });
         }
       });
+
+      // Asynchronously send transactional confirmation & welcome email
+      if (order.user?.email) {
+        const emailItems = order.orderItems.map((item) => ({
+          title: item.course.title,
+          price: `${Number(item.price).toLocaleString("vi-VN")} đ`,
+        }));
+
+        sendOrderConfirmationEmail({
+          to: order.user.email,
+          name: order.user.name,
+          orderCode: order.orderCode,
+          totalAmount: `${Number(order.finalAmount).toLocaleString("vi-VN")} đ`,
+          items: emailItems,
+        }).catch((err) => {
+          console.error("[Approve Order] Failed to send invoice email:", err);
+        });
+      }
 
       return NextResponse.json({
         success: true,

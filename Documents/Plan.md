@@ -95,21 +95,21 @@ Chuyển đổi nền tảng từ mô hình **Bán khóa học cơ bản (Course
 
 ---
 
-## GIAI ĐOẠN 6: TÀI KHOẢN, XÁC THỰC & CHĂM SÓC HỌC VIÊN (RETENTION & ENGAGEMENT)
+## GIAI ĐOẠN 6: TÀI KHOẢN, XÁC THỰC & CHĂM SÓC HỌC VIÊN (RETENTION & ENGAGEMENT) [HOÀN THÀNH]
 
-### 6.1. Đăng nhập Một Chạm (Social OAuth)
-- Tích hợp đăng nhập nhanh bằng **Google** và **GitHub** qua NextAuth.
-- Tối ưu tỷ lệ chuyển đổi khi đăng ký, loại bỏ rào cản quên mật khẩu.
+### 6.1. Đăng nhập Một Chạm (Social OAuth) [x]
+- [x] Tích hợp đăng nhập nhanh bằng **Google** qua NextAuth (theo yêu cầu Chú: chỉ dùng Google).
+- [x] Tối ưu tỷ lệ chuyển đổi khi đăng ký, loại bỏ rào cản quên mật khẩu, tự động liên kết tài khoản OAuth.
 
-### 6.2. Luồng Quên Mật Khẩu & Xác Thực Email
-- Tích hợp dịch vụ gửi email (Resend / AWS SES).
-- Tính năng "Quên mật khẩu": Tạo token bảo mật có thời hạn 15 phút và gửi link đặt lại mật khẩu về email.
-- Xác thực email khi đăng ký mới để tránh tài khoản rác.
+### 6.2. Luồng Quên Mật Khẩu & Xác Thực Email [x]
+- [x] Tích hợp dịch vụ gửi email Resend kèm cơ chế giả lập console trong môi trường Dev.
+- [x] Tính năng "Quên mật khẩu": Tạo token bảo mật có thời hạn 15 phút và gửi link đặt lại mật khẩu về email (`/auth/forgot-password` & `/auth/reset-password`).
+- [x] Xác thực email khi đăng ký mới để tránh tài khoản rác (`/auth/verify-email` & `/api/auth/resend-verification`).
 
-### 6.3. Email Chăm Sóc Giao Dịch Tự Động (Transactional Emails)
-- Email hóa đơn thanh toán & hướng dẫn bắt đầu học ngay sau khi mua.
-- Email nhắc nhở giữ nhịp học tập: Tự động gửi sau 5 ngày nếu học viên không có hoạt động học tập.
-- Email thông báo khi giảng viên trả lời bình luận trong phần Hỏi đáp (Q&A).
+### 6.3. Email Chăm Sóc Giao Dịch Tự Động (Transactional Emails) [x]
+- [x] Email hóa đơn thanh toán & hướng dẫn bắt đầu học ngay sau khi mua (tự động kích hoạt khi duyệt đơn hàng).
+- [x] Email nhắc nhở giữ nhịp học tập: Tự động gửi sau 5 ngày nếu học viên không có hoạt động học tập (`/api/cron/study-reminders`).
+- [x] Email thông báo khi giảng viên trả lời bình luận trong phần Hỏi đáp (Q&A) (`/api/comments`).
 
 ---
 

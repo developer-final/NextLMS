@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { UserRole } from "@/types";
@@ -14,6 +15,14 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/login",
   },
   providers: [
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -29,12 +38,22 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email.toLowerCase().trim() },
         });
 
-        if (!user || !user.passwordHash) {
+        if (!user) {
           throw new Error("Tài khoản hoặc mật khẩu không chính xác");
+        }
+
+        if (!user.passwordHash) {
+          throw new Error(
+            "Tài khoản này được đăng ký qua Google. Vui lòng bấm 'Đăng nhập với Google' hoặc dùng tính năng 'Quên mật khẩu' để tạo mật khẩu."
+          );
         }
 
         if (user.status === "BLOCKED") {
           throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+        }
+
+        if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !user.emailVerified) {
+          throw new Error("Vui lòng xác thực email của bạn trước khi đăng nhập.");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
@@ -49,17 +68,98 @@ export const authOptions: NextAuthOptions = {
           role: user.role as UserRole,
           status: user.status,
           avatarUrl: user.avatarUrl,
+          emailVerified: user.emailVerified,
         };
       },
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        if (!user.email) return false;
+        const cleanEmail = user.email.toLowerCase().trim();
+
+        let dbUser = await prisma.user.findUnique({
+          where: { email: cleanEmail },
+        });
+
+        if (dbUser) {
+          if (dbUser.status === "BLOCKED") {
+            throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+          }
+          // Mark emailVerified if not set yet
+          if (!dbUser.emailVerified) {
+            dbUser = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { emailVerified: new Date() },
+            });
+          }
+        } else {
+          // Auto-provision student account for new Google sign-in
+          const userCount = await prisma.user.count();
+          const role = userCount === 0 ? "ADMIN" : "STUDENT";
+
+          dbUser = await prisma.user.create({
+            data: {
+              email: cleanEmail,
+              name: user.name || "Học viên Google",
+              avatarUrl: user.image || null,
+              role,
+              status: "ACTIVE",
+              emailVerified: new Date(),
+            },
+          });
+        }
+
+        // Link OAuth account record
+        await prisma.account.upsert({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          update: {
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            expires_at: account.expires_at,
+            id_token: account.id_token,
+            scope: account.scope,
+            token_type: account.token_type,
+          },
+          create: {
+            userId: dbUser.id,
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            access_token: account.access_token,
+            refresh_token: account.refresh_token,
+            expires_at: account.expires_at,
+            id_token: account.id_token,
+            scope: account.scope,
+            token_type: account.token_type,
+          },
+        });
+
+        // Pass ID and fields for downstream JWT callback
+        user.id = dbUser.id;
+        (user as any).role = dbUser.role;
+        (user as any).status = dbUser.status;
+        (user as any).avatarUrl = dbUser.avatarUrl;
+        (user as any).emailVerified = dbUser.emailVerified;
+
+        return true;
+      }
+
+      return true;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role || "STUDENT";
-        token.status = user.status || "ACTIVE";
-        token.avatarUrl = user.avatarUrl;
+        token.role = (user as any).role || "STUDENT";
+        token.status = (user as any).status || "ACTIVE";
+        token.avatarUrl = (user as any).avatarUrl;
+        token.emailVerified = (user as any).emailVerified;
       }
       if (trigger === "update" && session) {
         token.name = session.name || token.name;
@@ -73,6 +173,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = (token.role as UserRole) || "STUDENT";
         session.user.status = token.status || "ACTIVE";
         session.user.avatarUrl = token.avatarUrl;
+        session.user.emailVerified = token.emailVerified;
       }
       return session;
     },
