@@ -84,11 +84,35 @@ export default async function AdminLayout({
             </Link>
 
             <Link
+              href="/admin/categories"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <BookOpen className="h-4 w-4 text-indigo-400" />
+              Quản lý Danh mục
+            </Link>
+
+            <Link
+              href="/admin/coupons"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <Tag className="h-4 w-4 text-rose-400" />
+              Quản lý Mã giảm giá
+            </Link>
+
+            <Link
               href="/admin/students"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <Users className="h-4 w-4 text-purple-400" />
               Quản lý Học viên & Cấp quyền
+            </Link>
+
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <Settings className="h-4 w-4 text-teal-400" />
+              Cài đặt Hệ thống & VietQR
             </Link>
           </nav>
         </div>

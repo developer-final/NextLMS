@@ -50,6 +50,34 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const [proofSubmitted, setProofSubmitted] = useState(false);
   const [isOrderCompletedRealtime, setIsOrderCompletedRealtime] = useState(false);
 
+  // Dynamic Site & Payment Settings
+  const [siteSettings, setSiteSettings] = useState<any>({
+    bankId: process.env.NEXT_PUBLIC_BANK_ID || "MB",
+    bankName: "MB Bank (Ngân hàng Quân Đội)",
+    bankAccountNo: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NO || "0988888888",
+    bankAccountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
+    vietqrTemplate: "compact2",
+    refundDays: 7,
+  });
+
+  // Fetch public site and payment settings
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch("/api/settings/public");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings) {
+            setSiteSettings(data.settings);
+          }
+        }
+      } catch (e) {
+        // Fallback to default
+      }
+    }
+    loadSettings();
+  }, []);
+
   // Fetch course info
   useEffect(() => {
     async function loadCourse() {
@@ -241,10 +269,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }
   };
 
-  // Bank Info from ENV
-  const bankId = process.env.NEXT_PUBLIC_BANK_ID || "MB";
-  const bankAccountNo = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NO || "0988888888";
-  const bankAccountName = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "NGUYEN VAN ADMIN";
+  // Bank Info from Dynamic Site Settings
+  const bankId = siteSettings.bankId || "MB";
+  const bankName = siteSettings.bankName || "MB Bank";
+  const bankAccountNo = siteSettings.bankAccountNo || "0988888888";
+  const bankAccountName = siteSettings.bankAccountName || "WORLD TRADING LAB";
   const transferContent = createdOrder ? createdOrder.orderCode : `EL ${course.slug.slice(0, 8)}`;
 
   const vietQRUrl = generateVietQRUrl({
@@ -253,6 +282,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     accountName: bankAccountName,
     amount: finalPrice,
     description: transferContent,
+    template: siteSettings.vietqrTemplate || "compact2",
   });
 
   return (
@@ -405,7 +435,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                       <div>
                         <span className="text-slate-400 block text-[10px]">Ngân hàng thụ hưởng</span>
-                        <strong className="text-white text-sm">{bankId} (MB Bank)</strong>
+                        <strong className="text-white text-sm">{bankId} ({bankName})</strong>
                       </div>
                     </div>
 
@@ -523,7 +553,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               <div className="flex items-center gap-2 text-slate-300 font-semibold">
                 <ShieldCheck className="h-4 w-4 text-brand-400" /> Cam kết chất lượng 100%
               </div>
-              <p>• Hoàn tiền 100% trong 7 ngày nếu không hài lòng với nội dung.</p>
+              <p>• Hoàn tiền 100% trong {siteSettings.refundDays || 7} ngày nếu không hài lòng với nội dung.</p>
               <p>• Hỗ trợ kỹ thuật và giải đáp thắc mắc 24/7 qua Zalo/Email.</p>
             </div>
           </div>

@@ -301,3 +301,14 @@ model Certificate {
   @@index([courseId])
   @@map("certificates")
 }
+
+model Setting {
+  key         String   @id
+  value       String
+  group       String   @default("GENERAL") // GENERAL, PAYMENT, CONTACT, HERO
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+

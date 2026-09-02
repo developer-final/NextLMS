@@ -27,14 +27,12 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
   const [level, setLevel] = useState("ALL_LEVELS");
-  const [price, setPrice] = useState("1200000");
-  const [salePrice, setSalePrice] = useState("790000");
+  const [price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [isFree, setIsFree] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
-  const [thumbnailUrl, setThumbnailUrl] = useState(
-    "https://images.unsplash.com/photo-1642543492481-44e81e3914a7?auto=format&fit=crop&w=800&q=80"
-  );
-  const [introVideoUrl, setIntroVideoUrl] = useState("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [introVideoUrl, setIntroVideoUrl] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
 
@@ -45,11 +43,11 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
       lessons: [
         {
           title: "Bài 1: Giới thiệu & Lộ trình học",
-          videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+          videoUrl: "",
           videoDuration: 600,
           contentType: "VIDEO_YOUTUBE",
           isPreview: true,
-          contentBody: "Tóm tắt bài học số 1 và các lưu ý.",
+          contentBody: "",
         },
       ],
     },
@@ -222,6 +220,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
               disabled={isFree}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
+              placeholder="VD: 1200000"
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none disabled:opacity-40"
             />
           </div>
@@ -235,6 +234,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
               disabled={isFree}
               value={salePrice}
               onChange={(e) => setSalePrice(e.target.value)}
+              placeholder="VD: 790000 (Tùy chọn)"
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none disabled:opacity-40"
             />
           </div>

@@ -1,4 +1,10 @@
-export default function PaymentPolicyPage() {
+import { getSystemSettings } from "@/lib/config";
+
+export const revalidate = 0;
+
+export default async function PaymentPolicyPage() {
+  const settings = await getSystemSettings();
+
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 space-y-6 text-xs text-slate-300">
       <h1 className="text-2xl font-bold text-white mb-4">Hướng dẫn Thanh toán VietQR & Kích hoạt</h1>
@@ -11,7 +17,13 @@ export default function PaymentPolicyPage() {
         
         <h3 className="text-sm font-bold text-brand-400 pt-2">2. Thời gian Kích hoạt Khóa học:</h3>
         <p>• Hệ thống sẽ tự động kích hoạt tài khoản trong vòng 1-5 phút sau khi nhận được chuyển khoản hợp lệ.</p>
-        <p>• Nếu sau 15 phút chưa được kích hoạt, học viên vui lòng liên hệ Hotline/Zalo: <strong>0988.888.888</strong> kèm mã đơn hàng để được hỗ trợ tức thì.</p>
+        <p>
+          • Nếu sau 15 phút chưa được kích hoạt, học viên vui lòng liên hệ Hotline/Zalo:{" "}
+          <a href={settings.zaloUrl || `tel:${settings.supportHotline}`} className="text-brand-400 font-bold hover:underline">
+            {settings.supportHotline}
+          </a>{" "}
+          hoặc gửi thư tới <strong>{settings.supportEmail}</strong> kèm mã đơn hàng để được hỗ trợ tức thì.
+        </p>
       </div>
     </div>
   );

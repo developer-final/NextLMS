@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getSystemSettings } from "@/lib/config";
 import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
 import {
   ArrowRight,
@@ -27,39 +28,49 @@ interface CategoryWithCount {
 }
 
 export default async function HomePage() {
-  const featuredCourses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
-    include: {
-      instructor: {
-        select: { name: true, avatarUrl: true, headline: true },
-      },
-      category: {
-        select: { name: true, slug: true },
-      },
-      sections: {
-        include: {
-          lessons: {
-            select: { id: true, videoDuration: true },
+  const [settings, featuredCourses, categories, firstFreeCourse] = await Promise.all([
+    getSystemSettings(),
+    prisma.course.findMany({
+      where: { status: "PUBLISHED" },
+      include: {
+        instructor: {
+          select: { name: true, avatarUrl: true, headline: true },
+        },
+        category: {
+          select: { name: true, slug: true },
+        },
+        sections: {
+          include: {
+            lessons: {
+              select: { id: true, videoDuration: true },
+            },
           },
         },
+        _count: {
+          select: { enrollments: true, reviews: true },
+        },
       },
-      _count: {
-        select: { enrollments: true, reviews: true },
+      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+      take: 6,
+    }),
+    prisma.category.findMany({
+      where: { isActive: true },
+      include: {
+        _count: {
+          select: { courses: true },
+        },
       },
-    },
-    orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-    take: 6,
-  });
+      orderBy: { orderIndex: "asc" },
+    }),
+    prisma.course.findFirst({
+      where: { status: "PUBLISHED", isFree: true },
+      select: { slug: true },
+    }),
+  ]);
 
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    include: {
-      _count: {
-        select: { courses: true },
-      },
-    },
-    orderBy: { orderIndex: "asc" },
-  });
+  const freeCourseHref = firstFreeCourse
+    ? `/courses/${firstFreeCourse.slug}`
+    : `/courses?type=free`;
 
   return (
     <div className="flex flex-col gap-16 pb-20">
@@ -94,7 +105,7 @@ export default async function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/courses/nhap-mon-thi-truong-tai-chinh-free"
+              href={freeCourseHref}
               className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 px-6 py-3.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition-all"
             >
               <PlayCircle className="h-4 w-4 text-brand-400" />
@@ -105,19 +116,19 @@ export default async function HomePage() {
           {/* Stats Bar */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-800/80">
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-white">5,000+</p>
+              <p className="text-2xl sm:text-3xl font-black text-white">{settings.statsStudentCount}</p>
               <p className="text-xs text-slate-400 mt-1">Học viên Đang theo học</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-brand-400">98.6%</p>
+              <p className="text-2xl sm:text-3xl font-black text-brand-400">{settings.statsSatisfactionRate}</p>
               <p className="text-xs text-slate-400 mt-1">Đánh giá 5 Sao</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-amber-400">100%</p>
+              <p className="text-2xl sm:text-3xl font-black text-amber-400">{settings.statsPracticalRate}</p>
               <p className="text-xs text-slate-400 mt-1">Nội dung Thực chiến</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-white">24/7</p>
+              <p className="text-2xl sm:text-3xl font-black text-white">{settings.statsSupportHours}</p>
               <p className="text-xs text-slate-400 mt-1">Hỗ trợ & Giải đáp Q&A</p>
             </div>
           </div>

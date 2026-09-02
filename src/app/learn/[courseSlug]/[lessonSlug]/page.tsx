@@ -134,6 +134,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       userProgressPercent={userProgressPercent}
       certificateCode={certificateCode}
       userId={userId}
+      userName={session?.user?.name || "Học viên"}
     />
   );
 }

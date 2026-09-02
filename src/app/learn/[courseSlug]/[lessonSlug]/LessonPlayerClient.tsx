@@ -38,6 +38,7 @@ interface LessonPlayerClientProps {
   userProgressPercent: number;
   certificateCode: string | null;
   userId?: string;
+  userName?: string;
 }
 
 export default function LessonPlayerClient({
@@ -53,6 +54,7 @@ export default function LessonPlayerClient({
   userProgressPercent,
   certificateCode: initialCertCode,
   userId,
+  userName,
 }: LessonPlayerClientProps) {
   const router = useRouter();
 
@@ -585,7 +587,7 @@ export default function LessonPlayerClient({
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-6 space-y-3 text-left">
               <p className="text-xs text-slate-400">Chứng nhận cấp cho:</p>
               <h3 className="text-xl font-bold text-brand-400">
-                {course.instructor.name} (Học viên Xuất sắc)
+                {userName || "Học viên Xuất sắc"}
               </h3>
               <p className="text-xs text-slate-300">
                 Đã hoàn thành khóa học: <strong>{course.title}</strong>

@@ -66,28 +66,30 @@ function LoginForm() {
         </p>
       </div>
 
-      {/* Quick Test Accounts Notice */}
-      <div className="rounded-xl border border-brand-500/30 bg-brand-950/40 p-3.5 text-xs text-brand-300">
-        <div className="font-semibold flex items-center gap-1.5 text-brand-400 mb-1.5">
-          <UserCheck className="h-4 w-4" /> Tài khoản thử nghiệm (Bấm để điền nhanh):
+      {/* Quick Test Accounts Notice (Only in Development Mode) */}
+      {(process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === "true") && (
+        <div className="rounded-xl border border-brand-500/30 bg-brand-950/40 p-3.5 text-xs text-brand-300">
+          <div className="font-semibold flex items-center gap-1.5 text-brand-400 mb-1.5">
+            <UserCheck className="h-4 w-4" /> Tài khoản thử nghiệm (Dev Mode):
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleQuickFill("admin@finlearn.vn", "123456")}
+              className="px-2.5 py-1 rounded bg-brand-900/60 hover:bg-brand-800/80 text-[11px] font-semibold border border-brand-700/50 transition-colors"
+            >
+              👑 Tài khoản Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickFill("student@finlearn.vn", "123456")}
+              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 border border-slate-700 transition-colors"
+            >
+              🎓 Học viên mẫu
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleQuickFill("admin@finlearn.vn", "123456")}
-            className="px-2.5 py-1 rounded bg-brand-900/60 hover:bg-brand-800/80 text-[11px] font-semibold border border-brand-700/50 transition-colors"
-          >
-            👑 Tài khoản Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill("student@finlearn.vn", "123456")}
-            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] font-semibold text-slate-200 border border-slate-700 transition-colors"
-          >
-            🎓 Học viên mẫu
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
