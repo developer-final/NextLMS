@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
+import { isValidSafeUrl } from "@/lib/validation";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface OrderListClientProps {
@@ -258,14 +259,16 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
                 <FileImage className="h-4 w-4 text-brand-400" /> {t.admin.orders.proofModalTitle}
               </h3>
               <div className="flex items-center gap-2">
-                <a
-                  href={selectedProofImg}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-brand-400 hover:bg-slate-800 transition-colors"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+                {isValidSafeUrl(selectedProofImg) && (
+                  <a
+                    href={selectedProofImg}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-brand-400 hover:bg-slate-800 transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
                 <button
                   onClick={() => setSelectedProofImg(null)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -276,11 +279,17 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black flex items-center justify-center min-h-[250px]">
-              <img
-                src={selectedProofImg}
-                alt="Bill payment proof"
-                className="w-full max-h-[65vh] object-contain rounded-xl"
-              />
+              {isValidSafeUrl(selectedProofImg) ? (
+                <img
+                  src={selectedProofImg}
+                  alt="Bill payment proof"
+                  className="w-full max-h-[65vh] object-contain rounded-xl"
+                />
+              ) : (
+                <div className="p-8 text-center text-xs text-rose-400">
+                  ⚠️ Hình ảnh biên lai chứa liên kết không an toàn hoặc không hợp lệ.
+                </div>
+              )}
             </div>
           </div>
         </div>

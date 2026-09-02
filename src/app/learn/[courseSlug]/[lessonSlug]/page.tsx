@@ -69,15 +69,25 @@ export default async function LessonPage({ params }: LessonPageProps) {
   let certificateCode: string | null = null;
 
   if (userId) {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: { userId, courseId: course.id },
-      },
-    });
+    const userRole = session?.user?.role;
+    const isStaff =
+      userRole === "ADMIN" ||
+      userRole === "SUPER_ADMIN" ||
+      (userRole === "INSTRUCTOR" && course.instructorId === userId);
 
-    if (enrollment && enrollment.status === "ACTIVE") {
+    if (isStaff) {
       isEnrolled = true;
-      userProgressPercent = enrollment.progressPercent;
+    } else {
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          userId_courseId: { userId, courseId: course.id },
+        },
+      });
+
+      if (enrollment && enrollment.status === "ACTIVE") {
+        isEnrolled = true;
+        userProgressPercent = enrollment.progressPercent;
+      }
     }
 
     // Get user completed lessons
@@ -104,9 +114,35 @@ export default async function LessonPage({ params }: LessonPageProps) {
   // If not enrolled AND lesson is NOT free preview -> Block access
   const canAccessLesson = isEnrolled || currentLesson.isPreview;
 
-  // Flatten all lessons to compute Next / Prev buttons
+  // Security Hardening: Redact private video URLs and paid content before serializing to client
+  const safeSections = course.sections.map((sec) => ({
+    ...sec,
+    lessons: sec.lessons.map((les) => {
+      const allowed = isEnrolled || les.isPreview;
+      return {
+        ...les,
+        videoUrl: allowed ? les.videoUrl : null,
+        contentBody: allowed ? les.contentBody : null,
+        attachments: allowed ? les.attachments : [],
+      };
+    }),
+  }));
+
+  const safeCourse = {
+    ...course,
+    sections: safeSections,
+  };
+
+  const safeCurrentLesson = {
+    ...currentLesson,
+    videoUrl: canAccessLesson ? currentLesson.videoUrl : null,
+    contentBody: canAccessLesson ? currentLesson.contentBody : null,
+    attachments: canAccessLesson ? currentLesson.attachments : [],
+  };
+
+  // Flatten all lessons to compute Next / Prev buttons with sanitized payloads
   const allLessons: any[] = [];
-  course.sections.forEach((sec) => {
+  safeSections.forEach((sec) => {
     sec.lessons.forEach((les) => {
       allLessons.push({
         ...les,
@@ -122,9 +158,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <LessonPlayerClient
-      course={course}
+      course={safeCourse}
       currentSection={currentSection}
-      currentLesson={currentLesson}
+      currentLesson={safeCurrentLesson}
       allLessons={allLessons}
       prevLesson={prevLesson}
       nextLesson={nextLesson}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeJsonLdStringify } from "@/lib/validation";
 import CourseDetailClient from "./CourseDetailClient";
 
 export const revalidate = 0;
@@ -188,14 +189,14 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
 
   return (
     <>
-      {/* Schema.org Structured Data */}
+      {/* Schema.org Structured Data with script breakout protection */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(courseJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(breadcrumbJsonLd) }}
       />
       <CourseDetailClient
         course={course}

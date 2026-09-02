@@ -19,8 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="dark scroll-smooth">
-      <body className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-brand-500 selection:text-slate-950">
+    <html lang="vi" className="dark scroll-smooth" suppressHydrationWarning>
+      <body
+        className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-brand-500 selection:text-slate-950"
+        suppressHydrationWarning
+      >
         <AuthProvider>
           <LanguageProvider>
             <ToastProvider />

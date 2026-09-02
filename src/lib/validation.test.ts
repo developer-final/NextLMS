@@ -3,6 +3,8 @@ import {
   isValidEmail,
   isValidPassword,
   validateRegisterInput,
+  isValidSafeUrl,
+  safeJsonLdStringify,
 } from "./validation";
 
 describe("Auth Validation Logic (TC-AUTH-01)", () => {
@@ -30,15 +32,20 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
   });
 
   describe("isValidPassword", () => {
-    it("should return true for passwords with 6 or more characters", () => {
+    it("should return true for passwords with 6 to 128 characters", () => {
       expect(isValidPassword("123456")).toBe(true);
       expect(isValidPassword("ComplexPassword123!")).toBe(true);
+      expect(isValidPassword("a".repeat(128))).toBe(true);
     });
 
     it("should return false for passwords shorter than 6 characters", () => {
       expect(isValidPassword("12345")).toBe(false);
       expect(isValidPassword("abc")).toBe(false);
       expect(isValidPassword("")).toBe(false);
+    });
+
+    it("should return false for passwords longer than 128 characters", () => {
+      expect(isValidPassword("a".repeat(129))).toBe(false);
     });
 
     it("should return false for null or undefined", () => {
@@ -86,6 +93,62 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       });
       expect(result.isValid).toBe(false);
       expect(result.error).toContain("ít nhất 6 ký tự");
+    });
+
+    it("should reject when password exceeds 128 characters", () => {
+      const result = validateRegisterInput({
+        name: "Nguyen Van A",
+        email: "valid@example.com",
+        password: "p".repeat(130),
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("không được vượt quá 128 ký tự");
+    });
+  });
+
+  describe("isValidSafeUrl (XSS Defense)", () => {
+    it("should accept valid http and https URLs", () => {
+      expect(isValidSafeUrl("https://example.com/proof.jpg")).toBe(true);
+      expect(isValidSafeUrl("http://localhost:3000/uploads/receipt.png")).toBe(true);
+      expect(isValidSafeUrl("/images/default-avatar.png")).toBe(true);
+    });
+
+    it("should reject javascript: URLs and variants", () => {
+      expect(isValidSafeUrl("javascript:alert(1)")).toBe(false);
+      expect(isValidSafeUrl("JAVASCRIPT:alert('xss')")).toBe(false);
+      expect(isValidSafeUrl("javascript :alert(1)")).toBe(false);
+      expect(isValidSafeUrl("vbscript:msgbox(1)")).toBe(false);
+    });
+
+    it("should reject dangerous data: schemes such as HTML and SVG", () => {
+      expect(isValidSafeUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+      expect(isValidSafeUrl("data:image/svg+xml,<svg onload=alert(1)>")).toBe(false);
+      expect(isValidSafeUrl("data:application/javascript;alert(1)")).toBe(false);
+    });
+
+    it("should accept safe base64 raster image data URLs", () => {
+      expect(isValidSafeUrl("data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==")).toBe(true);
+      expect(isValidSafeUrl("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==")).toBe(true);
+    });
+
+    it("should reject empty, null or invalid strings", () => {
+      expect(isValidSafeUrl(null)).toBe(false);
+      expect(isValidSafeUrl(undefined)).toBe(false);
+      expect(isValidSafeUrl("")).toBe(false);
+    });
+  });
+
+  describe("safeJsonLdStringify (JSON-LD Script Breakout Defense)", () => {
+    it("should escape script tags and HTML control characters", () => {
+      const maliciousData = {
+        title: "Forex Course </script><script>alert('xss')</script>",
+        description: "Test & Learn <bold>",
+      };
+
+      const serialized = safeJsonLdStringify(maliciousData);
+      expect(serialized).not.toContain("</script>");
+      expect(serialized).toContain("\\u003c/script\\u003e");
+      expect(serialized).toContain("\\u0026");
     });
   });
 });

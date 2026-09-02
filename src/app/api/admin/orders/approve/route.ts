@@ -15,10 +15,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
     }
 
-    const { orderId, action } = await req.json(); // action: 'APPROVE' | 'CANCEL'
+    const { orderId, action } = await req.json();
 
     if (!orderId) {
       return NextResponse.json({ error: "Thiếu orderId" }, { status: 400 });
+    }
+
+    // Strict action validation
+    if (action !== "APPROVE" && action !== "CANCEL") {
+      return NextResponse.json(
+        { error: "Thao tác không hợp lệ. Chỉ chấp nhận APPROVE hoặc CANCEL." },
+        { status: 400 }
+      );
     }
 
     const order = await prisma.order.findUnique({
@@ -32,47 +40,73 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
     }
 
+    // State machine check
+    if (action === "APPROVE") {
+      if (order.status === "COMPLETED") {
+        return NextResponse.json(
+          { error: "Đơn hàng này đã được duyệt trước đó." },
+          { status: 400 }
+        );
+      }
+      if (order.status === "CANCELLED") {
+        return NextResponse.json(
+          { error: "Không thể duyệt đơn hàng đã bị hủy." },
+          { status: 400 }
+        );
+      }
+
+      // Execute approval atomically
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: "COMPLETED" },
+        });
+
+        // Create Enrollment for each course in order
+        for (const item of order.orderItems) {
+          await tx.enrollment.upsert({
+            where: {
+              userId_courseId: {
+                userId: order.userId,
+                courseId: item.courseId,
+              },
+            },
+            update: {
+              status: "ACTIVE",
+            },
+            create: {
+              userId: order.userId,
+              courseId: item.courseId,
+              status: "ACTIVE",
+              progressPercent: 0,
+            },
+          });
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Duyệt đơn hàng và kích hoạt khóa học thành công!",
+      });
+    }
+
     if (action === "CANCEL") {
+      if (order.status === "CANCELLED") {
+        return NextResponse.json(
+          { error: "Đơn hàng này đã bị hủy trước đó." },
+          { status: 400 }
+        );
+      }
+
       await prisma.order.update({
         where: { id: orderId },
         data: { status: "CANCELLED" },
       });
+
       return NextResponse.json({ success: true, message: "Đã hủy đơn hàng" });
     }
 
-    // Action: APPROVE — wrapped in transaction for atomicity
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: "COMPLETED" },
-      });
-
-      // Create Enrollment for each course in order
-      for (const item of order.orderItems) {
-        await tx.enrollment.upsert({
-          where: {
-            userId_courseId: {
-              userId: order.userId,
-              courseId: item.courseId,
-            },
-          },
-          update: {
-            status: "ACTIVE",
-          },
-          create: {
-            userId: order.userId,
-            courseId: item.courseId,
-            status: "ACTIVE",
-            progressPercent: 0,
-          },
-        });
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: "Duyệt đơn hàng và kích hoạt khóa học thành công!",
-    });
+    return NextResponse.json({ error: "Yêu cầu không hợp lệ" }, { status: 400 });
   } catch (error: any) {
     console.error("Approve Order Error:", error);
     return NextResponse.json({ error: "Lỗi xử lý duyệt đơn hàng" }, { status: 500 });

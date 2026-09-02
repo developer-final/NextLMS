@@ -17,7 +17,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Thiếu tham số" }, { status: 400 });
     }
 
-    // Security Check: Verify user is actively enrolled in the course
+    // Security Check 1: Verify lesson belongs to the specified course
+    const lesson = await prisma.lesson.findFirst({
+      where: {
+        id: lessonId,
+        section: { courseId },
+      },
+    });
+
+    if (!lesson) {
+      return NextResponse.json(
+        { error: "Bài học không tồn tại hoặc không thuộc khóa học này." },
+        { status: 400 }
+      );
+    }
+
+    // Security Check 2: Verify user is actively enrolled in the course
     const activeEnrollment = await prisma.enrollment.findUnique({
       where: {
         userId_courseId: { userId, courseId },
@@ -70,7 +85,7 @@ export async function POST(req: Request) {
       totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
     // 4. Update Enrollment
-    const enrollment = await prisma.enrollment.update({
+    await prisma.enrollment.update({
       where: {
         userId_courseId: { userId, courseId },
       },

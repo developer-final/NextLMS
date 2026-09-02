@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isValidSafeUrl } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -26,11 +27,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
     }
 
-    // Security check: Only the order owner or ADMIN/SUPER_ADMIN can upload proof
+    // Security check 1: Only the order owner or ADMIN/SUPER_ADMIN can upload proof
     if (order.userId !== userId && userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Bạn không có quyền cập nhật biên lai cho đơn hàng này" },
         { status: 403 }
+      );
+    }
+
+    // Security check 2: Prevent updating cancelled orders
+    if (order.status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Đơn hàng này đã bị hủy, không thể gửi biên lai thanh toán" },
+        { status: 400 }
       );
     }
 
@@ -41,10 +50,20 @@ export async function POST(req: Request) {
       );
     }
 
+    const trimmedProofUrl = proofImageUrl.trim();
+
+    // Security check 3: Validate against XSS / JavaScript URI injections
+    if (!isValidSafeUrl(trimmedProofUrl)) {
+      return NextResponse.json(
+        { error: "Định dạng đường dẫn ảnh biên lai không hợp lệ hoặc không an toàn" },
+        { status: 400 }
+      );
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { orderCode },
       data: {
-        proofImageUrl: proofImageUrl.trim(),
+        proofImageUrl: trimmedProofUrl,
       },
     });
 

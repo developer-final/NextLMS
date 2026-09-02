@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, commentRateLimiter } from "@/lib/rate-limit";
 
 export async function GET(req: Request) {
   try {
@@ -39,6 +40,23 @@ export async function POST(req: Request) {
     }
 
     const userId = session.user.id;
+
+    // Rate limiting check
+    const clientIp = getClientIp(req);
+    const rateCheck = commentRateLimiter.check(userId || clientIp);
+    if (!rateCheck.allowed) {
+      const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          error: `Bạn đang gửi câu hỏi quá nhanh. Vui lòng chờ ${waitSeconds} giây trước khi gửi tiếp.`,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": waitSeconds.toString() },
+        }
+      );
+    }
+
     const { lessonId, content, parentId } = await req.json();
 
     if (!lessonId || typeof content !== "string" || !content.trim()) {
@@ -59,7 +77,12 @@ export async function POST(req: Request) {
       where: { userId_courseId: { userId, courseId: lesson.section.courseId } },
     });
 
-    if (!enrollment || enrollment.status !== "ACTIVE") {
+    const isStaff =
+      session.user.role === "ADMIN" ||
+      session.user.role === "SUPER_ADMIN" ||
+      session.user.role === "INSTRUCTOR";
+
+    if (!isStaff && (!enrollment || enrollment.status !== "ACTIVE")) {
       return NextResponse.json(
         { error: "Bạn cần đăng ký khóa học để bình luận" },
         { status: 403 }
