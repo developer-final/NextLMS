@@ -18,6 +18,31 @@ export interface SystemConfig {
   bankAccountName: string;
   vietqrTemplate: string;
 
+  // Multi-Gateway Payment Settings
+  paymentManualEnabled: boolean;
+  paymentVietqrAutoEnabled: boolean;
+  paymentVietqrProvider: "PAYOS" | "SEPAY";
+  payosClientId: string;
+  payosApiKey: string;
+  payosChecksumKey: string;
+  sepayApiKey: string;
+  sepayAccountNumber: string;
+
+  paymentPaypalEnabled: boolean;
+  paypalClientId: string;
+  paypalSecret: string;
+  paypalMode: "sandbox" | "live";
+  paymentStripeEnabled: boolean;
+  stripePublishableKey: string;
+  stripeSecretKey: string;
+  stripeWebhookSecret: string;
+  usdExchangeRate: number;
+
+  // Crypto Manual Payment (USDT BEP-20 & TRC-20)
+  paymentCryptoEnabled: boolean;
+  cryptoBep20Address: string;
+  cryptoTrc20Address: string;
+
   // Hero & Landing Stats
   statsStudentCount: string;
   statsSatisfactionRate: string;
@@ -45,6 +70,29 @@ export const DEFAULT_CONFIG: SystemConfig = {
   bankAccountNo: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NO || "0988888888",
   bankAccountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
   vietqrTemplate: "compact2",
+
+  paymentManualEnabled: true,
+  paymentVietqrAutoEnabled: true,
+  paymentVietqrProvider: "PAYOS",
+  payosClientId: process.env.PAYOS_CLIENT_ID || "",
+  payosApiKey: process.env.PAYOS_API_KEY || "",
+  payosChecksumKey: process.env.PAYOS_CHECKSUM_KEY || "",
+  sepayApiKey: process.env.SEPAY_API_KEY || "",
+  sepayAccountNumber: process.env.SEPAY_ACCOUNT_NO || "",
+
+  paymentPaypalEnabled: true,
+  paypalClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+  paypalSecret: process.env.PAYPAL_SECRET || "",
+  paypalMode: "sandbox",
+  paymentStripeEnabled: false,
+  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
+  usdExchangeRate: 25400,
+
+  paymentCryptoEnabled: true,
+  cryptoBep20Address: process.env.NEXT_PUBLIC_CRYPTO_BEP20_ADDRESS || "",
+  cryptoTrc20Address: process.env.NEXT_PUBLIC_CRYPTO_TRC20_ADDRESS || "",
 
   statsStudentCount: "5,000+",
   statsSatisfactionRate: "98.6%",
@@ -76,6 +124,11 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       configMap[item.key] = item.value;
     }
 
+    const parseBool = (val: string | undefined, def: boolean): boolean => {
+      if (val === undefined) return def;
+      return val === "true" || val === "1";
+    };
+
     const result: SystemConfig = {
       appName: configMap["appName"] || DEFAULT_CONFIG.appName,
       appSlogan: configMap["appSlogan"] || DEFAULT_CONFIG.appSlogan,
@@ -91,6 +144,29 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       bankAccountNo: configMap["bankAccountNo"] || DEFAULT_CONFIG.bankAccountNo,
       bankAccountName: configMap["bankAccountName"] || DEFAULT_CONFIG.bankAccountName,
       vietqrTemplate: configMap["vietqrTemplate"] || DEFAULT_CONFIG.vietqrTemplate,
+
+      paymentManualEnabled: parseBool(configMap["paymentManualEnabled"], DEFAULT_CONFIG.paymentManualEnabled),
+      paymentVietqrAutoEnabled: parseBool(configMap["paymentVietqrAutoEnabled"], DEFAULT_CONFIG.paymentVietqrAutoEnabled),
+      paymentVietqrProvider: (configMap["paymentVietqrProvider"] === "SEPAY" ? "SEPAY" : "PAYOS"),
+      payosClientId: configMap["payosClientId"] || DEFAULT_CONFIG.payosClientId,
+      payosApiKey: configMap["payosApiKey"] || DEFAULT_CONFIG.payosApiKey,
+      payosChecksumKey: configMap["payosChecksumKey"] || DEFAULT_CONFIG.payosChecksumKey,
+      sepayApiKey: configMap["sepayApiKey"] || DEFAULT_CONFIG.sepayApiKey,
+      sepayAccountNumber: configMap["sepayAccountNumber"] || DEFAULT_CONFIG.sepayAccountNumber,
+
+      paymentPaypalEnabled: parseBool(configMap["paymentPaypalEnabled"], DEFAULT_CONFIG.paymentPaypalEnabled),
+      paypalClientId: configMap["paypalClientId"] || DEFAULT_CONFIG.paypalClientId,
+      paypalSecret: configMap["paypalSecret"] || DEFAULT_CONFIG.paypalSecret,
+      paypalMode: (configMap["paypalMode"] === "live" ? "live" : "sandbox"),
+      paymentStripeEnabled: parseBool(configMap["paymentStripeEnabled"], DEFAULT_CONFIG.paymentStripeEnabled),
+      stripePublishableKey: configMap["stripePublishableKey"] || DEFAULT_CONFIG.stripePublishableKey,
+      stripeSecretKey: configMap["stripeSecretKey"] || DEFAULT_CONFIG.stripeSecretKey,
+      stripeWebhookSecret: configMap["stripeWebhookSecret"] || DEFAULT_CONFIG.stripeWebhookSecret,
+      usdExchangeRate: configMap["usdExchangeRate"] ? parseFloat(configMap["usdExchangeRate"]) : DEFAULT_CONFIG.usdExchangeRate,
+
+      paymentCryptoEnabled: parseBool(configMap["paymentCryptoEnabled"], DEFAULT_CONFIG.paymentCryptoEnabled),
+      cryptoBep20Address: configMap["cryptoBep20Address"] || DEFAULT_CONFIG.cryptoBep20Address,
+      cryptoTrc20Address: configMap["cryptoTrc20Address"] || DEFAULT_CONFIG.cryptoTrc20Address,
 
       statsStudentCount: configMap["statsStudentCount"] || DEFAULT_CONFIG.statsStudentCount,
       statsSatisfactionRate: configMap["statsSatisfactionRate"] || DEFAULT_CONFIG.statsSatisfactionRate,

@@ -20,6 +20,22 @@ export async function GET() {
         bankAccountName: settings.bankAccountName,
         vietqrTemplate: settings.vietqrTemplate,
         refundDays: settings.refundDays,
+
+        // Public Payment Gateway Settings
+        paymentManualEnabled: settings.paymentManualEnabled,
+        paymentVietqrAutoEnabled: settings.paymentVietqrAutoEnabled,
+        paymentVietqrProvider: settings.paymentVietqrProvider,
+        paymentPaypalEnabled: settings.paymentPaypalEnabled,
+        paypalClientId: settings.paypalClientId,
+        paypalMode: settings.paypalMode,
+        paymentStripeEnabled: settings.paymentStripeEnabled,
+        stripePublishableKey: settings.stripePublishableKey,
+        usdExchangeRate: settings.usdExchangeRate,
+
+        // Crypto Manual Payment
+        paymentCryptoEnabled: settings.paymentCryptoEnabled,
+        cryptoBep20Address: settings.cryptoBep20Address,
+        cryptoTrc20Address: settings.cryptoTrc20Address,
       },
     });
   } catch (error) {

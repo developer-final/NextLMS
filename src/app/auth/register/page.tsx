@@ -91,7 +91,7 @@ export default function RegisterPage() {
             <strong className="text-brand-400">{registeredEmail}</strong>
           </p>
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-400 text-left space-y-2">
-            <p>• Vui lòng mở email và nhấn vào nút <strong>"Kích Hoạt Tài Khoản Ngay"</strong>.</p>
+            <p>• Vui lòng mở email và nhấn vào nút <strong>&quot;Kích Hoạt Tài Khoản Ngay&quot;</strong>.</p>
             <p>• Kiểm tra cả thư mục <em>Spam / Thư rác</em> nếu bạn không tìm thấy trong Hộp thư chính.</p>
           </div>
           <div className="pt-2">

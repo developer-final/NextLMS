@@ -19,6 +19,10 @@ import {
   Tag,
   UploadCloud,
   AlertCircle,
+  Zap,
+  Globe,
+  Clock,
+  Coins,
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 import { generateVietQRUrl } from "@/lib/vietqr";
@@ -60,7 +64,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     bankAccountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
     vietqrTemplate: "compact2",
     refundDays: 7,
+    paymentManualEnabled: true,
+    paymentVietqrAutoEnabled: true,
+    paymentVietqrProvider: "PAYOS",
+    paymentPaypalEnabled: true,
+    paymentStripeEnabled: false,
+    paymentCryptoEnabled: true,
+    cryptoBep20Address: "",
+    cryptoTrc20Address: "",
+    usdExchangeRate: 25400,
   });
+
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "VIETQR_AUTO" | "BANK_TRANSFER_MANUAL" | "PAYPAL" | "STRIPE" | "CRYPTO_MANUAL"
+  >("VIETQR_AUTO");
+  const [selectedCryptoNetwork, setSelectedCryptoNetwork] = useState<"BEP20" | "TRC20">("BEP20");
+  const [countdownSeconds, setCountdownSeconds] = useState(15 * 60);
+  const [processingPaypal, setProcessingPaypal] = useState(false);
+  const [simulatingWebhook, setSimulatingWebhook] = useState(false);
 
   // Fetch public site and payment settings
   useEffect(() => {
@@ -71,6 +92,17 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           const data = await res.json();
           if (data.settings) {
             setSiteSettings(data.settings);
+            if (data.settings.paymentVietqrAutoEnabled) {
+              setSelectedPaymentMethod("VIETQR_AUTO");
+            } else if (data.settings.paymentManualEnabled) {
+              setSelectedPaymentMethod("BANK_TRANSFER_MANUAL");
+            } else if (data.settings.paymentPaypalEnabled) {
+              setSelectedPaymentMethod("PAYPAL");
+            } else if (data.settings.paymentCryptoEnabled) {
+              setSelectedPaymentMethod("CRYPTO_MANUAL");
+            } else if (data.settings.paymentStripeEnabled) {
+              setSelectedPaymentMethod("STRIPE");
+            }
           }
         }
       } catch (e) {
@@ -79,6 +111,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }
     loadSettings();
   }, []);
+
+  // Countdown timer for VietQR auto (15 minutes)
+  useEffect(() => {
+    if (!createdOrder || selectedPaymentMethod !== "VIETQR_AUTO" || isOrderCompletedRealtime) return;
+    const timer = setInterval(() => {
+      setCountdownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [createdOrder, selectedPaymentMethod, isOrderCompletedRealtime]);
 
   // Fetch course info
   useEffect(() => {
@@ -200,15 +241,37 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
   // Handle Create Order / Free Enroll
   const handleCreateOrder = async () => {
+    if (
+      !isFree &&
+      selectedPaymentMethod === "CRYPTO_MANUAL" &&
+      !siteSettings.cryptoBep20Address &&
+      !siteSettings.cryptoTrc20Address
+    ) {
+      toast.error(
+        language === "en"
+          ? "Crypto wallet address is not configured yet. Please select another payment method or contact support."
+          : "Chưa có địa chỉ ví nhận Crypto. Vui lòng chọn phương thức khác hoặc liên hệ bộ phận hỗ trợ."
+      );
+      return;
+    }
+
     setIsProcessingOrder(true);
     try {
+      const targetMethod = isFree
+        ? "FREE"
+        : selectedPaymentMethod === "VIETQR_AUTO"
+        ? siteSettings.paymentVietqrProvider === "SEPAY"
+          ? "SEPAY"
+          : "PAYOS"
+        : selectedPaymentMethod;
+
       const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId: course.id,
           couponCode: appliedCoupon?.code,
-          paymentMethod: isFree ? "FREE" : "VIETQR_AUTO",
+          paymentMethod: targetMethod,
         }),
       });
 
@@ -236,6 +299,88 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       toast.error(language === "en" ? "Error occurred while creating order" : "Đã xảy ra lỗi khi tạo đơn hàng");
     } finally {
       setIsProcessingOrder(false);
+    }
+  };
+
+  // PayPal Payment Handler
+  const handlePaypalPayment = async () => {
+    if (!createdOrder) return;
+    setProcessingPaypal(true);
+    try {
+      const exchangeRate = siteSettings.usdExchangeRate || 25400;
+      const amountUsd = parseFloat((finalPrice / exchangeRate).toFixed(2));
+      const res = await fetch("/api/orders/paypal-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderCode: createdOrder.orderCode,
+          paypalCaptureId: `PAYPAL-TX-${Date.now()}`,
+          amountUsd,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Lỗi thanh toán PayPal");
+        return;
+      }
+      toast.success(language === "en" ? "🎉 PayPal payment confirmed!" : "🎉 Thanh toán PayPal thành công!");
+      setIsOrderCompletedRealtime(true);
+      setTimeout(() => {
+        router.push("/my-courses");
+      }, 1500);
+    } catch (e) {
+      toast.error("Lỗi kết nối PayPal");
+    } finally {
+      setProcessingPaypal(false);
+    }
+  };
+
+  // Webhook Test Simulation (Sandbox Helper for Admin/Tester)
+  const handleSimulatePayment = async () => {
+    if (!createdOrder) return;
+    setSimulatingWebhook(true);
+    try {
+      const isSepay = siteSettings.paymentVietqrProvider === "SEPAY";
+      const endpoint = isSepay ? "/api/webhook/sepay" : "/api/webhook/payos";
+
+      const payload = isSepay
+        ? {
+            id: Date.now(),
+            transferType: "in",
+            transferAmount: finalPrice,
+            content: `${createdOrder.orderCode} thanh toan`,
+            gateway: "MBBank",
+          }
+        : {
+            code: "00",
+            desc: "success",
+            data: {
+              orderCode: createdOrder.orderCode,
+              amount: finalPrice,
+              description: createdOrder.orderCode,
+            },
+          };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Simulation error");
+        return;
+      }
+      toast.success(language === "en" ? "⚡ Payment simulated successfully!" : "⚡ Giả lập thanh toán thành công!");
+      setIsOrderCompletedRealtime(true);
+      setTimeout(() => {
+        router.push("/my-courses");
+      }, 1500);
+    } catch (err) {
+      toast.error("Error simulating payment");
+    } finally {
+      setSimulatingWebhook(false);
     }
   };
 
@@ -289,6 +434,15 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     description: transferContent,
     template: siteSettings.vietqrTemplate || "compact2",
   });
+
+  const formatCountdown = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const exchangeRate = siteSettings.usdExchangeRate || 25400;
+  const amountUsd = parseFloat((finalPrice / exchangeRate).toFixed(2));
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
@@ -360,6 +514,145 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                 )}
               </div>
 
+              {/* Payment Methods Selection */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4 text-brand-400" />
+                  {language === "en" ? "Select Payment Method" : "Chọn Phương Thức Thanh Toán"}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* VietQR Auto */}
+                  {siteSettings.paymentVietqrAutoEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod("VIETQR_AUTO")}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        selectedPaymentMethod === "VIETQR_AUTO"
+                          ? "border-emerald-500 bg-emerald-500/10 text-white shadow-glow"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-emerald-400" />
+                          <span className="text-xs font-bold text-white">VietQR Tự Động</span>
+                        </div>
+                        <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-semibold">
+                          Tự động 3s
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {language === "en" ? "Instant scan & auto enroll" : "Quét mã chuyển khoản, vào học tức thì 24/7"}
+                      </p>
+                    </button>
+                  )}
+
+                  {/* Manual Transfer */}
+                  {siteSettings.paymentManualEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod("BANK_TRANSFER_MANUAL")}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        selectedPaymentMethod === "BANK_TRANSFER_MANUAL"
+                          ? "border-brand-500 bg-brand-500/10 text-white shadow-glow"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <QrCode className="h-4 w-4 text-brand-400" />
+                          <span className="text-xs font-bold text-white">CK Ngân Hàng</span>
+                        </div>
+                        <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-semibold">
+                          Duyệt tay
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {language === "en" ? "Manual transfer with receipt upload" : "Chuyển khoản thường và gửi ảnh biên lai"}
+                      </p>
+                    </button>
+                  )}
+
+                  {/* PayPal (Default International) */}
+                  {siteSettings.paymentPaypalEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod("PAYPAL")}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        selectedPaymentMethod === "PAYPAL"
+                          ? "border-blue-500 bg-blue-500/10 text-white shadow-glow"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-blue-400" />
+                          <span className="text-xs font-bold text-white">PayPal / Visa / Master</span>
+                        </div>
+                        <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-semibold">
+                          Quốc tế
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {language === "en" ? "PayPal wallet or international cards" : "Ví PayPal, Thẻ tín dụng/ghi nợ quốc tế"}
+                      </p>
+                    </button>
+                  )}
+
+                  {/* Stripe */}
+                  {siteSettings.paymentStripeEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod("STRIPE")}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        selectedPaymentMethod === "STRIPE"
+                          ? "border-purple-500 bg-purple-500/10 text-white shadow-glow"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-purple-400" />
+                          <span className="text-xs font-bold text-white">Thẻ Stripe</span>
+                        </div>
+                        <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded font-semibold">
+                          Credit Card
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {language === "en" ? "Direct credit/debit card" : "Thanh toán thẻ tín dụng trực tiếp"}
+                      </p>
+                    </button>
+                  )}
+
+                  {/* Crypto USDT (BEP20 & TRC20) */}
+                  {siteSettings.paymentCryptoEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPaymentMethod("CRYPTO_MANUAL")}
+                      className={`p-3.5 rounded-xl border text-left transition-all ${
+                        selectedPaymentMethod === "CRYPTO_MANUAL"
+                          ? "border-amber-500 bg-amber-500/10 text-white shadow-glow"
+                          : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-4 w-4 text-amber-400" />
+                          <span className="text-xs font-bold text-white">Crypto USDT</span>
+                        </div>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-semibold">
+                          BEP20 / TRC20
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        {language === "en" ? "Tether USDT (BNB Chain / Tron)" : "Chuyển tiền mã hóa USDT (BNB Chain / Tron)"}
+                      </p>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Action Button */}
               <button
                 onClick={handleCreateOrder}
@@ -372,6 +665,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                   <>
                     <Sparkles className="h-5 w-5" /> {t.checkout.activateFreeBtn}
                   </>
+                ) : selectedPaymentMethod === "PAYPAL" ? (
+                  <>
+                    <Globe className="h-5 w-5" /> {language === "en" ? `Pay with PayPal ($${amountUsd} USD)` : `Thanh toán qua PayPal ($${amountUsd} USD)`}
+                  </>
+                ) : selectedPaymentMethod === "CRYPTO_MANUAL" ? (
+                  <>
+                    <Coins className="h-5 w-5" /> {language === "en" ? `Pay with Crypto (${amountUsd} USDT)` : `Thanh toán qua Crypto (${amountUsd} USDT)`}
+                  </>
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5" /> {t.checkout.proceedPaymentBtn} ({formatVND(finalPrice)})
@@ -381,26 +682,12 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
             </>
           )}
 
-          {/* If Order IS CREATED -> Show VietQR Transfer Guide */}
+          {/* If Order IS CREATED */}
           {createdOrder && !isFree && (
-            <div className="rounded-3xl border border-brand-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div>
-                  <span className="text-[11px] font-bold text-brand-400 uppercase">
-                    {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
-                  </span>
-                  <h3 className="text-lg font-bold text-white">
-                    {t.checkout.vietqrGuideTitle}
-                  </h3>
-                </div>
-                <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400 border border-amber-500/30">
-                  {t.checkout.pendingPaymentBadge}
-                </span>
-              </div>
-
-              {/* VietQR Display */}
+            <div className="space-y-6">
+              {/* Order Success Banner if completed */}
               {isOrderCompletedRealtime ? (
-                <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/50 p-6 text-center space-y-4">
+                <div className="rounded-3xl border border-emerald-500/50 bg-emerald-950/50 p-8 text-center space-y-4 shadow-glow">
                   <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                     <CheckCircle2 className="h-10 w-10 animate-bounce" />
                   </div>
@@ -415,106 +702,454 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     {t.checkout.learnNowBtn} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row gap-6 items-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500/50 p-2 bg-white flex-shrink-0 shadow-lg">
-                      <img
-                        src={vietQRUrl}
-                        alt="VietQR Payment Code"
-                        className="w-48 h-auto object-contain"
-                      />
+              ) : createdOrder.paymentMethod === "PAYPAL" ? (
+                /* PAYPAL PAYMENT CARD */
+                <div className="rounded-3xl border border-blue-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[11px] font-bold text-blue-400 uppercase">
+                        {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-blue-400" /> Thanh Toán Quốc Tế PayPal
+                      </h3>
                     </div>
-                    <a
-                      href={vietQRUrl}
-                      download={`vietqr-${createdOrder.orderCode}.png`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] font-semibold text-brand-400 hover:underline flex items-center gap-1"
-                    >
-                      <QrCode className="h-3.5 w-3.5" /> {t.checkout.openSaveQr}
-                    </a>
+                    <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400 border border-blue-500/30">
+                      PayPal Checkout
+                    </span>
                   </div>
 
-                  <div className="flex-1 space-y-3 w-full text-xs">
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">{t.checkout.beneficiaryBank}</span>
-                        <strong className="text-white text-sm">{bankId} ({bankName})</strong>
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>{language === "en" ? "Amount in USD:" : "Số tiền thanh toán (USD):"}</span>
+                      <strong className="text-white text-base">${amountUsd} USD</strong>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>{language === "en" ? "Exchange Rate:" : "Tỷ giá quy đổi:"}</span>
+                      <span className="text-slate-300">1 USD = {Number(exchangeRate).toLocaleString("vi-VN")} VND</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-400">
+                      <span>{language === "en" ? "Equivalent VND:" : "Tương đương giá trị khóa học:"}</span>
+                      <span className="text-slate-300">{formatVND(finalPrice)}</span>
+                    </div>
+                  </div>
+
+                  {/* PayPal Yellow Checkout Button */}
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={handlePaypalPayment}
+                      disabled={processingPaypal}
+                      className="w-full flex items-center justify-center gap-3 rounded-2xl bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] py-3.5 text-sm font-extrabold shadow-lg transition-transform hover:scale-[1.01] disabled:opacity-50"
+                    >
+                      {processingPaypal ? (
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#003087] border-t-transparent" />
+                      ) : (
+                        <>
+                          <span className="italic font-black text-lg text-[#003087]">Pay</span>
+                          <span className="italic font-black text-lg text-[#0079C1]">Pal</span>
+                          <span className="font-bold text-slate-900 ml-1">Thanh toán ${amountUsd} USD</span>
+                        </>
+                      )}
+                    </button>
+
+                    <p className="text-[11px] text-center text-slate-400">
+                      {language === "en"
+                        ? "Supports PayPal Balance, Visa, MasterCard, American Express."
+                        : "Hỗ trợ số dư tài khoản PayPal và các loại thẻ tín dụng / ghi nợ quốc tế."}
+                    </p>
+                  </div>
+                </div>
+              ) : createdOrder.paymentMethod === "BANK_TRANSFER_MANUAL" ? (
+                /* MANUAL BANK TRANSFER WITH PROOF UPLOAD */
+                <div className="rounded-3xl border border-brand-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[11px] font-bold text-brand-400 uppercase">
+                        {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-white">
+                        {t.checkout.vietqrGuideTitle} (Duyệt Đơn Thủ Công)
+                      </h3>
+                    </div>
+                    <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400 border border-amber-500/30">
+                      {t.checkout.pendingPaymentBadge}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-6 items-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500/50 p-2 bg-white flex-shrink-0 shadow-lg">
+                        <img
+                          src={vietQRUrl}
+                          alt="VietQR Payment Code"
+                          className="w-48 h-auto object-contain"
+                        />
                       </div>
+                      <a
+                        href={vietQRUrl}
+                        download={`vietqr-${createdOrder.orderCode}.png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-brand-400 hover:underline flex items-center gap-1"
+                      >
+                        <QrCode className="h-3.5 w-3.5" /> {t.checkout.openSaveQr}
+                      </a>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">{t.checkout.accountNumber}</span>
-                        <strong className="text-brand-400 text-sm">{bankAccountNo}</strong>
+                    <div className="flex-1 space-y-3 w-full text-xs">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">{t.checkout.beneficiaryBank}</span>
+                          <strong className="text-white text-sm">{bankId} ({bankName})</strong>
+                        </div>
                       </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">{t.checkout.accountNumber}</span>
+                          <strong className="text-brand-400 text-sm">{bankAccountNo}</strong>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(bankAccountNo, t.checkout.accountNumber)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        >
+                          {copiedField === t.checkout.accountNumber ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">{t.checkout.accountHolder}</span>
+                          <strong className="text-white">{bankAccountName}</strong>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-950/40 border border-brand-500/40">
+                        <div>
+                          <span className="text-brand-300 block text-[10px]">{t.checkout.transferContentRequired}</span>
+                          <strong className="text-brand-400 text-sm">{createdOrder.orderCode}</strong>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(createdOrder.orderCode, t.checkout.transferContentRequired)}
+                          className="p-1.5 rounded-lg bg-brand-900 text-brand-300 hover:bg-brand-800"
+                        >
+                          {copiedField === t.checkout.transferContentRequired ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upload Proof / Confirmation */}
+                  <div className="border-t border-slate-800 pt-5 space-y-3">
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <UploadCloud className="h-4 w-4 text-brand-400" /> {t.checkout.confirmTransferTitle}
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      {t.checkout.confirmTransferDesc}
+                    </p>
+
+                    {proofSubmitted ? (
+                      <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                        <span>
+                          {t.checkout.proofSubmittedSuccess}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={proofUrl}
+                          onChange={(e) => setProofUrl(e.target.value)}
+                          placeholder={t.checkout.proofInputPlaceholder}
+                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+                        />
+                        <button
+                          onClick={handleSendProof}
+                          disabled={submittingProof}
+                          className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
+                        >
+                          {submittingProof ? t.checkout.submittingProof : t.checkout.iHaveTransferredBtn}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : createdOrder.paymentMethod === "CRYPTO_MANUAL" ? (
+                /* CRYPTO MANUAL PAYMENT CARD (BEP-20 & TRC-20) */
+                <div className="rounded-3xl border border-amber-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[11px] font-bold text-amber-400 uppercase">
+                        {t.checkout.orderCodeLabel} #{createdOrder.orderCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Coins className="h-5 w-5 text-amber-400" /> Thanh Toán Tiền Mã Hóa USDT
+                      </h3>
+                    </div>
+                    <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-400 border border-amber-500/30">
+                      Crypto Transfer
+                    </span>
+                  </div>
+
+                  {/* Network Tabs (BEP20 vs TRC20) */}
+                  <div className="space-y-4">
+                    <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800">
                       <button
-                        onClick={() => copyToClipboard(bankAccountNo, t.checkout.accountNumber)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        type="button"
+                        onClick={() => setSelectedCryptoNetwork("BEP20")}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          selectedCryptoNetwork === "BEP20"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
                       >
-                        {copiedField === t.checkout.accountNumber ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>USDT (BEP-20 / BNB Chain)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCryptoNetwork("TRC20")}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          selectedCryptoNetwork === "TRC20"
+                            ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <Globe className="h-3.5 w-3.5 text-rose-400" />
+                        <span>USDT (TRC-20 / Tron)</span>
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                      <div>
-                        <span className="text-slate-400 block text-[10px]">{t.checkout.accountHolder}</span>
-                        <strong className="text-white">{bankAccountName}</strong>
+                    {/* Dynamic Wallet Box or Empty Warning */}
+                    {(() => {
+                      const currentAddress =
+                        selectedCryptoNetwork === "BEP20"
+                          ? siteSettings.cryptoBep20Address
+                          : siteSettings.cryptoTrc20Address;
+                      const currentNetworkName =
+                        selectedCryptoNetwork === "BEP20"
+                          ? "BNB Smart Chain (BEP20)"
+                          : "Tron Network (TRC20)";
+                      const feeNote =
+                        selectedCryptoNetwork === "BEP20"
+                          ? "Phí mạng siêu rẻ (~$0.1 - $0.3), xác nhận trong 15 giây."
+                          : "Mạng lưới phổ biến trên tất cả sàn giao dịch (Binance, OKX, Bybit).";
+
+                      if (!currentAddress) {
+                        return (
+                          <div className="rounded-2xl border border-rose-500/40 bg-rose-950/40 p-6 text-center space-y-3">
+                            <AlertCircle className="h-10 w-10 text-rose-400 mx-auto" />
+                            <h4 className="text-sm font-bold text-white">
+                              Chưa cấu hình địa chỉ ví cho mạng {currentNetworkName}
+                            </h4>
+                            <p className="text-xs text-slate-300 max-w-md mx-auto">
+                              Quản trị viên chưa nhập địa chỉ ví nhận USDT cho mạng này. Vui lòng chuyển sang tab mạng còn lại hoặc liên hệ bộ phận hỗ trợ (Hotline/Zalo/Telegram) để được cấp địa chỉ ví chuyển tiền trực tiếp.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(currentAddress)}`;
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="flex flex-col sm:flex-row gap-6 items-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="relative rounded-2xl overflow-hidden border-2 border-amber-500/50 p-2 bg-white flex-shrink-0 shadow-lg">
+                                <img
+                                  src={qrUrl}
+                                  alt="Crypto Wallet QR Code"
+                                  className="w-48 h-auto object-contain"
+                                />
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono">Quét ví gửi USDT</span>
+                            </div>
+
+                            <div className="flex-1 space-y-3 w-full text-xs">
+                              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Mạng lưới chuyển (Network)</span>
+                                  <strong className="text-amber-400 text-sm">{currentNetworkName}</strong>
+                                </div>
+                                <span className="text-[10px] text-slate-400">{feeNote}</span>
+                              </div>
+
+                              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Số tiền USDT cần chuyển chính xác</span>
+                                  <strong className="text-white text-base font-mono">{amountUsd} USDT</strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(String(amountUsd), "Số tiền USDT")}
+                                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                                >
+                                  {copiedField === "Số tiền USDT" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40">
+                                <div className="min-w-0 pr-2">
+                                  <span className="text-amber-300 block text-[10px]">Địa chỉ ví nhận tiền (Address)</span>
+                                  <strong className="text-amber-400 text-xs font-mono break-all block">{currentAddress}</strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(currentAddress, "Địa chỉ ví")}
+                                  className="p-1.5 rounded-lg bg-amber-900 text-amber-300 hover:bg-amber-800 flex-shrink-0"
+                                >
+                                  {copiedField === "Địa chỉ ví" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-200">
+                            <strong>Lưu ý quan trọng:</strong> Vui lòng chọn chính xác mạng <strong>{currentNetworkName}</strong> trên ví/sàn của bạn để tránh thất thoát tài sản. Sau khi chuyển, hãy nhập mã TXID vào ô bên dưới.
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Upload TXID / Proof Section */}
+                  <div className="border-t border-slate-800 pt-5 space-y-3">
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <UploadCloud className="h-4 w-4 text-amber-400" /> Xác Nhận Giao Dịch Chuyển Tiền Crypto
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Điền mã băm giao dịch (TxHash / TXID từ ví Binance, OKX, TrustWallet, MetaMask) hoặc dán link ảnh biên lai:
+                    </p>
+
+                    {proofSubmitted ? (
+                      <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                        <span>
+                          Đã gửi xác nhận mã giao dịch / biên lai! Ban quản trị sẽ đối soát và kích hoạt khóa học cho bạn trong ít phút.
+                        </span>
                       </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="text"
+                          value={proofUrl}
+                          onChange={(e) => setProofUrl(e.target.value)}
+                          placeholder="Ví dụ: 0xabc123... hoặc dán link ảnh chụp giao dịch"
+                          className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono"
+                        />
+                        <button
+                          onClick={handleSendProof}
+                          disabled={submittingProof}
+                          className="rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
+                        >
+                          {submittingProof ? "Đang gửi..." : "Gửi Xác Nhận TXID"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* VIETQR AUTO DYNAMIC (PAYOS / SEPAY) */
+                <div className="rounded-3xl border border-emerald-500/40 bg-slate-900/90 p-6 space-y-6 shadow-glow">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[11px] font-bold text-emerald-400 uppercase flex items-center gap-1.5">
+                        <Zap className="h-3.5 w-3.5" /> VietQR Tự Động #{createdOrder.orderCode}
+                      </span>
+                      <h3 className="text-lg font-bold text-white">
+                        Quét Mã VietQR Chuyển Khoản Nhanh 24/7
+                      </h3>
+                    </div>
+                    {/* Countdown Timer Badge */}
+                    <div className="flex items-center gap-1.5 rounded-full bg-slate-950 border border-emerald-500/30 px-3 py-1 text-xs font-mono font-bold text-emerald-400">
+                      <Clock className="h-3.5 w-3.5 animate-pulse" />
+                      <span>{formatCountdown(countdownSeconds)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-6 items-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-500/60 p-2 bg-white flex-shrink-0 shadow-xl">
+                        <img
+                          src={vietQRUrl}
+                          alt="VietQR Auto Payment Code"
+                          className="w-48 h-auto object-contain"
+                        />
+                      </div>
+                      <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                        <Zap className="h-3.5 w-3.5" /> Tự động kích hoạt sau 3s
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-brand-950/40 border border-brand-500/40">
-                      <div>
-                        <span className="text-brand-300 block text-[10px]">{t.checkout.transferContentRequired}</span>
-                        <strong className="text-brand-400 text-sm">{createdOrder.orderCode}</strong>
+                    <div className="flex-1 space-y-3 w-full text-xs">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">{t.checkout.beneficiaryBank}</span>
+                          <strong className="text-white text-sm">{bankId} ({bankName})</strong>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => copyToClipboard(createdOrder.orderCode, t.checkout.transferContentRequired)}
-                        className="p-1.5 rounded-lg bg-brand-900 text-brand-300 hover:bg-brand-800"
-                      >
-                        {copiedField === t.checkout.transferContentRequired ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                      </button>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">{t.checkout.accountNumber}</span>
+                          <strong className="text-emerald-400 text-sm font-mono">{bankAccountNo}</strong>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(bankAccountNo, t.checkout.accountNumber)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        >
+                          {copiedField === t.checkout.accountNumber ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Số tiền chính xác</span>
+                          <strong className="text-white font-mono text-sm">{formatVND(finalPrice)}</strong>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(String(finalPrice), "Số tiền")}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        >
+                          {copiedField === "Số tiền" ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40">
+                        <div>
+                          <span className="text-emerald-300 block text-[10px]">Nội dung chuyển khoản (bắt buộc đúng)</span>
+                          <strong className="text-emerald-400 text-sm font-mono">{createdOrder.orderCode}</strong>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(createdOrder.orderCode, t.checkout.transferContentRequired)}
+                          className="p-1.5 rounded-lg bg-emerald-900 text-emerald-300 hover:bg-emerald-800"
+                        >
+                          {copiedField === t.checkout.transferContentRequired ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Automation Status & Sandbox Test Helper */}
+                  <div className="border-t border-slate-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>Đang lắng nghe biến động số dư từ ngân hàng...</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSimulatePayment}
+                      disabled={simulatingWebhook}
+                      className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-[11px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                    >
+                      {simulatingWebhook ? "Đang giả lập..." : "⚡ Giả lập thanh toán thành công (Dev Test)"}
+                    </button>
                   </div>
                 </div>
               )}
-
-              {/* Upload Proof / Confirmation */}
-              <div className="border-t border-slate-800 pt-5 space-y-3">
-                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <UploadCloud className="h-4 w-4 text-brand-400" /> {t.checkout.confirmTransferTitle}
-                </h4>
-                <p className="text-[11px] text-slate-400">
-                  {t.checkout.confirmTransferDesc}
-                </p>
-
-                {proofSubmitted ? (
-                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0" />
-                    <span>
-                      {t.checkout.proofSubmittedSuccess}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={proofUrl}
-                      onChange={(e) => setProofUrl(e.target.value)}
-                      placeholder={t.checkout.proofInputPlaceholder}
-                      className="flex-1 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
-                    />
-                    <button
-                      onClick={handleSendProof}
-                      disabled={submittingProof}
-                      className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2.5 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all"
-                    >
-                      {submittingProof ? t.checkout.submittingProof : t.checkout.iHaveTransferredBtn}
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>

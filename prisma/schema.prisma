@@ -43,7 +43,11 @@ enum ContentType {
 enum PaymentMethod {
   BANK_TRANSFER_MANUAL
   VIETQR_AUTO
+  PAYOS
+  SEPAY
+  PAYPAL
   STRIPE
+  CRYPTO_MANUAL
   FREE
 }
 

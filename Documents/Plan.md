@@ -9,22 +9,63 @@ Chuyển đổi nền tảng từ mô hình **Bán khóa học cơ bản (Course
 
 ---
 
-## GIAI ĐOẠN 1: TỰ ĐỘNG HÓA THANH TOÁN 24/7 (AUTOMATED PAYMENTS & WEBHOOKS)
-> **Mục tiêu**: Giải phóng hoàn toàn việc duyệt đơn thủ công của Admin, giúp học viên vào học ngay sau 3 giây quét mã VietQR.
+## GIAI ĐOẠN 1: HỆ THỐNG THANH TOÁN ĐA KÊNH & TỰ ĐỘNG HÓA 24/7 (MULTI-GATEWAY PAYMENTS)
+> **Mục tiêu**: Xây dựng hệ thống thanh toán linh hoạt, hỗ trợ cả thị trường Nội địa Việt Nam và Quốc tế. Toàn bộ các cổng thanh toán được bật/tắt và cấu hình tập trung từ Admin Dashboard.
 
-### 1.1. Tích hợp Webhook Cổng thanh toán (SePay / Casso / PayOS)
-- **API Endpoint**: `POST /api/webhook/payment` (có xác thực chữ ký bảo mật `API_KEY` hoặc `HMAC-SHA256`).
-- **Luồng xử lý tự động**:
-  1. Ngân hàng nhận tiền -> Cổng thanh toán bắn Webhook payload (số tiền, nội dung chuyển khoản chứa `orderCode`).
-  2. Hệ thống kiểm tra: Khớp `orderCode`, số tiền nhận $\ge$ `finalAmount`.
-  3. Chạy Prisma `$transaction`:
-     - Cập nhật `Order`: `status = "COMPLETED"`.
-     - Tạo bản ghi `Transaction`: lưu `bankCode`, `transferContent`, `rawWebhookData`.
-     - Kích hoạt `Enrollment` cho học viên: `status = "ACTIVE"`.
-     - Tăng số lượt dùng coupon `usedCount` (nếu đơn có dùng mã giảm giá).
-  4. Gửi email xác nhận kèm biên lai thanh toán tự động đến học viên.
+### 1.1. Kiến trúc Cổng Thanh toán Đa Kênh (Admin Controlled)
+Admin có thể bật/tắt độc lập và cấu hình thông số kỹ thuật cho từng cổng tại `/admin/settings`:
 
-### 1.2. Hoàn thiện Logic Mã Giảm Giá (Coupon Management)
+1. **Thị trường Nội địa Việt Nam**:
+   - **VietQR Tự động (PayOS / SePay)**:
+     - Admin tùy chọn nhà cung cấp hoạt động (`PAYOS` hoặc `SEPAY`).
+     - Tự động sinh mã VietQR động theo từng đơn hàng, tiền vào thẳng tài khoản ngân hàng của Admin.
+     - Webhook kích hoạt khóa học tự động 24/7 chỉ sau 3–5 giây.
+     - Cấu hình: Client ID, API Key, Checksum Key (PayOS) hoặc API Key / Webhook Token (SePay).
+   - **Chuyển khoản Ngân hàng Thủ công (Manual Bank Transfer - Giữ nguyên)**:
+     - Dành cho học viên quen chuyển khoản thông thường hoặc khi cổng tự động bảo trì.
+     - Hiển thị thông tin tài khoản ngân hàng + mã VietQR kèm form upload ảnh biên lai (bill).
+     - Admin duyệt đơn thủ công trong trang Quản trị Đơn hàng (`/admin/orders`).
+
+2. **Thị trường Quốc tế (Cross-border Payments)**:
+   - **PayPal (Mặc định)**:
+     - Phương thức quốc tế mặc định, hỗ trợ ví điện tử PayPal và thẻ tín dụng/ghi nợ quốc tế (Visa, MasterCard, Amex) qua PayPal Guest Checkout.
+     - Tiền rút về ngân hàng Việt Nam bình thường, không đòi hỏi pháp nhân nước ngoài.
+     - Cấu hình: `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE` (`sandbox` / `live`).
+   - **Stripe (Tùy chọn kích hoạt)**:
+     - Dành cho kịch bản khi Admin có pháp nhân hoặc tài khoản quốc tế (Stripe Atlas / Singapore / US).
+     - Trải nghiệm thanh toán thẻ tín dụng trực tiếp (Stripe Elements / Checkout Session) chuẩn quốc tế.
+     - Cấu hình: `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+   - **Tiền Mã Hóa Thủ Công - Crypto USDT (Đa Mạng BEP20 & TRC20)**:
+     - Hỗ trợ thanh toán Stablecoin USDT không biên giới qua 2 mạng lưới phổ biến nhất: BNB Smart Chain (BEP20) và Tron Network (TRC20).
+     - Địa chỉ ví được Admin cấu hình linh hoạt trong Dashboard (không có giá trị mặc định cứng).
+     - Hệ thống hiển thị cảnh báo nếu Admin chưa cấu hình địa chỉ ví khi học viên chọn phương thức này.
+     - Học viên quét mã QR ví, chuyển USDT và gửi mã TXID (Transaction Hash) hoặc ảnh biên lai để Admin duyệt đơn.
+
+### 1.2. Luồng Xử Lý Webhook & Bảo Mật Giao Dịch
+- **API Endpoints chuyên biệt cho từng cổng**:
+  - `POST /api/webhook/payos` (Xác thực chữ ký `HMAC-SHA256` với `CHECKSUM_KEY`).
+  - `POST /api/webhook/sepay` (Xác thực `API_KEY` trong header Authorization).
+  - `POST /api/webhook/paypal` (Xác thực webhook event qua PayPal SDK / API).
+  - `POST /api/webhook/stripe` (Xác thực chữ ký qua `stripe.webhooks.constructEvent`).
+- **Luồng xử lý nguyên tử (Prisma `$transaction`)**:
+  1. Kiểm tra tính hợp lệ của chữ ký Webhook (Security Signature Validation).
+  2. Cơ chế chống xử lý trùng lặp (**Idempotency**): Kiểm tra trạng thái đơn hàng và mã giao dịch `gatewayRef`. Nếu đơn đã `COMPLETED`, trả về HTTP 200 ngay lập tức mà không xử lý lại.
+  3. Kiểm tra số tiền thực nhận $\ge$ `finalAmount` của đơn hàng.
+  4. Thực thi transaction nguyên tử:
+     - Cập nhật `Order`: `status = "COMPLETED"`, `paymentMethod` tương ứng.
+     - Tạo bản ghi `Transaction`: lưu `orderId`, `gatewayRef`, `amount`, `bankCode`, `rawWebhookData`.
+     - Kích hoạt quyền học `Enrollment`: `status = "ACTIVE"`.
+     - Cập nhật số lượt dùng coupon `usedCount` (nếu có).
+  5. Gửi email xác nhận kèm biên lai điện tử tự động đến học viên.
+
+### 1.3. Trải Nghiệm Học Viên Tại Trang Thanh Toán (`/checkout/[slug]`)
+- Hệ thống tự động truy vấn cấu hình các cổng đang `ENABLED` từ Database Settings:
+  - Nếu bật VietQR Auto: Hiển thị Tab QR Động + Đồng hồ đếm ngược hết hạn (15 phút) + Trình lắng nghe Realtime / Polling trạng thái đơn hàng.
+  - Nếu bật PayPal: Hiển thị Nút vàng thanh toán thông minh (PayPal Smart Buttons).
+  - Nếu bật Stripe: Hiển thị Form nhập thẻ trực quan bảo mật (Stripe Card Element).
+  - Nếu bật Chuyển khoản thủ công: Hiển thị Tab VietQR truyền thống kèm nút Upload bằng chứng thanh toán.
+
+### 1.4. Hoàn thiện Logic Mã Giảm Giá (Coupon Management)
 - Sửa quy trình: Không trừ lượt `usedCount` khi đơn mới ở trạng thái `PENDING`. Chỉ trừ khi thanh toán thành công.
 - Tự động hoàn lại lượt sử dụng nếu đơn hàng bị `CANCELLED` hoặc quá hạn thanh toán (`EXPIRED` sau 24h).
 - Bổ sung cấu hình: Mã áp dụng cho từng khóa học cụ thể, giới hạn 1 lần dùng/1 tài khoản học viên.
