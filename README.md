@@ -141,7 +141,54 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 
 ---
 
-## 📂 6. Cấu trúc Thư mục Dự án
+## 🔄 6. Hướng dẫn Tùy Biến & Chuyển Đổi Sang Lĩnh Vực / Ngành Khác
+
+Nền tảng được thiết kế theo kiến trúc **Generic LMS (Quản lý Học tập Đa năng)**. Toàn bộ logic nghiệp vụ (trình phát video, đo lường tiến độ, thanh toán VietQR tự động, quản lý đơn hàng, cấp chứng chỉ và phân quyền) hoàn toàn trung lập và độc lập với nội dung tài chính.
+
+Bạn có thể chuyển đổi hệ thống sang bất kỳ lĩnh vực nào (Lập trình, Ngoại ngữ, Marketing, Thiết kế, Kỹ năng mềm...) trong vòng **30 - 60 phút** theo 4 bước sau:
+
+### Bước 1: Đổi Tên Thương Hiệu & Thông Tin Liên Hệ
+* Mở file [`.env`](./.env) và [`src/lib/config.ts`](./src/lib/config.ts):
+  * `NEXT_PUBLIC_APP_NAME`: Tên thương hiệu mới (VD: `CodeMaster Academy`, `IELTS Pro Lab`...).
+  * `NEXT_PUBLIC_BANK_ACCOUNT_NAME`: Tên chủ tài khoản nhận học phí.
+  * `appSlogan`, `appDescription`: Khẩu hiệu và mô tả tổng quan nền tảng.
+  * `supportEmail`, `supportHotline`, `zaloUrl`, `facebookUrl`: Kênh hỗ trợ của bạn.
+
+### Bước 2: Cập Nhật Nội Dung Giao Diện & Đa Ngôn Ngữ (i18n)
+* Mở file từ điển Tiếng Việt [`src/lib/i18n/vi.ts`](./src/lib/i18n/vi.ts) và Tiếng Anh [`src/lib/i18n/en.ts`](./src/lib/i18n/en.ts):
+  * `home.heroTitleLine1`, `home.heroTitleHighlight`, `home.heroDescription`: Tiêu đề và nội dung nổi bật của banner trang chủ.
+  * `home.feature1Title`, `feature1Desc` ...: Các ưu điểm nổi bật của học viện.
+  * `about.description`: Đoạn giới thiệu tầm nhìn, sứ mệnh của học viện mới.
+  * `policy`: Điều khoản dịch vụ và chính sách bảo mật phù hợp với ngành mới.
+
+### Bước 3: Thay Đổi Danh Mục & Khóa Học Mẫu (Seed Data)
+* Mở file [`prisma/seed.js`](./prisma/seed.js):
+  * Thay đổi danh mục đào tạo trong `categories` (xem bảng gợi ý bên dưới).
+  * Thay đổi tên khóa học, mô tả, ảnh thumbnail, video YouTube bài giảng demo trong `courses` & `lessons`.
+  * Thay đổi tên & tiểu sử giảng viên mẫu (`instructor`).
+* Chạy lệnh nạp lại dữ liệu sạch vào hệ thống:
+  ```bash
+  node prisma/seed.js
+  ```
+
+### Bước 4: Cập Nhật Logo & Tiêu Đề SEO
+* **Logo trên Navbar**: Chỉnh sửa tại [`src/components/layout/Navbar.tsx`](./src/components/layout/Navbar.tsx) (thay text logo hoặc thay bằng thẻ `<Image />` chứa logo thương hiệu).
+* **Metadata SEO & Sitemap**: Cập nhật thẻ tiêu đề và từ khóa tại [`src/app/layout.tsx`](./src/app/layout.tsx) và domain tại [`src/app/sitemap.ts`](./src/app/sitemap.ts).
+
+---
+
+### 💡 Bảng Gợi Ý Danh Mục Theo Từng Ngành Nghề:
+
+| Ngành Nghề Mục Tiêu | Danh Mục Đào Tạo Gợi Ý (`Category`) | Màu Sắc / Phong Cách Phù Hợp |
+| :--- | :--- | :--- |
+| 💻 **Lập Trình & CNTT (Tech / Coding)** | Lập trình Web Fullstack, Trí tuệ Nhân tạo & Python, Mobile App (Flutter/React Native), DevOps & Cloud | Rất hợp với Dark Theme hiện tại, dùng accent Xanh Emerald / Cyan |
+| 🗣️ **Ngoại Ngữ (Language Learning)** | Tiếng Anh Giao Tiếp, Luyện thi IELTS/TOEIC, Tiếng Trung HSK, Tiếng Nhật JLPT | Giao diện hiện đại, thân thiện với học viên trẻ |
+| 📈 **Digital Marketing & Kinh Doanh** | Facebook/TikTok Ads thực chiến, SEO & Content Marketing, Kinh doanh Sàn E-Commerce | Nhấn mạnh vào kết quả chuyển đổi và thực hành |
+| 🎨 **Thiết Kế & Multimedia** | Thiết kế UI/UX Figma, Đồ họa Photoshop/Illustrator, Dựng phim Premiere/CapCut, 3D Blender | Tận dụng tốt hệ thống hiển thị thumbnail sắc nét và video HD |
+
+---
+
+## 📂 7. Cấu trúc Thư mục Dự án
 
 ```
 eLearning/
@@ -165,10 +212,12 @@ eLearning/
 │   │   └── layout.tsx       # Root Layout
 │   ├── components/
 │   │   ├── cards/           # CourseCard, v.v.
-│   │   ├── layout/          # Navbar, Footer
-│   │   └── providers/       # AuthProvider, ToastProvider (Sonner)
+│   │   ├── layout/          # Navbar, Footer, LanguageSwitcher
+│   │   └── providers/       # AuthProvider, LanguageProvider, ToastProvider (Sonner)
 │   ├── lib/
 │   │   ├── auth.ts          # NextAuth Options & Session config
+│   │   ├── config.ts        # Cấu hình thương hiệu & settings hệ thống
+│   │   ├── i18n/            # Hệ thống từ điển đa ngôn ngữ (vi.ts, en.ts)
 │   │   ├── prisma.ts        # Prisma Client singleton
 │   │   ├── utils.ts         # Tiện ích format VND, thời gian, slugify, YouTube embed
 │   │   └── vietqr.ts        # Generator mã QR VietQR chuẩn NAPAS
@@ -180,11 +229,92 @@ eLearning/
 
 ---
 
-## 🌐 7. Hướng dẫn Triển khai Lên Môi trường Production (0$ Cloud Deploy)
+## 🌐 8. Hướng Dẫn Đưa Lên GitHub & Triển Khai Cloud (0$ Vercel / Cloudflare)
 
-1. **Cơ sở dữ liệu**: Tạo một Database PostgreSQL miễn phí tại **Supabase** hoặc **Neon.tech** $\rightarrow$ Dán chuỗi kết nối vào `DATABASE_URL` trong `.env`.
-2. **Deploy Mã nguồn**: Đẩy code lên GitHub $\rightarrow$ Import dự án vào **Vercel** hoặc **Cloudflare Pages** (Deploy tự động với 1 click).
-3. **Cấu hình Biến môi trường trên Vercel**: Điền `DATABASE_URL`, `NEXTAUTH_URL` (domain thật), `NEXTAUTH_SECRET`, `NEXT_PUBLIC_BANK_ID`, `NEXT_PUBLIC_BANK_ACCOUNT_NO`.
+### 8.1. Hướng Dẫn Đưa Dự Án Lên GitHub
+
+1. **Khởi tạo và kiểm tra trạng thái Git cục bộ**:
+   ```bash
+   git status
+   ```
+2. **Thêm toàn bộ file vào Stage & Commit**:
+   ```bash
+   git add .
+   git commit -m "feat: complete production-ready eLearning platform"
+   ```
+3. **Tạo Repository mới trên GitHub** (chọn chế độ `Public` hoặc `Private`).
+4. **Liên kết và Đẩy mã nguồn lên GitHub**:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+---
+
+### 8.2. Triển Khai Lên Vercel (Khuyên dùng - Tối ưu 100% cho Next.js 15)
+
+Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc độ phản hồi Server Actions và Edge CDN toàn cầu cực nhanh.
+
+1. **Đăng nhập Vercel**: Truy cập [vercel.com](https://vercel.com) $\rightarrow$ Đăng nhập bằng tài khoản GitHub.
+2. **Import Repository**:
+   * Bấm **"Add New..."** $\rightarrow$ Chọn **"Project"**.
+   * Tìm đến Repository dự án vừa đẩy lên GitHub $\rightarrow$ Bấm **"Import"**.
+3. **Cài đặt Biến môi trường (Environment Variables)**:
+   Mở mục **Environment Variables** trên Vercel và điền các giá trị từ file [`.env.example`](./.env.example):
+
+   | Tên Biến (Key) | Giá trị Mẫu | Ghi chú |
+   | :--- | :--- | :--- |
+   | `DATABASE_URL` | `postgresql://...` | Chuỗi kết nối PostgreSQL (Neon/Supabase) |
+   | `NEXTAUTH_URL` | `https://your-project.vercel.app` | Tên miền chính thức của ứng dụng |
+   | `NEXTAUTH_SECRET` | `super-secret-key-32-chars-random` | Khóa bí mật mã hóa JWT session |
+   | `NEXT_PUBLIC_APP_NAME` | `World Trading Lab` | Tên thương hiệu hiển thị |
+   | `NEXT_PUBLIC_BANK_ID` | `MB` | Mã ngân hàng nhận VietQR |
+   | `NEXT_PUBLIC_BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản ngân hàng |
+   | `NEXT_PUBLIC_BANK_ACCOUNT_NAME`| `WORLD TRADING LAB` | Tên chủ tài khoản |
+
+4. **Deploy**: Bấm nút **"Deploy"** $\rightarrow$ Hệ thống tự động cài đặt gói, chạy `prisma generate` và biên dịch production trong 1-2 phút.
+
+---
+
+### 8.3. Triển Khai Lên Cloudflare (Cloudflare Pages)
+
+1. **Đăng nhập Cloudflare**: Vào Dashboard Cloudflare $\rightarrow$ Chọn **Compute (Workers & Pages)** $\rightarrow$ **Create Application** $\rightarrow$ **Pages** $\rightarrow$ **Connect to Git**.
+2. **Chọn Repository**: Chọn repo GitHub của dự án.
+3. **Cài đặt Build Settings**:
+   * **Framework Preset**: `Next.js`
+   * **Build command**: `npx @cloudflare/next-on-pages` (hoặc `prisma generate && next build`)
+   * **Build output directory**: `.vercel/output/static`
+   * **Node.js Compatibility Flag**: Bật `nodejs_compat` trong phần Settings $\rightarrow$ Functions $\rightarrow$ Compatibility Flags.
+4. **Thêm Environment Variables**: Thêm đầy đủ các biến môi trường như bảng ở mục Vercel.
+5. **Save and Deploy**.
+
+---
+
+### 8.4. Cấu Hình Cơ Sở Dữ Liệu Cloud (0$ PostgreSQL với Neon hoặc Supabase)
+
+> [!NOTE]
+> Khi chạy trên môi trường Serverless Cloud (như Vercel/Cloudflare), hệ thống cần cơ sở dữ liệu đám mây PostgreSQL thay vì file SQLite cục bộ.
+
+1. **Tạo Database PostgreSQL miễn phí**:
+   * Truy cập [Neon.tech](https://neon.tech) hoặc [Supabase.com](https://supabase.com) $\rightarrow$ Tạo một Project mới (miễn phí 100%).
+   * Sao chép chuỗi kết nối dạng: `postgresql://username:password@ep-xyz.neon.tech/neondb?sslmode=require`.
+2. **Chuyển Provider sang PostgreSQL trong Prisma**:
+   * Mở file [`prisma/schema.prisma`](./prisma/schema.prisma), đổi dòng 6:
+     ```prisma
+     datasource db {
+       provider = "postgresql"
+       url      = env("DATABASE_URL")
+     }
+     ```
+3. **Đồng bộ bảng dữ liệu & Nạp dữ liệu mẫu lên Cloud**:
+   ```bash
+   # Đẩy bảng lên cloud database
+   npx prisma db push
+
+   # Nạp dữ liệu mẫu lên cloud database
+   node prisma/seed.js
+   ```
 
 ---
 
