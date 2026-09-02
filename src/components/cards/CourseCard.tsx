@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BookOpen, Clock, PlayCircle, Star, User, Sparkles } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 
-interface CourseCardProps {
+export interface CourseCardProps {
   course: {
     id: string;
     title: string;

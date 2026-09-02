@@ -1,14 +1,20 @@
 {
   "entries": [
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/quant-analyst" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/backtesting-frameworks" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/mcp-builder" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/rag-implementation" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/rag-engineer" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/llm-app-patterns" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/prompt-engineering" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/ai-agents-architect" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/langgraph" },
-    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/context-window-management" }
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/frontend-design" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/tailwind-patterns" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/nextjs-best-practices" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/form-cro" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/seo-audit" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/ui-ux-pro-max" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/mobile-design" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/senior-fullstack" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/database-design" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/auth-implementation-patterns" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/api-security-best-practices" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/backend-security-coder" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/frontend-security-coder" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/cc-skill-security-review" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/pci-compliance" },
+    { "path": "C:/Users/enzii/agentic-awesome-skills/skills/postgres-best-practices" }
   ]
 }

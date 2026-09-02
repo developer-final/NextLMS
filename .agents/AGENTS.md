@@ -1,27 +1,75 @@
-# SMC Project Rules & OKF Knowledge Graph Maintenance
+# E-Learning Platform - Rules & Codebase Exploration Guide
 
-This project maintains an Open Knowledge Format (OKF) Knowledge Graph inside the `Knowledge/` directory. 
+This repository contains the **World Trading Lab E-Learning Platform**, built with Next.js 15 (App Router), TypeScript, Tailwind CSS, Prisma ORM, and NextAuth.js.
 
-## Rules for Agents / LLMs
+---
 
-1. **Rely on OKF first**: Before starting any task, read `Knowledge/index.md` to understand the codebase architecture, modules, and concepts.
-2. **Maintain the Knowledge Graph**: Whenever you modify code, add new features, or create new modules:
-   - **Spec Standard**: Refer to [OKF Specification](../Knowledge/specs.md) for the formatting templates, version rules, and YAML frontmatter fields.
-   - **Original Spec**: Follow the [GCP OKF v1.0.0 Specification](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md).
-   - **Relative Links Only**: You **MUST** use relative paths for all links between markdown files inside the `Knowledge/` directory and `.agents/AGENTS.md`. Never use absolute paths (such as `file:///C:/Users/...`) as they break portability across different machines.
-   - **Resource Path Convention**: For the `resource:` field in OKF YAML frontmatter, you **MUST** use a relative path from the current `.md` file to the target source file (e.g., `../../Modules/Core.mqh`). Do NOT use `file://` or absolute paths.
-   - **New Modules (Git Tracking)**: The system tracks all text source files managed by Git (not ignored by `.gitignore`). When you create a new source code file, you **MUST** create a corresponding concept file in `Knowledge/modules/` or `Knowledge/tools/` using the templates in `specs.md`. The `UpdateKnowledge.py` script will warn about missing OKF files for tracked text files during build.
-   - **Concept updates**: If you add new trading logic or change parameters (e.g., scoring rules, recovery formulas), you **MUST** update the corresponding files under `Knowledge/concepts/`.
-   - **Index updates**: Ensure new files are added to the corresponding category index (e.g., `Knowledge/modules/index.md` or `Knowledge/concepts/index.md`).
-3. **Compile and Run Auto-Update**:
-   - Always execute `Build.bat` after finishing a task to verify compilation.
-   - Successful compilation automatically triggers `Scripts/UpdateKnowledge.py`, which rebuilds the dependency graph in `Knowledge/architecture/dependency-graph.md` and appends to the change log.
-4. **Manual Enrichment**:
-   - After running the auto-update script, check the generated differences and manually document any new functions, classes, or design trade-offs in the respective `modules/` or `concepts/` files.
+## 1. Codebase Knowledge Graph (`codebase-memory-mcp`)
 
-## Rules for Code Discovery & MCP Usage
+This project is indexed into the `codebase-memory-mcp` knowledge graph. All AI agents and LLMs **MUST prioritize using MCP graph tools** over raw grep/glob/file-search for code discovery, architecture analysis, route mapping, and relationship tracing.
 
-1. **Mandatory MCP Priority**: You **MUST** prioritize using `codebase-memory-mcp` tools (`search_graph`, `trace_path`, `get_code_snippet`, `get_architecture`, etc.) for all code discovery, class/method lookup, and relationship tracing. Do NOT bypass these tools by using raw grep or glob searches unless the MCP server is unavailable or fails.
-2. **Project Parameter Discovery**: The MCP tools are case-sensitive and require a `project` parameter (the unique slug of the workspace). Before executing queries, you **MUST** run the `list_projects` tool to find the correct slug (e.g. `C-Users-enzii-Desktop-Working-SMC`) and use it exactly.
-3. **Trace and Verify**: When looking at class boundaries or method interactions, trace the control paths using `trace_path` instead of guessing or scanning raw files manually.
+### Project Identifier
+* **MCP Project Slug:** `C-Users-enzii-Desktop-Working-eLearning`
+* When calling MCP tools, always pass `project: "C-Users-enzii-Desktop-Working-eLearning"` (or verify with `list_projects`).
 
+### Tool Usage & Exploration Workflow
+
+1. **Architecture & Structure Overview:**
+   * Run `get_architecture(project="C-Users-enzii-Desktop-Working-eLearning", aspects=["all"])` to understand entry points, module boundaries, layers, and technologies.
+
+2. **Finding Symbols, Routes, and Components:**
+   * Use `search_graph(project="C-Users-enzii-Desktop-Working-eLearning", name_pattern="<Pattern>")` to locate:
+     - Pages & Layouts (`src/app/**`)
+     - API Route Handlers (`src/app/api/**`)
+     - UI & Reusable Components (`src/components/**`)
+     - Helper utilities & Database clients (`src/lib/**`)
+
+3. **Tracing Calls & Data Flow:**
+   * Use `trace_path(project="C-Users-enzii-Desktop-Working-eLearning", function_name="<FunctionOrMethod>", direction="inbound" | "outbound")` to trace:
+     - Who calls an API route or server helper (`inbound`).
+     - What database models, services, or endpoints a component invokes (`outbound`).
+
+4. **Reading Code Snippets & Definitions:**
+   * Use `get_code_snippet(project="C-Users-enzii-Desktop-Working-eLearning", qualified_name="<QualifiedSymbol>")` to retrieve exact function or class source code without reading entire files.
+
+5. **Re-Indexing / Updating Graph:**
+   * When new files or routes are added, run `detect_changes` or `index_repository(repo_path="...", mode="full")` to keep the knowledge graph in sync.
+
+### Fallback to Grep/File View
+Only fall back to `grep_search` or `view_file` when:
+* Searching for exact raw text strings, CSS utility classes, or error messages.
+* Reading non-code configuration files (`.env`, `package.json`, `tsconfig.json`, `prisma/schema.prisma`).
+* Graph tools report skipped or parse-partial line ranges.
+
+---
+
+## 2. Tech Stack & Key Directories
+
+* **Framework:** Next.js 15 (App Router), React 18, TypeScript.
+* **Database & ORM:** Prisma ORM (`prisma/schema.prisma`), SQLite (`prisma/dev.db`).
+* **Authentication:** NextAuth.js (`src/lib/auth.ts`, `src/app/api/auth/[...nextauth]`).
+* **Styling & UI:** Tailwind CSS v3 (`tailwind.config.ts`, `src/app/globals.css`), Lucide React icons, Sonner toast notifications.
+* **Directory Structure:**
+  - `src/app/`: Next.js App Router pages, layouts, and API routes (`/api/*`).
+  - `src/app/admin/*`: Admin management dashboard (courses, orders, students).
+  - `src/app/courses/*`, `src/app/learn/*`: Course catalog and interactive learning portal.
+  - `src/components/`: Modular React components (`cards/`, `layout/`, `learn/`, `providers/`, `ui/`).
+  - `src/lib/`: Shared utilities (`prisma.ts`, `auth.ts`, `utils.ts`, `vietqr.ts`).
+  - `prisma/`: Prisma schema, migrations, and seed scripts.
+
+---
+
+## 3. Engineering & Code Quality Rules
+
+1. **Strict TypeScript & Type Safety:**
+   - Always define explicit types/interfaces for props and API payloads.
+   - Never use `any` unless strictly required for external untyped libraries.
+   - Always run `npx tsc --noEmit` before concluding work to guarantee zero type errors.
+
+2. **Clean Minimal Code:**
+   - Write minimum code that solves the problem. No speculative features or redundant abstractions.
+   - Preserve existing project style, comments, and structure.
+
+3. **Theme & CSS Integrity:**
+   - Use the established dark-theme palette (slate-950 background, brand emerald accents, gold accents, glassmorphism).
+   - Ensure responsive layout across mobile and desktop.

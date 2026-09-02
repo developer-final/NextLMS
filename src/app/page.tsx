@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import CourseCard from "@/components/cards/CourseCard";
+import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
 import {
   ArrowRight,
   Award,
@@ -15,6 +15,16 @@ import {
 } from "lucide-react";
 
 export const revalidate = 0; // Dynamic data
+
+interface CategoryWithCount {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  _count: {
+    courses: number;
+  };
+}
 
 export default async function HomePage() {
   const featuredCourses = await prisma.course.findMany({
@@ -134,7 +144,7 @@ export default async function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((cat) => (
+          {categories.map((cat: CategoryWithCount) => (
             <Link
               key={cat.id}
               href={`/courses?category=${cat.slug}`}
@@ -182,7 +192,7 @@ export default async function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredCourses.map((course) => (
+          {featuredCourses.map((course: CourseCardProps["course"]) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>

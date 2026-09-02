@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import CourseCard from "@/components/cards/CourseCard";
+import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
 import { BookOpen, Filter, Search, Sparkles } from "lucide-react";
 
 export const revalidate = 0;
@@ -128,7 +128,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {courses.map((course: CourseCardProps["course"]) => (
             <CourseCard key={course.id} course={course} />
           ))}
         </div>
