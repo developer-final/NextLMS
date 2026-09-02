@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Code Quality & Automated Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/testdb?schema=public"
+      NEXTAUTH_SECRET: "ci-secret-key-for-testing-only-1234567890"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXT_PUBLIC_APP_NAME: "World Trading Lab"
+      NEXT_PUBLIC_BANK_ID: "MB"
+      NEXT_PUBLIC_BANK_ACCOUNT_NO: "0988888888"
+      NEXT_PUBLIC_BANK_ACCOUNT_NAME: "WORLD TRADING LAB"
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      - name: Type Check (TypeScript)
+        run: npm run type-check
+
+      - name: Lint Code (ESLint)
+        run: npm run lint
+
+      - name: Run Unit Tests (Vitest)
+        run: npm test
+
+      - name: Build Next.js Application
+        run: npm run build
