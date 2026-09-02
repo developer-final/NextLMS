@@ -173,7 +173,10 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
   // Handle Apply Coupon
   const handleApplyCoupon = async () => {
-    if (!couponCode) return;
+    if (!couponCode.trim()) {
+      toast.error(language === "en" ? "Please enter a coupon code" : "Vui lòng nhập mã giảm giá");
+      return;
+    }
     setApplyingCoupon(true);
     try {
       const res = await fetch("/api/coupons/apply", {

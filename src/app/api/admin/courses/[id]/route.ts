@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { validateCourseInput } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -87,8 +88,9 @@ export async function PUT(
       sections,
     } = body;
 
-    if (!title?.trim()) {
-      return NextResponse.json({ error: "Tiêu đề khóa học là bắt buộc" }, { status: 400 });
+    const validation = validateCourseInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const existingCourse = await prisma.course.findUnique({

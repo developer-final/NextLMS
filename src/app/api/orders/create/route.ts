@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     }
 
     // Calculate pricing and validate coupon preliminary data
-    const originalPrice = course.salePrice !== null ? course.salePrice : course.price;
+    const originalPrice = Number(course.salePrice !== null ? course.salePrice : course.price);
     let discountAmount = 0;
     let validCouponId: string | null = null;
 
@@ -94,18 +94,20 @@ export async function POST(req: Request) {
         );
       }
 
-      if (originalPrice < coupon.minOrderValue) {
+      const minOrderVal = Number(coupon.minOrderValue);
+      if (originalPrice < minOrderVal) {
         return NextResponse.json(
-          { error: `Đơn hàng tối thiểu để áp dụng mã là ${coupon.minOrderValue.toLocaleString("vi-VN")}đ` },
+          { error: `Đơn hàng tối thiểu để áp dụng mã là ${minOrderVal.toLocaleString("vi-VN")}đ` },
           { status: 400 }
         );
       }
 
       validCouponId = coupon.id;
+      const discountVal = Number(coupon.discountValue);
       if (coupon.discountType === "PERCENT") {
-        discountAmount = (originalPrice * coupon.discountValue) / 100;
+        discountAmount = (originalPrice * discountVal) / 100;
       } else {
-        discountAmount = coupon.discountValue;
+        discountAmount = discountVal;
       }
     }
 
@@ -124,16 +126,20 @@ export async function POST(req: Request) {
           throw new Error("COUPON_LIMIT_EXCEEDED");
         }
 
-        await tx.coupon.update({
-          where: { id: validCouponId },
-          data: { usedCount: { increment: 1 } },
-        });
+        // Only increment usedCount immediately if the order completes immediately (Free order)
+        if (isFreeOrder) {
+          await tx.coupon.update({
+            where: { id: validCouponId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
       }
 
       const createdOrder = await tx.order.create({
         data: {
           orderCode,
           userId,
+          couponId: validCouponId,
           totalAmount: originalPrice,
           discountAmount,
           finalAmount,

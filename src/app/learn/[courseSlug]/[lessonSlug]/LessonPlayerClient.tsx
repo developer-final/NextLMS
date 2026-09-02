@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { formatDuration, getYouTubeEmbedUrl } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { validateCommentInput } from "@/lib/validation";
 
 interface LessonPlayerClientProps {
   course: any;
@@ -150,7 +151,15 @@ export default function LessonPlayerClient({
   // Submit QA Comment
   const handleSendComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+
+    const validation = validateCommentInput({
+      lessonId: currentLesson.id,
+      content: newComment,
+    });
+    if (!validation.isValid) {
+      toast.error(validation.error);
+      return;
+    }
 
     setSubmittingComment(true);
     try {

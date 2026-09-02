@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateCouponInput } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -39,6 +40,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const validation = validateCouponInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
     const {
       id,
       code,
@@ -49,13 +55,6 @@ export async function POST(req: Request) {
       expiresAt,
       isActive,
     } = body;
-
-    if (!code || !discountValue) {
-      return NextResponse.json(
-        { error: "Vui lòng cung cấp mã giảm giá và mức giảm" },
-        { status: 400 }
-      );
-    }
 
     const cleanCode = code.toUpperCase().trim();
 

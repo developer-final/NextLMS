@@ -4,6 +4,7 @@ import Link from "next/link";
 import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
 import { BookOpen } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import Pagination from "@/components/ui/Pagination";
 
 interface CategoryWithCount {
   id: string;
@@ -12,18 +13,44 @@ interface CategoryWithCount {
   _count: { courses: number };
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+}
+
 interface CoursesPageClientProps {
   courses: CourseCardProps["course"][];
   categories: CategoryWithCount[];
   category?: string;
+  level?: string;
+  type?: string;
+  q?: string;
+  pagination: PaginationInfo;
 }
 
 export default function CoursesPageClient({
   courses,
   categories,
   category,
+  level,
+  type,
+  q,
+  pagination,
 }: CoursesPageClientProps) {
   const { t } = useLanguage();
+
+  const buildPageUrl = (pageNumber: number) => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (level) params.set("level", level);
+    if (type) params.set("type", type);
+    if (q) params.set("q", q);
+    if (pageNumber > 1) params.set("page", pageNumber.toString());
+    const query = params.toString();
+    return query ? `/courses?${query}` : "/courses";
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
@@ -45,7 +72,7 @@ export default function CoursesPageClient({
               : "bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700"
           }`}
         >
-          {t.courses.allFilter} ({courses.length})
+          {t.courses.allFilter} ({pagination.totalItems})
         </Link>
         {categories.map((cat) => (
           <Link
@@ -78,11 +105,22 @@ export default function CoursesPageClient({
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+
+          {/* Reusable Pagination */}
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            buildPageUrl={buildPageUrl}
+          />
+        </>
       )}
     </div>
   );

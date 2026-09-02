@@ -58,3 +58,37 @@ export function slugify(str: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
+
+export interface PaginationResult {
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  skip: number;
+  take: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
+}
+
+export function calculatePagination(
+  totalItems: number,
+  page = 1,
+  pageSize = 6
+): PaginationResult {
+  const safePageSize = Math.max(1, pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const skip = (currentPage - 1) * safePageSize;
+
+  return {
+    currentPage,
+    pageSize: safePageSize,
+    totalItems,
+    totalPages,
+    skip,
+    take: safePageSize,
+    hasPrevPage: currentPage > 1,
+    hasNextPage: currentPage < totalPages,
+  };
+}
+

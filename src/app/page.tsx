@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSystemSettings } from "@/lib/config";
 import HomePageClient from "./HomePageClient";
 
-export const revalidate = 0; // Dynamic data
+export const revalidate = 300; // ISR: Revalidate every 5 minutes
 
 export default async function HomePage() {
   const [settings, featuredCourses, categories, firstFreeCourse] = await Promise.all([

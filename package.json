@@ -15,11 +15,18 @@
     "db:push": "dotenv -e .env.development.local -- prisma db push",
     "db:push:prod": "dotenv -e .env.production.local -- prisma db push",
     "db:generate": "prisma generate",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:dev": "dotenv -e .env.development.local -- prisma migrate dev",
+    "db:migrate:deploy": "dotenv -e .env.development.local -- prisma migrate deploy",
+    "db:migrate:deploy:prod": "dotenv -e .env.production.local -- prisma migrate deploy",
+    "db:migrate:reset": "dotenv -e .env.development.local -- prisma migrate reset -f",
+    "db:migrate:status": "dotenv -e .env.development.local -- prisma migrate status",
     "db:seed": "dotenv -e .env.development.local -- node prisma/seed.js",
     "db:seed:prod": "dotenv -e .env.production.local -- node prisma/seed.js",
     "db:studio": "dotenv -e .env.development.local -- prisma studio",
     "db:studio:prod": "dotenv -e .env.production.local -- prisma studio"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

@@ -3,22 +3,81 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ContentType {
+  VIDEO_YOUTUBE
+  VIDEO_CDN
+  ARTICLE
+  QUIZ
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER_MANUAL
+  VIETQR_AUTO
+  STRIPE
+  FREE
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED_AMOUNT
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String
-  email        String    @unique
+  email        String     @unique
   passwordHash String
   avatarUrl    String?
-  role         String    @default("STUDENT") // STUDENT, INSTRUCTOR, ADMIN, SUPER_ADMIN
-  status       String    @default("ACTIVE")  // ACTIVE, BLOCKED
+  role         Role       @default(STUDENT)
+  status       UserStatus @default(ACTIVE)
   bio          String?
   headline     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   coursesAuthored Course[]         @relation("InstructorCourses")
   enrollments     Enrollment[]
@@ -48,24 +107,25 @@ model Category {
 }
 
 model Course {
-  id                 String   @id @default(cuid())
+  id                 String       @id @default(cuid())
   instructorId       String
   categoryId         String?
   title              String
-  slug               String   @unique
+  slug               String       @unique
   shortDescription   String?
-  description        String?  // Rich Text / Markdown
+  description        String? // Rich Text / Markdown
   thumbnailUrl       String?
   introVideoUrl      String?
-  price              Float    @default(0)
-  salePrice          Float?
-  level              String   @default("ALL_LEVELS") // BEGINNER, INTERMEDIATE, ADVANCED, ALL_LEVELS
-  status             String   @default("DRAFT")      // DRAFT, PUBLISHED, ARCHIVED
-  isFeatured         Boolean  @default(false)
-  isFree             Boolean  @default(false)
-  certificateEnabled Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  price              Decimal      @default(0) @db.Decimal(12, 2)
+  salePrice          Decimal?     @db.Decimal(12, 2)
+  level              CourseLevel  @default(ALL_LEVELS)
+  status             CourseStatus @default(DRAFT)
+  isFeatured         Boolean      @default(false)
+  isFree             Boolean      @default(false)
+  certificateEnabled Boolean      @default(true)
+  deletedAt          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   instructor   User          @relation("InstructorCourses", fields: [instructorId], references: [id], onDelete: Cascade)
   category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -75,10 +135,9 @@ model Course {
   reviews      Review[]
   certificates Certificate[]
 
-  @@index([status])
+  @@index([status, isFeatured, createdAt(sort: Desc)])
   @@index([categoryId])
   @@index([instructorId])
-  @@index([isFeatured])
   @@map("courses")
 }
 
@@ -99,18 +158,18 @@ model Section {
 }
 
 model Lesson {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   sectionId     String
   title         String
   slug          String
-  contentType   String   @default("VIDEO_YOUTUBE") // VIDEO_YOUTUBE, VIDEO_CDN, ARTICLE, QUIZ
+  contentType   ContentType @default(VIDEO_YOUTUBE)
   videoUrl      String?
-  videoDuration Int      @default(0) // Duration in seconds
-  contentBody   String?  // Rich text content / article
-  isPreview     Boolean  @default(false) // Free preview for trial
-  orderIndex    Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  videoDuration Int         @default(0) // Duration in seconds
+  contentBody   String? // Rich text content / article
+  isPreview     Boolean     @default(false) // Free preview for trial
+  orderIndex    Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   section     Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   attachments Attachment[]
@@ -138,22 +197,21 @@ model Attachment {
 }
 
 model Enrollment {
-  id              String    @id @default(cuid())
+  id              String           @id @default(cuid())
   userId          String
   courseId        String
-  enrolledAt      DateTime  @default(now())
+  enrolledAt      DateTime         @default(now())
   expiresAt       DateTime?
-  status          String    @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED
+  status          EnrollmentStatus @default(ACTIVE)
   completedAt     DateTime?
-  progressPercent Float     @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  progressPercent Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
-  @@index([userId])
   @@index([courseId])
   @@index([status])
   @@map("enrollments")
@@ -172,42 +230,43 @@ model LessonProgress {
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
-  @@index([userId])
   @@index([lessonId])
   @@map("lesson_progress")
 }
 
 model Order {
-  id             String   @id @default(cuid())
-  orderCode      String   @unique
+  id             String        @id @default(cuid())
+  orderCode      String        @unique
   userId         String
-  totalAmount    Float
-  discountAmount Float    @default(0)
-  finalAmount    Float
-  paymentMethod  String   @default("BANK_TRANSFER_MANUAL") // BANK_TRANSFER_MANUAL, VIETQR_AUTO, STRIPE, FREE
-  status         String   @default("PENDING")              // PENDING, COMPLETED, CANCELLED, REFUNDED
+  couponId       String?
+  totalAmount    Decimal       @db.Decimal(12, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(12, 2)
+  finalAmount    Decimal       @db.Decimal(12, 2)
+  paymentMethod  PaymentMethod @default(BANK_TRANSFER_MANUAL)
+  status         OrderStatus   @default(PENDING)
   proofImageUrl  String?
   adminNote      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon       Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
   orderItems   OrderItem[]
   transactions Transaction[]
 
-  @@index([userId])
-  @@index([status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
   @@map("orders")
 }
 
 model OrderItem {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   orderId  String
   courseId String
-  price    Float
+  price    Decimal @db.Decimal(12, 2)
 
   order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([courseId])
@@ -220,7 +279,7 @@ model Transaction {
   gatewayRef      String?
   bankCode        String?
   transferContent String?
-  amount          Float
+  amount          Decimal  @db.Decimal(12, 2)
   rawWebhookData  String?
   createdAt       DateTime @default(now())
 
@@ -231,17 +290,19 @@ model Transaction {
 }
 
 model Coupon {
-  id            String    @id @default(cuid())
-  code          String    @unique
-  discountType  String    @default("PERCENT") // PERCENT, FIXED_AMOUNT
-  discountValue Float
-  maxUsage      Int       @default(100)
-  usedCount     Int       @default(0)
-  minOrderValue Float     @default(0)
-  startsAt      DateTime  @default(now())
+  id            String       @id @default(cuid())
+  code          String       @unique
+  discountType  DiscountType @default(PERCENT)
+  discountValue Decimal      @db.Decimal(12, 2)
+  maxUsage      Int          @default(100)
+  usedCount     Int          @default(0)
+  minOrderValue Decimal      @default(0) @db.Decimal(12, 2)
+  startsAt      DateTime     @default(now())
   expiresAt     DateTime?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+
+  orders Order[]
 
   @@index([code])
   @@index([isActive])
@@ -298,7 +359,6 @@ model Certificate {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
-  @@index([userId])
   @@index([courseId])
   @@map("certificates")
 }
@@ -312,4 +372,3 @@ model Setting {
 
   @@map("settings")
 }
-

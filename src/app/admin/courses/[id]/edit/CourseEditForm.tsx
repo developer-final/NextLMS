@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { validateCourseInput } from "@/lib/validation";
 
 interface CourseEditFormProps {
   course: any;
@@ -159,8 +160,16 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      toast.error(t.admin.createCourse.courseTitleLabel);
+
+    const validation = validateCourseInput({
+      title,
+      price,
+      salePrice,
+      isFree,
+      sections,
+    });
+    if (!validation.isValid) {
+      toast.error(validation.error);
       return;
     }
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -6,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { safeJsonLdStringify } from "@/lib/validation";
 import CourseDetailClient from "./CourseDetailClient";
 
-export const revalidate = 0;
+export const revalidate = 300; // ISR: 5 minutes
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -14,17 +15,49 @@ interface CourseDetailPageProps {
   }>;
 }
 
+const getCourseBySlug = cache(async (slug: string) => {
+  return prisma.course.findUnique({
+    where: { slug },
+    include: {
+      instructor: {
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+          headline: true,
+          bio: true,
+        },
+      },
+      category: true,
+      sections: {
+        orderBy: { orderIndex: "asc" },
+        include: {
+          lessons: {
+            orderBy: { orderIndex: "asc" },
+          },
+        },
+      },
+      reviews: {
+        where: { isApproved: true },
+        include: {
+          user: {
+            select: { name: true, avatarUrl: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      _count: {
+        select: { enrollments: true, reviews: true },
+      },
+    },
+  });
+});
+
 export async function generateMetadata({
   params,
 }: CourseDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const course = await prisma.course.findUnique({
-    where: { slug },
-    include: {
-      instructor: { select: { name: true } },
-      category: { select: { name: true } },
-    },
-  });
+  const course = await getCourseBySlug(slug);
 
   if (!course) {
     return {
@@ -67,41 +100,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
-  const course = await prisma.course.findUnique({
-    where: { slug },
-    include: {
-      instructor: {
-        select: {
-          id: true,
-          name: true,
-          avatarUrl: true,
-          headline: true,
-          bio: true,
-        },
-      },
-      category: true,
-      sections: {
-        orderBy: { orderIndex: "asc" },
-        include: {
-          lessons: {
-            orderBy: { orderIndex: "asc" },
-          },
-        },
-      },
-      reviews: {
-        where: { isApproved: true },
-        include: {
-          user: {
-            select: { name: true, avatarUrl: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: {
-        select: { enrollments: true, reviews: true },
-      },
-    },
-  });
+  const course = await getCourseBySlug(slug);
 
   if (!course) {
     notFound();

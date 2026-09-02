@@ -14,6 +14,7 @@ import {
 import { SystemConfig } from "@/lib/config";
 import { generateVietQRUrl } from "@/lib/vietqr";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { validateBankSettingsInput, isValidEmail } from "@/lib/validation";
 
 interface SettingsFormClientProps {
   initialSettings: SystemConfig;
@@ -34,6 +35,24 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.supportEmail && !isValidEmail(formData.supportEmail)) {
+      toast.error("Email hỗ trợ không đúng định dạng");
+      return;
+    }
+
+    if (formData.bankId || formData.bankAccountNo || formData.bankAccountName) {
+      const bankVal = validateBankSettingsInput({
+        bankId: formData.bankId,
+        bankAccountNo: formData.bankAccountNo,
+        bankAccountName: formData.bankAccountName,
+      });
+      if (!bankVal.isValid) {
+        toast.error(bankVal.error);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/admin/settings", {

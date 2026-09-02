@@ -62,6 +62,14 @@ export async function POST(req: Request) {
           data: { status: "COMPLETED" },
         });
 
+        // If order used a coupon, increment coupon's usedCount now upon approval
+        if (order.couponId) {
+          await tx.coupon.update({
+            where: { id: order.couponId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+
         // Create Enrollment for each course in order
         for (const item of order.orderItems) {
           await tx.enrollment.upsert({

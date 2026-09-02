@@ -46,7 +46,9 @@ export default async function AdminDashboardPage() {
     }),
   ]);
 
-  const totalRevenue = totalRevenueResult._sum.finalAmount || 0;
+  const totalRevenue = totalRevenueResult._sum.finalAmount
+    ? Number(totalRevenueResult._sum.finalAmount)
+    : 0;
 
   return (
     <AdminDashboardClient

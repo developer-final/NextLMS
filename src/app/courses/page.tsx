@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import CoursesPageClient from "./CoursesPageClient";
 
-export const revalidate = 0;
+export const revalidate = 180; // ISR: 3 minutes
 
 interface CoursesPageProps {
   searchParams: Promise<{
@@ -9,11 +9,15 @@ interface CoursesPageProps {
     level?: string;
     type?: string; // free | paid
     q?: string;
+    page?: string;
   }>;
 }
 
 export default async function CoursesPage({ searchParams }: CoursesPageProps) {
-  const { category, level, type, q } = await searchParams;
+  const { category, level, type, q, page } = await searchParams;
+
+  const pageSize = 6;
+  const currentPage = Math.max(1, parseInt(page || "1", 10));
 
   const whereClause: any = {
     status: "PUBLISHED",
@@ -35,12 +39,13 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
 
   if (q) {
     whereClause.OR = [
-      { title: { contains: q } },
-      { shortDescription: { contains: q } },
+      { title: { contains: q, mode: "insensitive" } },
+      { shortDescription: { contains: q, mode: "insensitive" } },
     ];
   }
 
-  const [courses, categories] = await Promise.all([
+  const [totalCourses, courses, categories] = await Promise.all([
+    prisma.course.count({ where: whereClause }),
     prisma.course.findMany({
       where: whereClause,
       include: {
@@ -62,6 +67,8 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
     }),
     prisma.category.findMany({
       where: { isActive: true },
@@ -72,11 +79,22 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     }),
   ]);
 
+  const totalPages = Math.max(1, Math.ceil(totalCourses / pageSize));
+
   return (
     <CoursesPageClient
       courses={courses as any}
       categories={categories}
       category={category}
+      level={level}
+      type={type}
+      q={q}
+      pagination={{
+        currentPage,
+        totalPages,
+        totalItems: totalCourses,
+        pageSize,
+      }}
     />
   );
 }

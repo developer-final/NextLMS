@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { validateCourseInput } from "@/lib/validation";
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +18,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const validation = validateCourseInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
     const {
       title,
       categoryId,
@@ -31,10 +37,6 @@ export async function POST(req: Request) {
       isFeatured,
       sections,
     } = body;
-
-    if (!title) {
-      return NextResponse.json({ error: "Tiêu đề khóa học là bắt buộc" }, { status: 400 });
-    }
 
     const slug = slugify(title) + "-" + Date.now().toString().slice(-4);
 

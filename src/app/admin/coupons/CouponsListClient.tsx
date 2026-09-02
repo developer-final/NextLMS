@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatVND } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { validateCouponInput } from "@/lib/validation";
 
 interface CouponsListClientProps {
   initialCoupons: any[];
@@ -67,8 +68,16 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
   const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !discountValue) {
-      toast.error(t.admin.coupons.codeLabel);
+
+    const validation = validateCouponInput({
+      code,
+      discountType,
+      discountValue,
+      maxUsage,
+      minOrderValue,
+    });
+    if (!validation.isValid) {
+      toast.error(validation.error);
       return;
     }
 

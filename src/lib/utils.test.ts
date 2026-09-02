@@ -6,6 +6,7 @@ import {
   getYouTubeEmbedUrl,
   slugify,
   cn,
+  calculatePagination,
 } from "./utils";
 
 describe("Utils Library", () => {
@@ -127,6 +128,53 @@ describe("Utils Library", () => {
       expect(cn("px-4", false && "py-2", undefined, null, "text-white")).toBe(
         "px-4 text-white"
       );
+    });
+  });
+
+  describe("calculatePagination", () => {
+    it("should calculate correct pagination for first page", () => {
+      const result = calculatePagination(25, 1, 6);
+      expect(result.currentPage).toBe(1);
+      expect(result.pageSize).toBe(6);
+      expect(result.totalItems).toBe(25);
+      expect(result.totalPages).toBe(5);
+      expect(result.skip).toBe(0);
+      expect(result.take).toBe(6);
+      expect(result.hasPrevPage).toBe(false);
+      expect(result.hasNextPage).toBe(true);
+    });
+
+    it("should calculate correct pagination for middle page", () => {
+      const result = calculatePagination(25, 3, 6);
+      expect(result.currentPage).toBe(3);
+      expect(result.skip).toBe(12);
+      expect(result.hasPrevPage).toBe(true);
+      expect(result.hasNextPage).toBe(true);
+    });
+
+    it("should calculate correct pagination for last page", () => {
+      const result = calculatePagination(25, 5, 6);
+      expect(result.currentPage).toBe(5);
+      expect(result.skip).toBe(24);
+      expect(result.hasPrevPage).toBe(true);
+      expect(result.hasNextPage).toBe(false);
+    });
+
+    it("should clamp invalid out-of-range page numbers", () => {
+      const resultUnderflow = calculatePagination(25, -1, 6);
+      expect(resultUnderflow.currentPage).toBe(1);
+
+      const resultOverflow = calculatePagination(25, 999, 6);
+      expect(resultOverflow.currentPage).toBe(5);
+    });
+
+    it("should handle 0 total items gracefully", () => {
+      const result = calculatePagination(0, 1, 6);
+      expect(result.currentPage).toBe(1);
+      expect(result.totalItems).toBe(0);
+      expect(result.totalPages).toBe(1);
+      expect(result.hasPrevPage).toBe(false);
+      expect(result.hasNextPage).toBe(false);
     });
   });
 });

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSystemSettings, DEFAULT_CONFIG } from "@/lib/config";
+import { validateBankSettingsInput, isValidEmail } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -41,6 +42,21 @@ export async function POST(req: Request) {
 
     if (!settings || typeof settings !== "object") {
       return NextResponse.json({ error: "Dữ liệu cấu hình không hợp lệ" }, { status: 400 });
+    }
+
+    if (settings.supportEmail && !isValidEmail(String(settings.supportEmail))) {
+      return NextResponse.json({ error: "Email hỗ trợ không đúng định dạng" }, { status: 400 });
+    }
+
+    if (settings.bankId || settings.bankAccountNo || settings.bankAccountName) {
+      const bankVal = validateBankSettingsInput({
+        bankId: settings.bankId,
+        bankAccountNo: settings.bankAccountNo,
+        bankAccountName: settings.bankAccountName,
+      });
+      if (!bankVal.isValid) {
+        return NextResponse.json({ error: bankVal.error }, { status: 400 });
+      }
     }
 
     // Mapping of keys to group for organization

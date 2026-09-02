@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { validateCourseInput } from "@/lib/validation";
 
 interface CourseCreateFormProps {
   categories: any[];
@@ -118,8 +119,16 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
-      toast.error(t.admin.createCourse.courseTitleLabel);
+
+    const validation = validateCourseInput({
+      title,
+      price,
+      salePrice,
+      isFree,
+      sections,
+    });
+    if (!validation.isValid) {
+      toast.error(validation.error);
       return;
     }
 

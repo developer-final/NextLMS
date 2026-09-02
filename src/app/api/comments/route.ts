@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, commentRateLimiter } from "@/lib/rate-limit";
+import { validateCommentInput } from "@/lib/validation";
 
 export async function GET(req: Request) {
   try {
@@ -57,11 +58,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const { lessonId, content, parentId } = await req.json();
-
-    if (!lessonId || typeof content !== "string" || !content.trim()) {
-      return NextResponse.json({ error: "Nội dung câu hỏi không được để trống" }, { status: 400 });
+    const body = await req.json();
+    const validation = validateCommentInput(body);
+    if (!validation.isValid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
+
+    const { lessonId, content, parentId } = body;
 
     // Verify user is enrolled in the course containing this lesson
     const lesson = await prisma.lesson.findUnique({
