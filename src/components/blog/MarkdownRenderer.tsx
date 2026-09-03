@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { slugify } from "@/lib/utils";
+import { isValidSafeUrl } from "@/lib/validation";
 
 interface MarkdownRendererProps {
   content: string;
@@ -54,13 +55,21 @@ export default function MarkdownRenderer({
       // Images: ![alt](url)
       res = res.replace(
         /!\[(.*?)\]\((.*?)\)/g,
-        '<figure class="my-6"><img src="$2" alt="$1" class="w-full max-h-[500px] object-cover rounded-2xl border border-slate-800 shadow-2xl" /><figcaption class="text-center text-xs text-slate-400 mt-2 italic">$1</figcaption></figure>'
+        (_match, alt, url) => {
+          const cleanUrl = url.trim();
+          if (!isValidSafeUrl(cleanUrl)) return "";
+          return `<figure class="my-6"><img src="${cleanUrl}" alt="${alt}" class="w-full max-h-[500px] object-cover rounded-2xl border border-slate-800 shadow-2xl" /><figcaption class="text-center text-xs text-slate-400 mt-2 italic">${alt}</figcaption></figure>`;
+        }
       );
 
       // Links: [text](url)
       res = res.replace(
         /\[(.*?)\]\((.*?)\)/g,
-        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-300 underline underline-offset-4 decoration-brand-500/40 hover:decoration-brand-400 font-medium transition-colors">$1</a>'
+        (_match, text, url) => {
+          const cleanUrl = url.trim();
+          const safeHref = isValidSafeUrl(cleanUrl) ? cleanUrl : "#";
+          return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-300 underline underline-offset-4 decoration-brand-500/40 hover:decoration-brand-400 font-medium transition-colors">${text}</a>`;
+        }
       );
 
       return res;

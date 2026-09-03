@@ -12,6 +12,7 @@ import {
   validateFileUpload,
   validateProfileUpdate,
   validateChangePassword,
+  validateBlogPostInput,
 } from "./validation";
 
 describe("Auth Validation Logic (TC-AUTH-01)", () => {
@@ -485,6 +486,41 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       });
       expect(result.isValid).toBe(false);
       expect(result.error).toContain("không được trùng");
+    });
+  });
+
+  describe("validateBlogPostInput", () => {
+    it("should accept valid blog post input and sanitize fields", () => {
+      const result = validateBlogPostInput({
+        title: "  Kiến thức Trading cơ bản  ",
+        content: "# Giới thiệu\nNội dung bài viết chi tiết với <script>alert(1)</script>",
+        summary: "<b>Tóm tắt ngắn gọn</b>",
+        tagNames: ["Trading", "Forex", "Trading"],
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.sanitized?.title).toBe("Kiến thức Trading cơ bản");
+      expect(result.sanitized?.content).not.toContain("<script>");
+      expect(result.sanitized?.summary).toBe("Tóm tắt ngắn gọn");
+      expect(result.sanitized?.tagNames).toEqual(["Trading", "Forex"]);
+    });
+
+    it("should reject empty or missing title", () => {
+      const result = validateBlogPostInput({
+        title: "   ",
+        content: "Nội dung hợp lệ",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("title");
+    });
+
+    it("should reject too short content", () => {
+      const result = validateBlogPostInput({
+        title: "Tiêu đề chuẩn",
+        content: "123",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("content");
     });
   });
 });

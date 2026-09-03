@@ -1,3 +1,10 @@
+export * from "./sanitizer";
+import {
+  sanitizePlainText,
+  sanitizeMarkdown,
+  isSafeMarkdownUrl,
+} from "./sanitizer";
+
 export interface RegisterValidationResult {
   isValid: boolean;
   error?: string;
@@ -37,7 +44,7 @@ export function validateRegisterInput(input: {
     };
   }
 
-  const cleanName = name.trim();
+  const cleanName = sanitizePlainText(name);
   if (cleanName.length < 2 || cleanName.length > 100) {
     return {
       isValid: false,
@@ -122,29 +129,51 @@ export interface ValidationResult {
   field?: string;
 }
 
-/**
- * Validates course creation and edit payload
- */
-export function validateCourseInput(input: {
+export interface CourseValidationInput {
   title?: string | null;
+  shortDescription?: string | null;
+  description?: string | null;
   price?: number | string | null;
   salePrice?: number | string | null;
   isFree?: boolean;
   sections?: Array<{
     title?: string | null;
+    description?: string | null;
     lessons?: Array<{
       title?: string | null;
       videoDuration?: number | null;
+      contentBody?: string | null;
     }>;
   }> | null;
-}): ValidationResult {
-  const { title, price, salePrice, isFree, sections } = input;
+}
+
+export interface CourseValidationResult extends ValidationResult {
+  sanitized?: {
+    title: string;
+    shortDescription: string | null;
+    description: string | null;
+    sections?: Array<{
+      title: string;
+      description: string | null;
+      lessons?: Array<{
+        title: string;
+        contentBody: string | null;
+      }>;
+    }>;
+  };
+}
+
+/**
+ * Validates and sanitizes course creation and edit payload
+ */
+export function validateCourseInput(input: CourseValidationInput): CourseValidationResult {
+  const { title, shortDescription, description, price, salePrice, isFree, sections } = input;
 
   if (!title?.trim()) {
     return { isValid: false, field: "title", error: "Tiêu đề khóa học là bắt buộc" };
   }
 
-  const cleanTitle = title.trim();
+  const cleanTitle = sanitizePlainText(title, 200);
   if (cleanTitle.length < 5 || cleanTitle.length > 200) {
     return {
       isValid: false,
@@ -152,6 +181,16 @@ export function validateCourseInput(input: {
       error: "Tiêu đề khóa học phải có từ 5 đến 200 ký tự",
     };
   }
+
+  const cleanShortDesc =
+    shortDescription !== undefined && shortDescription !== null
+      ? sanitizePlainText(shortDescription, 500) || null
+      : null;
+
+  const cleanDesc =
+    description !== undefined && description !== null
+      ? sanitizeMarkdown(description) || null
+      : null;
 
   const numPrice = isFree ? 0 : Number(price ?? 0);
   if (isNaN(numPrice) || numPrice < 0) {
@@ -176,6 +215,17 @@ export function validateCourseInput(input: {
     }
   }
 
+  let cleanSections:
+    | Array<{
+        title: string;
+        description: string | null;
+        lessons?: Array<{
+          title: string;
+          contentBody: string | null;
+        }>;
+      }>
+    | undefined = undefined;
+
   if (sections !== undefined && sections !== null) {
     if (!Array.isArray(sections) || sections.length === 0) {
       return {
@@ -185,9 +235,12 @@ export function validateCourseInput(input: {
       };
     }
 
+    cleanSections = [];
+
     for (let sIdx = 0; sIdx < sections.length; sIdx++) {
       const sec = sections[sIdx];
-      if (!sec.title?.trim() || sec.title.trim().length < 2) {
+      const cleanSecTitle = sanitizePlainText(sec.title, 150);
+      if (!cleanSecTitle || cleanSecTitle.length < 2) {
         return {
           isValid: false,
           field: `sections[${sIdx}].title`,
@@ -199,24 +252,144 @@ export function validateCourseInput(input: {
         return {
           isValid: false,
           field: `sections[${sIdx}].lessons`,
-          error: `Chương "${sec.title.trim()}" phải có ít nhất 1 bài học`,
+          error: `Chương "${cleanSecTitle}" phải có ít nhất 1 bài học`,
         };
       }
 
+      const cleanLessons: Array<{ title: string; contentBody: string | null }> = [];
+
       for (let lIdx = 0; lIdx < sec.lessons.length; lIdx++) {
         const les = sec.lessons[lIdx];
-        if (!les.title?.trim() || les.title.trim().length < 2) {
+        const cleanLesTitle = sanitizePlainText(les.title, 150);
+        if (!cleanLesTitle || cleanLesTitle.length < 2) {
           return {
             isValid: false,
             field: `sections[${sIdx}].lessons[${lIdx}].title`,
-            error: `Bài học số ${lIdx + 1} trong chương "${sec.title.trim()}" cần có tiêu đề ít nhất 2 ký tự`,
+            error: `Bài học số ${lIdx + 1} trong chương "${cleanSecTitle}" cần có tiêu đề ít nhất 2 ký tự`,
           };
         }
+
+        const cleanLessonBody =
+          les.contentBody !== undefined && les.contentBody !== null
+            ? sanitizeMarkdown(les.contentBody) || null
+            : null;
+
+        cleanLessons.push({
+          title: cleanLesTitle,
+          contentBody: cleanLessonBody,
+        });
+      }
+
+      cleanSections.push({
+        title: cleanSecTitle,
+        description: sec.description ? sanitizePlainText(sec.description, 500) || null : null,
+        lessons: cleanLessons,
+      });
+    }
+  }
+
+  return {
+    isValid: true,
+    sanitized: {
+      title: cleanTitle,
+      shortDescription: cleanShortDesc,
+      description: cleanDesc,
+      sections: cleanSections,
+    },
+  };
+}
+
+export interface BlogPostValidationInput {
+  title?: string | null;
+  content?: string | null;
+  summary?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  metaKeywords?: string | null;
+  tagNames?: string[] | null;
+}
+
+export interface BlogPostValidationResult extends ValidationResult {
+  sanitized?: {
+    title: string;
+    content: string;
+    summary: string | null;
+    metaTitle: string | null;
+    metaDescription: string | null;
+    metaKeywords: string | null;
+    tagNames: string[];
+  };
+}
+
+/**
+ * Validates and sanitizes blog post creation and edit payload
+ */
+export function validateBlogPostInput(input: BlogPostValidationInput): BlogPostValidationResult {
+  const { title, content, summary, metaTitle, metaDescription, metaKeywords, tagNames } = input;
+
+  if (!title?.trim()) {
+    return { isValid: false, field: "title", error: "Tiêu đề bài viết là bắt buộc" };
+  }
+
+  const cleanTitle = sanitizePlainText(title, 250);
+  if (cleanTitle.length < 3 || cleanTitle.length > 250) {
+    return {
+      isValid: false,
+      field: "title",
+      error: "Tiêu đề bài viết phải có từ 3 đến 250 ký tự",
+    };
+  }
+
+  if (content !== undefined && content !== null) {
+    if (!content.trim()) {
+      return { isValid: false, field: "content", error: "Nội dung bài viết không được để trống" };
+    }
+  }
+
+  const cleanContent = content ? sanitizeMarkdown(content) : "";
+  if (content !== undefined && cleanContent.length < 5) {
+    return {
+      isValid: false,
+      field: "content",
+      error: "Nội dung bài viết phải có ít nhất 5 ký tự",
+    };
+  }
+
+  const cleanSummary =
+    summary !== undefined && summary !== null ? sanitizePlainText(summary, 500) || null : null;
+  const cleanMetaTitle =
+    metaTitle !== undefined && metaTitle !== null ? sanitizePlainText(metaTitle, 150) || null : null;
+  const cleanMetaDesc =
+    metaDescription !== undefined && metaDescription !== null
+      ? sanitizePlainText(metaDescription, 300) || null
+      : null;
+  const cleanMetaKeywords =
+    metaKeywords !== undefined && metaKeywords !== null
+      ? sanitizePlainText(metaKeywords, 200) || null
+      : null;
+
+  const cleanTags: string[] = [];
+  if (Array.isArray(tagNames)) {
+    for (const tag of tagNames) {
+      const cleaned = sanitizePlainText(String(tag), 50);
+      if (cleaned && !cleanTags.includes(cleaned)) {
+        cleanTags.push(cleaned);
       }
     }
   }
 
-  return { isValid: true };
+  return {
+    isValid: true,
+    sanitized: {
+      title: cleanTitle,
+      content: cleanContent,
+      summary: cleanSummary,
+      metaTitle: cleanMetaTitle,
+      metaDescription: cleanMetaDesc,
+      metaKeywords: cleanMetaKeywords,
+      tagNames: cleanTags,
+    },
+  };
 }
 
 /**
@@ -334,14 +507,20 @@ export function validateBankSettingsInput(input: {
   return { isValid: true };
 }
 
+export interface CommentValidationResult extends ValidationResult {
+  sanitized?: {
+    content: string;
+  };
+}
+
 /**
- * Validates lesson comment / Q&A submission
+ * Validates and sanitizes lesson comment / Q&A submission
  */
 export function validateCommentInput(input: {
   content?: string | null;
   lessonId?: string | null;
   postId?: string | null;
-}): ValidationResult {
+}): CommentValidationResult {
   const { content, lessonId, postId } = input;
 
   if (!lessonId?.trim() && !postId?.trim()) {
@@ -352,7 +531,7 @@ export function validateCommentInput(input: {
     return { isValid: false, field: "content", error: "Nội dung câu hỏi/bình luận không được để trống" };
   }
 
-  const cleanContent = content.trim();
+  const cleanContent = sanitizePlainText(content);
   if (cleanContent.length < 2) {
     return { isValid: false, field: "content", error: "Nội dung bình luận phải có ít nhất 2 ký tự" };
   }
@@ -361,7 +540,7 @@ export function validateCommentInput(input: {
     return { isValid: false, field: "content", error: "Nội dung bình luận không được vượt quá 2000 ký tự" };
   }
 
-  return { isValid: true };
+  return { isValid: true, sanitized: { content: cleanContent } };
 }
 
 export type UploadTargetType = "thumbnail" | "attachment" | "video" | "avatar" | "receipt";
@@ -747,17 +926,17 @@ export function validateProfileUpdate(input: ProfileUpdateInput): ProfileValidat
   if (!input.name || !input.name.trim()) {
     return { isValid: false, field: "name", error: "Họ và tên không được để trống" };
   }
-  const cleanName = input.name.trim();
+  const cleanName = sanitizePlainText(input.name);
   if (cleanName.length < 2 || cleanName.length > 100) {
     return { isValid: false, field: "name", error: "Họ và tên phải từ 2 đến 100 ký tự" };
   }
 
-  const cleanHeadline = input.headline !== undefined ? input.headline?.trim() || null : undefined;
+  const cleanHeadline = input.headline !== undefined ? (sanitizePlainText(input.headline) || null) : undefined;
   if (cleanHeadline && cleanHeadline.length > 150) {
     return { isValid: false, field: "headline", error: "Chức danh / Headline không được vượt quá 150 ký tự" };
   }
 
-  const cleanBio = input.bio !== undefined ? input.bio?.trim() || null : undefined;
+  const cleanBio = input.bio !== undefined ? (sanitizePlainText(input.bio) || null) : undefined;
   if (cleanBio && cleanBio.length > 1000) {
     return { isValid: false, field: "bio", error: "Tiểu sử không được vượt quá 1000 ký tự" };
   }

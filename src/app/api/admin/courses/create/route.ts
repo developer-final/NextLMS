@@ -19,15 +19,12 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const validation = validateCourseInput(body);
-    if (!validation.isValid) {
+    if (!validation.isValid || !validation.sanitized) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const {
-      title,
       categoryId,
-      shortDescription,
-      description,
       thumbnailUrl,
       introVideoUrl,
       price,
@@ -36,19 +33,25 @@ export async function POST(req: Request) {
       isFree,
       isFeatured,
       attachments,
-      sections,
     } = body;
 
-    const slug = slugify(title) + "-" + Date.now().toString().slice(-4);
+    const {
+      title: cleanTitle,
+      shortDescription: cleanShortDesc,
+      description: cleanDesc,
+      sections: cleanSections,
+    } = validation.sanitized;
+
+    const slug = slugify(cleanTitle) + "-" + Date.now().toString().slice(-4);
 
     const course = await prisma.course.create({
       data: {
         instructorId: user.id,
         categoryId: categoryId || null,
-        title: title.trim(),
+        title: cleanTitle,
         slug,
-        shortDescription,
-        description,
+        shortDescription: cleanShortDesc,
+        description: cleanDesc,
         thumbnailUrl:
           thumbnailUrl ||
           "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80",
@@ -73,37 +76,44 @@ export async function POST(req: Request) {
             }
           : undefined,
         // Create Sections & Lessons if provided
-        sections: sections?.length
+        sections: cleanSections?.length
           ? {
-              create: sections.map((sec: any, sIdx: number) => ({
-                title: sec.title || `Chương ${sIdx + 1}`,
-                orderIndex: sIdx + 1,
-                lessons: sec.lessons?.length
-                  ? {
-                      create: sec.lessons.map((les: any, lIdx: number) => ({
-                        title: les.title || `Bài học ${lIdx + 1}`,
-                        slug: slugify(les.title || `bai-${lIdx + 1}`) + "-" + Math.floor(100 + Math.random() * 900),
-                        contentType: les.contentType || "VIDEO_YOUTUBE",
-                        videoUrl: les.videoUrl || null,
-                        videoDuration: parseInt(les.videoDuration) || 600,
-                        contentBody: les.contentBody || null,
-                        isPreview: Boolean(les.isPreview),
-                        orderIndex: lIdx + 1,
-                        attachments: les.attachments?.length
-                          ? {
-                              create: les.attachments.map((att: any) => ({
-                                fileName: att.fileName,
-                                fileUrl: att.fileUrl,
-                                fileKey: att.fileKey || null,
-                                fileSize: att.fileSize || null,
-                                fileType: att.fileType || null,
-                              })),
-                            }
-                          : undefined,
-                      })),
-                    }
-                  : undefined,
-              })),
+              create: cleanSections.map((sec, sIdx) => {
+                const rawSec = Array.isArray(body.sections) ? body.sections[sIdx] : undefined;
+                return {
+                  title: sec.title || `Chương ${sIdx + 1}`,
+                  description: sec.description || null,
+                  orderIndex: sIdx + 1,
+                  lessons: sec.lessons?.length
+                    ? {
+                        create: sec.lessons.map((les, lIdx) => {
+                          const rawLes = rawSec?.lessons?.[lIdx];
+                          return {
+                            title: les.title || `Bài học ${lIdx + 1}`,
+                            slug: slugify(les.title || `bai-${lIdx + 1}`) + "-" + Math.floor(100 + Math.random() * 900),
+                            contentType: rawLes?.contentType || "VIDEO_YOUTUBE",
+                            videoUrl: rawLes?.videoUrl || null,
+                            videoDuration: parseInt(rawLes?.videoDuration) || 600,
+                            contentBody: les.contentBody || null,
+                            isPreview: Boolean(rawLes?.isPreview),
+                            orderIndex: lIdx + 1,
+                            attachments: rawLes?.attachments?.length
+                              ? {
+                                  create: rawLes.attachments.map((att: any) => ({
+                                    fileName: att.fileName,
+                                    fileUrl: att.fileUrl,
+                                    fileKey: att.fileKey || null,
+                                    fileSize: att.fileSize || null,
+                                    fileType: att.fileType || null,
+                                  })),
+                                }
+                              : undefined,
+                          };
+                        }),
+                      }
+                    : undefined,
+                };
+              }),
             }
           : undefined,
       },

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify, calculateReadingTime } from "@/lib/utils";
+import { validateBlogPostInput } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -111,32 +112,32 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const validation = validateBlogPostInput(body);
+    if (!validation.isValid || !validation.sanitized) {
+      return NextResponse.json({ error: validation.error || "Invalid post data" }, { status: 400 });
+    }
+
     const {
-      title,
       slug: customSlug,
-      summary,
-      content,
       coverImageUrl,
       status = "DRAFT",
       isFeatured = false,
       categoryId,
-      tagNames = [],
       attachmentIds = [],
-      metaTitle,
-      metaDescription,
-      metaKeywords,
     } = body;
 
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-
-    if (!content || !content.trim()) {
-      return NextResponse.json({ error: "Content is required" }, { status: 400 });
-    }
+    const {
+      title: cleanTitle,
+      content: cleanContent,
+      summary: cleanSummary,
+      metaTitle: cleanMetaTitle,
+      metaDescription: cleanMetaDesc,
+      metaKeywords: cleanMetaKeywords,
+      tagNames: cleanTags,
+    } = validation.sanitized;
 
     // Generate and ensure unique slug
-    let baseSlug = customSlug?.trim() ? slugify(customSlug) : slugify(title);
+    let baseSlug = customSlug?.trim() ? slugify(customSlug) : slugify(cleanTitle);
     if (!baseSlug) {
       baseSlug = `post-${Date.now()}`;
     }
@@ -148,15 +149,13 @@ export async function POST(req: Request) {
       counter++;
     }
 
-    const readingTime = calculateReadingTime(content);
+    const readingTime = calculateReadingTime(cleanContent);
     const publishedAt = status === "PUBLISHED" ? new Date() : null;
 
     // Upsert tags and prepare connect relation
     const tagConnectOps: { id: string }[] = [];
-    if (Array.isArray(tagNames) && tagNames.length > 0) {
-      for (const rawName of tagNames) {
-        const name = String(rawName).trim();
-        if (!name) continue;
+    if (cleanTags.length > 0) {
+      for (const name of cleanTags) {
         const tagSlug = slugify(name);
         const tag = await prisma.tag.upsert({
           where: { name },
@@ -175,18 +174,18 @@ export async function POST(req: Request) {
       data: {
         authorId: user.id,
         categoryId: categoryId || null,
-        title: title.trim(),
+        title: cleanTitle,
         slug,
-        summary: summary?.trim() || null,
-        content: content.trim(),
+        summary: cleanSummary,
+        content: cleanContent,
         coverImageUrl: coverImageUrl || null,
         status,
         isFeatured: Boolean(isFeatured),
         readingTime,
         publishedAt,
-        metaTitle: metaTitle?.trim() || null,
-        metaDescription: metaDescription?.trim() || null,
-        metaKeywords: metaKeywords?.trim() || null,
+        metaTitle: cleanMetaTitle,
+        metaDescription: cleanMetaDesc,
+        metaKeywords: cleanMetaKeywords,
         tags: {
           connect: tagConnectOps,
         },

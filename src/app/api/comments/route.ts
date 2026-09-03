@@ -103,11 +103,12 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const validation = validateCommentInput(body);
-    if (!validation.isValid) {
+    if (!validation.isValid || !validation.sanitized) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const { lessonId, postId, content, parentId } = body;
+    const { lessonId, postId, parentId } = body;
+    const cleanCommentContent = validation.sanitized.content;
     const isStaff =
       session.user.role === "ADMIN" ||
       session.user.role === "SUPER_ADMIN" ||
@@ -158,18 +159,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const trimmedContent = content.trim();
-    if (trimmedContent.length > 2000) {
-      return NextResponse.json({ error: "Comment cannot exceed 2000 characters" }, { status: 400 });
-    }
-
     const comment = await prisma.comment.create({
       data: {
         lessonId: lessonId || null,
         postId: postId || null,
         userId,
         parentId: parentId || null,
-        content: trimmedContent,
+        content: cleanCommentContent,
       },
       include: {
         user: {
@@ -211,7 +207,7 @@ export async function POST(req: Request) {
               studentName: parentComment.user.name,
               replierName: session.user.name || "Instructor",
               lessonTitle: parentComment.lesson.title,
-              replyContent: trimmedContent,
+              replyContent: cleanCommentContent,
               courseSlug: parentComment.lesson.section.course.slug,
               lessonSlug: parentComment.lesson.slug,
             });

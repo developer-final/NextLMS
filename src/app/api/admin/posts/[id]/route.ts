@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify, calculateReadingTime } from "@/lib/utils";
+import { sanitizePlainText, sanitizeMarkdown } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,33 @@ export async function PUT(
       metaKeywords,
     } = body;
 
+    const cleanTitle = title !== undefined ? sanitizePlainText(title, 250) : undefined;
+    if (cleanTitle !== undefined && (cleanTitle.length < 3 || cleanTitle.length > 250)) {
+      return NextResponse.json({ error: "Title must be between 3 and 250 characters" }, { status: 400 });
+    }
+
+    const cleanContent = content !== undefined ? sanitizeMarkdown(content) : undefined;
+    if (cleanContent !== undefined && cleanContent.length < 5) {
+      return NextResponse.json({ error: "Content must have at least 5 characters" }, { status: 400 });
+    }
+
+    const cleanSummary =
+      summary !== undefined ? (summary ? sanitizePlainText(summary, 500) || null : null) : undefined;
+    const cleanMetaTitle =
+      metaTitle !== undefined ? (metaTitle ? sanitizePlainText(metaTitle, 150) || null : null) : undefined;
+    const cleanMetaDesc =
+      metaDescription !== undefined
+        ? metaDescription
+          ? sanitizePlainText(metaDescription, 300) || null
+          : null
+        : undefined;
+    const cleanMetaKeywords =
+      metaKeywords !== undefined
+        ? metaKeywords
+          ? sanitizePlainText(metaKeywords, 200) || null
+          : null
+        : undefined;
+
     // Handle slug change if provided
     let finalSlug = existingPost.slug;
     if (customSlug && customSlug.trim()) {
@@ -128,9 +156,11 @@ export async function PUT(
         }
         finalSlug = slug;
       }
+    } else if (cleanTitle && cleanTitle !== existingPost.slug) {
+      // Keep existing slug unless customSlug is explicitly changed
     }
 
-    const readingTime = content ? calculateReadingTime(content) : undefined;
+    const readingTime = cleanContent ? calculateReadingTime(cleanContent) : undefined;
     let publishedAt = existingPost.publishedAt;
     if (status === "PUBLISHED" && !publishedAt) {
       publishedAt = new Date();
@@ -141,7 +171,7 @@ export async function PUT(
     if (Array.isArray(tagNames)) {
       const tagConnectOps: { id: string }[] = [];
       for (const rawName of tagNames) {
-        const name = String(rawName).trim();
+        const name = sanitizePlainText(String(rawName), 50);
         if (!name) continue;
         const tagSlug = slugify(name);
         const tag = await prisma.tag.upsert({
@@ -162,21 +192,19 @@ export async function PUT(
     const updatedPost = await prisma.blogPost.update({
       where: { id },
       data: {
-        title: title ? title.trim() : undefined,
+        title: cleanTitle,
         slug: finalSlug,
-        summary: summary !== undefined ? summary?.trim() || null : undefined,
-        content: content ? content.trim() : undefined,
+        summary: cleanSummary,
+        content: cleanContent,
         coverImageUrl: coverImageUrl !== undefined ? coverImageUrl || null : undefined,
         status: status || undefined,
         isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : undefined,
         categoryId: categoryId !== undefined ? categoryId || null : undefined,
         readingTime,
         publishedAt,
-        metaTitle: metaTitle !== undefined ? metaTitle?.trim() || null : undefined,
-        metaDescription:
-          metaDescription !== undefined ? metaDescription?.trim() || null : undefined,
-        metaKeywords:
-          metaKeywords !== undefined ? metaKeywords?.trim() || null : undefined,
+        metaTitle: cleanMetaTitle,
+        metaDescription: cleanMetaDesc,
+        metaKeywords: cleanMetaKeywords,
         tags: tagUpdateData,
       },
       include: {

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import { validateCourseInput } from "@/lib/validation";
+import { validateCourseInput, sanitizePlainText, sanitizeMarkdown } from "@/lib/validation";
 
 export async function GET(
   req: Request,
@@ -91,9 +91,15 @@ export async function PUT(
     } = body;
 
     const validation = validateCourseInput(body);
-    if (!validation.isValid) {
+    if (!validation.isValid || !validation.sanitized) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
+
+    const {
+      title: cleanTitle,
+      shortDescription: cleanShortDesc,
+      description: cleanDesc,
+    } = validation.sanitized;
 
     const existingCourse = await prisma.course.findUnique({
       where: { id },
@@ -133,11 +139,11 @@ export async function PUT(
       const course = await tx.course.update({
         where: { id },
         data: {
-          title: title.trim(),
+          title: cleanTitle,
           slug: finalSlug,
           categoryId: categoryId || null,
-          shortDescription: shortDescription || null,
-          description: description || null,
+          shortDescription: cleanShortDesc,
+          description: cleanDesc,
           thumbnailUrl: thumbnailUrl || null,
           introVideoUrl: introVideoUrl || null,
           price: isFreeBool ? 0 : parseFloat(price) || 0,
@@ -174,6 +180,8 @@ export async function PUT(
         // Loop through sections in payload
         for (let sIdx = 0; sIdx < sections.length; sIdx++) {
           const sec = sections[sIdx];
+          const cleanSecTitle = sanitizePlainText(sec.title, 150) || `Chương ${sIdx + 1}`;
+          const cleanSecDesc = sec.description ? sanitizePlainText(sec.description, 500) || null : null;
           let sectionRecord;
 
           if (sec.id && existingCourse.sections.some((s) => s.id === sec.id)) {
@@ -181,8 +189,8 @@ export async function PUT(
             sectionRecord = await tx.section.update({
               where: { id: sec.id },
               data: {
-                title: sec.title || `Chương ${sIdx + 1}`,
-                description: sec.description || null,
+                title: cleanSecTitle,
+                description: cleanSecDesc,
                 orderIndex: sIdx + 1,
               },
             });
@@ -191,8 +199,8 @@ export async function PUT(
             sectionRecord = await tx.section.create({
               data: {
                 courseId: id,
-                title: sec.title || `Chương ${sIdx + 1}`,
-                description: sec.description || null,
+                title: cleanSecTitle,
+                description: cleanSecDesc,
                 orderIndex: sIdx + 1,
               },
             });
@@ -210,7 +218,9 @@ export async function PUT(
           if (Array.isArray(sec.lessons)) {
             for (let lIdx = 0; lIdx < sec.lessons.length; lIdx++) {
               const les = sec.lessons[lIdx];
-              const lessonSlug = slugify(les.title || `lesson-${lIdx + 1}`) + "-" + (lIdx + 1);
+              const cleanLesTitle = sanitizePlainText(les.title, 150) || `Bài ${lIdx + 1}`;
+              const cleanLesBody = les.contentBody ? sanitizeMarkdown(les.contentBody) : null;
+              const lessonSlug = slugify(cleanLesTitle) + "-" + (lIdx + 1);
 
               let targetLessonId = les.id;
 
@@ -220,11 +230,11 @@ export async function PUT(
                   where: { id: les.id },
                   data: {
                     sectionId: sectionRecord.id,
-                    title: les.title || `Bài ${lIdx + 1}`,
+                    title: cleanLesTitle,
                     contentType: les.contentType || "VIDEO_YOUTUBE",
                     videoUrl: les.videoUrl || null,
                     videoDuration: parseInt(les.videoDuration, 10) || 600,
-                    contentBody: les.contentBody || null,
+                    contentBody: cleanLesBody,
                     isPreview: Boolean(les.isPreview),
                     orderIndex: lIdx + 1,
                   },
@@ -234,12 +244,12 @@ export async function PUT(
                 const newLes = await tx.lesson.create({
                   data: {
                     sectionId: sectionRecord.id,
-                    title: les.title || `Bài ${lIdx + 1}`,
+                    title: cleanLesTitle,
                     slug: lessonSlug,
                     contentType: les.contentType || "VIDEO_YOUTUBE",
                     videoUrl: les.videoUrl || null,
                     videoDuration: parseInt(les.videoDuration, 10) || 600,
-                    contentBody: les.contentBody || null,
+                    contentBody: cleanLesBody,
                     isPreview: Boolean(les.isPreview),
                     orderIndex: lIdx + 1,
                   },

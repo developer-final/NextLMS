@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { sanitizePlainText } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -45,11 +46,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { id, name, description, icon, orderIndex, isActive } = body;
 
-    if (!name?.trim()) {
+    const cleanName = sanitizePlainText(name, 100);
+    if (!cleanName) {
       return NextResponse.json({ error: "Category name is required" }, { status: 400 });
     }
 
-    const cleanName = name.trim();
+    const cleanDescription =
+      description !== undefined && description !== null
+        ? sanitizePlainText(description, 500) || null
+        : null;
+
     const slug = slugify(cleanName);
 
     if (id) {
@@ -58,7 +64,7 @@ export async function POST(req: Request) {
         where: { id },
         data: {
           name: cleanName,
-          description: description?.trim() || null,
+          description: cleanDescription,
           icon: icon || "BookOpen",
           orderIndex: parseInt(orderIndex, 10) || 0,
           isActive: isActive !== undefined ? Boolean(isActive) : true,
@@ -82,7 +88,7 @@ export async function POST(req: Request) {
         data: {
           name: cleanName,
           slug: finalSlug,
-          description: description?.trim() || null,
+          description: cleanDescription,
           icon: icon || "BookOpen",
           orderIndex: parseInt(orderIndex, 10) || 0,
           isActive: isActive !== undefined ? Boolean(isActive) : true,

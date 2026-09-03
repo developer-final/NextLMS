@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSystemSettings, DEFAULT_CONFIG } from "@/lib/config";
-import { validateBankSettingsInput, isValidEmail } from "@/lib/validation";
+import { validateBankSettingsInput, isValidEmail, sanitizePlainText, isValidSafeUrl } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -102,9 +102,19 @@ export async function POST(req: Request) {
       refundMaxProgress: "POLICY",
     };
 
-    // Upsert each setting
+    // Upsert each setting with sanitization
+    const URL_SETTING_KEYS = new Set(["zaloUrl", "telegramUrl", "facebookUrl"]);
     const updatePromises = Object.entries(settings).map(([key, val]) => {
-      const stringValue = String(val ?? "");
+      let stringValue = String(val ?? "").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+
+      if (URL_SETTING_KEYS.has(key)) {
+        if (stringValue && !isValidSafeUrl(stringValue)) {
+          stringValue = "";
+        }
+      } else if (!key.toLowerCase().includes("key") && !key.toLowerCase().includes("secret")) {
+        stringValue = sanitizePlainText(stringValue, 1000);
+      }
+
       const group = groupMapping[key] || "GENERAL";
 
       return prisma.setting.upsert({
