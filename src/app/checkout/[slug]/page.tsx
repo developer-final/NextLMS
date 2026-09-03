@@ -165,7 +165,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [createdOrder?.orderCode, isOrderCompletedRealtime, router, language]);
+  }, [createdOrder?.orderCode, isOrderCompletedRealtime, router, language, t.checkout.paymentConfirmedTitle]);
 
   if (status === "loading" || loadingCourse) {
     return (

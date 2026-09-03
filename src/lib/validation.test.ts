@@ -76,11 +76,11 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
     it("should reject when name is missing or empty", () => {
       const result = validateRegisterInput({
         name: "   ",
-        email: "test@example.com",
+        email: "valid@example.com",
         password: "securePassword123",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("đầy đủ Tên, Email");
+      expect(result.error).toContain("Please provide Name, Email, and Password");
     });
 
     it("should reject when email is invalid", () => {
@@ -90,7 +90,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         password: "securePassword123",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("email không hợp lệ");
+      expect(result.error).toContain("Invalid email address format");
     });
 
     it("should reject when password is under 6 characters", () => {
@@ -100,7 +100,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         password: "123",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("ít nhất 6 ký tự");
+      expect(result.error).toContain("Password must be at least 6 characters long");
     });
 
     it("should reject when password exceeds 128 characters", () => {
@@ -110,7 +110,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         password: "p".repeat(130),
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("không được vượt quá 128 ký tự");
+      expect(result.error).toContain("Password cannot exceed 128 characters");
     });
   });
 
@@ -195,7 +195,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       const res = validateCourseInput({ ...validCourse, price: 1000000, salePrice: 1500000 });
       expect(res.isValid).toBe(false);
       expect(res.field).toBe("salePrice");
-      expect(res.error).toContain("không được lớn hơn giá gốc");
+      expect(res.error).toContain("Sale price cannot be greater than original price");
     });
 
     it("should reject course with empty sections", () => {
@@ -250,7 +250,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       });
       expect(res.isValid).toBe(false);
       expect(res.field).toBe("discountValue");
-      expect(res.error).toContain("không được vượt quá 100%");
+      expect(res.error).toContain("Percentage discount cannot exceed 100%");
     });
 
     it("should reject negative discount value or 0", () => {
@@ -299,7 +299,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       const longComment = "a".repeat(2001);
       const res = validateCommentInput({ lessonId: "l-1", content: longComment });
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("không được vượt quá 2000 ký tự");
+      expect(res.error).toContain("Comment content cannot exceed 2000 characters");
     });
   });
 
@@ -327,7 +327,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         type: "avatar",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("bị cấm tải lên");
+      expect(result.error).toContain("blocked for security reasons");
 
       const gifResult = validateFileUpload({
         buffer: Buffer.from("GIF89a..."),
@@ -335,7 +335,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         type: "avatar",
       });
       expect(gifResult.isValid).toBe(false);
-      expect(gifResult.error).toContain("Ảnh đại diện chỉ chấp nhận");
+      expect(gifResult.error).toContain("Avatar only accepts");
     });
 
     it("should reject avatar exceeding size limit", () => {
@@ -348,7 +348,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         maxSizeMb: 5,
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("vượt quá mức cho phép");
+      expect(result.error).toContain("exceeds maximum allowed limit");
     });
   });
 
@@ -374,7 +374,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         type: "receipt",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("Biên lai thanh toán chỉ chấp nhận các định dạng ảnh");
+      expect(result.error).toContain("Receipt only accepts image formats");
     });
 
     it("should reject receipt exceeding size limit", () => {
@@ -387,7 +387,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         maxSizeMb: 10,
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("vượt quá mức cho phép");
+      expect(result.error).toContain("exceeds maximum allowed limit");
     });
   });
 
@@ -485,7 +485,7 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
         confirmPassword: "SamePassword123",
       });
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("không được trùng");
+      expect(result.error).toContain("New password cannot be the same as current password");
     });
   });
 

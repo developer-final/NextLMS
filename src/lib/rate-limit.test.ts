@@ -74,6 +74,16 @@ describe("getClientIp", () => {
     expect(getClientIp(req)).toBe("198.51.100.2");
   });
 
+  it("should extract client IP from cf-connecting-ip header", () => {
+    const req = new Request("http://localhost:3000", {
+      headers: {
+        "cf-connecting-ip": "104.28.19.45",
+        "x-forwarded-for": "198.51.100.99",
+      },
+    });
+    expect(getClientIp(req)).toBe("104.28.19.45");
+  });
+
   it("should fallback to 127.0.0.1 if no headers present", () => {
     const req = new Request("http://localhost:3000");
     expect(getClientIp(req)).toBe("127.0.0.1");

@@ -84,7 +84,7 @@ describe("Role-Based Access Control - RBAC (TC-AUTH-03)", () => {
       expect(decision.allowed).toBe(false);
       if (!decision.allowed) {
         expect(decision.status).toBe(403);
-        expect(decision.error).toContain("đã bị khóa");
+        expect(decision.error).toContain("suspended");
       }
     });
   });
@@ -135,7 +135,7 @@ describe("Role-Based Access Control - RBAC (TC-AUTH-03)", () => {
       expect(decision.allowed).toBe(false);
       if (!decision.allowed) {
         expect(decision.status).toBe(403);
-        expect(decision.error).toContain("Giảng viên không có quyền");
+        expect(decision.error).toContain("Instructors do not have permission");
       }
     });
   });

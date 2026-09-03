@@ -30,28 +30,28 @@ describe("File Upload & Security Validation", () => {
       const exeBuffer = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]);
       const res = verifyMagicBytes(exeBuffer, "pdf");
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("thực thi Windows");
+      expect(res.error).toContain("Dangerous Windows executable detected");
     });
 
     it("should reject Linux ELF binaries", () => {
       const elfBuffer = Buffer.from([0x7f, 0x45, 0x4c, 0x46, 0x02, 0x01]);
       const res = verifyMagicBytes(elfBuffer, "png");
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("thực thi Linux");
+      expect(res.error).toContain("Dangerous Linux executable detected");
     });
 
     it("should reject Shell Script execution header (#! / 0x23 0x21)", () => {
       const shBuffer = Buffer.from("#!/bin/bash\nrm -rf /", "utf8");
       const res = verifyMagicBytes(shBuffer, "jpg");
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("tập lệnh thực thi shell script");
+      expect(res.error).toContain("Executable shell script detected");
     });
 
     it("should reject HTML/PHP scripts disguised as image", () => {
       const fakeImage = Buffer.from("<?php echo 'malware'; ?>", "utf8");
       const res = verifyMagicBytes(fakeImage, "jpg");
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("mã kịch bản web độc hại");
+      expect(res.error).toContain("Dangerous script tags detected");
     });
 
     it("should accept authentic JPEG files", () => {
@@ -89,7 +89,7 @@ describe("File Upload & Security Validation", () => {
           type: "attachment",
         });
         expect(res.isValid).toBe(false);
-        expect(res.error).toContain("bị cấm");
+        expect(res.error).toContain("blocked for security reasons");
       }
     });
 
@@ -105,7 +105,7 @@ describe("File Upload & Security Validation", () => {
         type: "thumbnail",
       });
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("Dung lượng tệp vượt quá mức cho phép");
+      expect(res.error).toContain("exceeds maximum allowed limit");
     });
 
     it("should accept valid thumbnail within 5MB", () => {
@@ -194,7 +194,7 @@ describe("File Upload & Security Validation", () => {
       const fakeMp4 = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]); // MZ header
       const res = verifyMagicBytes(fakeMp4, "mp4");
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("thực thi Windows");
+      expect(res.error).toContain("Dangerous Windows executable detected");
     });
 
     it("validateFileUpload should allow video up to 1024MB (1GB)", () => {
@@ -219,7 +219,7 @@ describe("File Upload & Security Validation", () => {
         type: "video",
       });
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("không được hỗ trợ cho video");
+      expect(res.error).toContain("is not supported for lesson videos");
     });
   });
 });

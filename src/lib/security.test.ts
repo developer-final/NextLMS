@@ -83,7 +83,7 @@ describe("Security Hardening & Threat Defense Suite", () => {
       });
 
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("không được vượt quá 128 ký tự");
+      expect(res.error).toContain("Password cannot exceed 128 characters");
     });
 
     it("rejects oversized name payloads", () => {
@@ -95,7 +95,7 @@ describe("Security Hardening & Threat Defense Suite", () => {
       });
 
       expect(res.isValid).toBe(false);
-      expect(res.error).toContain("từ 2 đến 100 ký tự");
+      expect(res.error).toContain("Full name must be between 2 and 100 characters");
     });
   });
 });

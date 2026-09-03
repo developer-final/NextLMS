@@ -75,7 +75,7 @@ export function evaluateRbacAccess(
       return {
         allowed: false,
         status: 403,
-        error: "Tài khoản của bạn đã bị khóa.",
+        error: "Your account has been suspended. Please contact support.",
       };
     }
     const blockedUrl = new URL("/auth/login", origin);
@@ -84,7 +84,7 @@ export function evaluateRbacAccess(
       allowed: false,
       status: 403,
       redirectUrl: blockedUrl.toString(),
-      error: "Tài khoản của bạn đã bị khóa.",
+      error: "Your account has been suspended. Please contact support.",
     };
   }
 
@@ -120,7 +120,7 @@ export function evaluateRbacAccess(
       return {
         allowed: false,
         status: 403,
-        error: "Forbidden: Giảng viên không có quyền truy cập chức năng này.",
+        error: "Forbidden: Instructors do not have permission to access this resource.",
       };
     }
 
@@ -139,7 +139,7 @@ export function evaluateRbacAccess(
         allowed: false,
         status: 403,
         redirectUrl: new URL("/admin/courses", origin).toString(),
-        error: "Forbidden: Giảng viên không có quyền truy cập chức năng này.",
+        error: "Forbidden: Instructors do not have permission to access this resource.",
       };
     }
   }

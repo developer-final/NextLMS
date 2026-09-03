@@ -64,7 +64,7 @@ export async function createStripeCheckoutSession({
           currency: "vnd",
           product_data: {
             name: courseTitle,
-            description: `Khóa học trực tuyến - Mã đơn #${orderCode}`,
+            description: `Online Course - Order #${orderCode}`,
           },
           unit_amount: Math.round(amountVnd),
         },
