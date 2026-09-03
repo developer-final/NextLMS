@@ -115,8 +115,8 @@ export async function POST(req: Request) {
           }
 
           if (order.couponId) {
-            await tx.coupon.update({
-              where: { id: order.couponId },
+            await tx.coupon.updateMany({
+              where: { id: order.couponId, usedCount: { gt: 0 } },
               data: {
                 usedCount: { decrement: 1 },
               },

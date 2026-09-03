@@ -107,6 +107,14 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Missing userId or status" }, { status: 400 });
     }
 
+    const ALLOWED_USER_STATUSES = ["ACTIVE", "BLOCKED"];
+    if (!ALLOWED_USER_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid status value. Allowed: ACTIVE, BLOCKED" },
+        { status: 400 }
+      );
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { status },

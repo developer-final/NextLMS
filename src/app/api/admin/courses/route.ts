@@ -59,6 +59,14 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Missing course ID" }, { status: 400 });
     }
 
+    const ALLOWED_COURSE_STATUSES = ["PUBLISHED", "DRAFT", "ARCHIVED"];
+    if (status !== undefined && !ALLOWED_COURSE_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid course status. Allowed: PUBLISHED, DRAFT, ARCHIVED" },
+        { status: 400 }
+      );
+    }
+
     const dataToUpdate: any = {};
     if (status !== undefined) dataToUpdate.status = status;
     if (isFeatured !== undefined) dataToUpdate.isFeatured = Boolean(isFeatured);

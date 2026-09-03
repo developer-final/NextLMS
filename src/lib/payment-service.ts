@@ -70,6 +70,12 @@ export async function completeOrderAndEnroll({
     order = candidateOrders.find(
       (o) => o.orderCode.replace(/-/g, "").toUpperCase() === unhyphenated
     ) || null;
+
+    if (order) {
+      console.warn(
+        `[Payment Fulfillment] Fallback match used: input="${cleanOrderCode}" matched order="${order.orderCode}". Review for correctness.`
+      );
+    }
   }
 
   if (!order) {

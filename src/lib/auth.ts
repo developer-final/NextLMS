@@ -170,11 +170,32 @@ export const authOptions: NextAuthOptions = {
         token.status = (user as any).status || "ACTIVE";
         token.avatarUrl = (user as any).avatarUrl;
         token.emailVerified = (user as any).emailVerified;
+        token.lastRefreshed = Date.now();
       }
       if (trigger === "update" && session) {
         token.name = session.name || token.name;
         token.avatarUrl = session.avatarUrl || token.avatarUrl;
       }
+
+      // Periodically refresh role and status from DB (every 5 minutes)
+      const REFRESH_INTERVAL = 5 * 60 * 1000;
+      const lastRefreshed = (token.lastRefreshed as number) || 0;
+      if (token.id && Date.now() - lastRefreshed > REFRESH_INTERVAL) {
+        try {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, status: true },
+          });
+          if (freshUser) {
+            token.role = freshUser.role;
+            token.status = freshUser.status;
+          }
+          token.lastRefreshed = Date.now();
+        } catch {
+          // Silently continue with stale token on DB errors
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
