@@ -160,6 +160,11 @@ describe("File Upload & Security Validation", () => {
           "https://mybucket.s3.ap-southeast-1.amazonaws.com/courses/videos/forex.mp4"
         )
       ).toBe("courses/videos/forex.mp4");
+      expect(
+        extractS3Key(
+          "https://sxmwlxsabxtrjprpolds.supabase.co/storage/v1/object/public/e-learning-bucket/courses/videos/forex.mp4"
+        )
+      ).toBe("courses/videos/forex.mp4");
 
       // Non-S3 links should return null
       expect(extractS3Key("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBeNull();

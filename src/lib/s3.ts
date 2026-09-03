@@ -8,7 +8,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import fs from "fs/promises";
 import path from "path";
 
-// S3 & Cloudflare R2 Credentials & Configuration
+// S3 & Cloudflare R2 / Supabase Credentials & Configuration
 const s3Endpoint = process.env.S3_ENDPOINT || process.env.AWS_S3_ENDPOINT;
 const s3Region = process.env.S3_REGION || process.env.AWS_S3_REGION || "auto";
 const s3AccessKeyId =
@@ -19,16 +19,24 @@ const s3BucketName =
   process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || "";
 const s3PublicUrl =
   process.env.S3_PUBLIC_URL || process.env.AWS_S3_PUBLIC_URL || "";
+const s3ForcePathStyle =
+  process.env.S3_FORCE_PATH_STYLE === "true" ||
+  Boolean(
+    s3Endpoint &&
+      (s3Endpoint.includes("supabase.co") ||
+        s3Endpoint.includes("127.0.0.1") ||
+        s3Endpoint.includes("localhost"))
+  );
 
 /**
- * Checks if S3 / Cloudflare R2 credentials are fully configured
+ * Checks if S3 / Cloudflare R2 / Supabase credentials are fully configured
  */
 export function isS3Configured(): boolean {
   return Boolean(s3BucketName && s3AccessKeyId && s3SecretAccessKey);
 }
 
 /**
- * Get S3 Client instance (compatible with Cloudflare R2 and AWS S3)
+ * Get S3 Client instance (compatible with Supabase S3, Cloudflare R2 and AWS S3)
  */
 export function getS3Client(): S3Client {
   const clientConfig: any = {
@@ -39,7 +47,11 @@ export function getS3Client(): S3Client {
     },
   };
 
-  // If custom endpoint is provided (e.g., Cloudflare R2, MinIO)
+  if (s3ForcePathStyle) {
+    clientConfig.forcePathStyle = true;
+  }
+
+  // If custom endpoint is provided (e.g., Cloudflare R2, MinIO, Supabase)
   if (s3Endpoint && s3Endpoint.trim()) {
     clientConfig.endpoint = s3Endpoint.trim();
   }
@@ -86,6 +98,10 @@ export async function uploadFileToStorage({
       finalUrl = `${s3PublicUrl.replace(/\/+$/, "")}/${cleanKey}`;
     } else if (s3Endpoint && s3Endpoint.includes("r2.cloudflarestorage.com")) {
       finalUrl = `${s3Endpoint.replace(/\/+$/, "")}/${s3BucketName}/${cleanKey}`;
+    } else if (s3Endpoint && s3Endpoint.includes("supabase.co")) {
+      const match = s3Endpoint.match(/^https?:\/\/([^.]+)\./);
+      const projRef = match ? match[1] : "";
+      finalUrl = `https://${projRef}.supabase.co/storage/v1/object/public/${s3BucketName}/${cleanKey}`;
     } else {
       finalUrl = `https://${s3BucketName}.s3.${s3Region}.amazonaws.com/${cleanKey}`;
     }
@@ -221,9 +237,11 @@ export function extractS3Key(urlOrKey: string): string | null {
     const parsed = new URL(trimmed);
     const pathname = parsed.pathname.replace(/^\/+/, "");
 
-    // S3 Public URL matches custom domain or pub-xxx.r2.dev
-    if (s3PublicUrl && trimmed.startsWith(s3PublicUrl.replace(/\/+$/, ""))) {
-      return pathname;
+    // S3 Public URL matches custom domain, pub-xxx.r2.dev, or Supabase public storage URL
+    const cleanPublicUrl = s3PublicUrl ? s3PublicUrl.replace(/\/+$/, "") : "";
+    if (cleanPublicUrl && trimmed.startsWith(cleanPublicUrl)) {
+      const relativePart = trimmed.slice(cleanPublicUrl.length).replace(/^\/+/, "");
+      return relativePart.split("?")[0].split("#")[0];
     }
 
     // R2 storage URL with bucket name in path: <endpoint>/<bucket>/<key>
@@ -231,12 +249,24 @@ export function extractS3Key(urlOrKey: string): string | null {
       return pathname.slice(s3BucketName.length + 1);
     }
 
-    // AWS S3 or Cloudflare R2 domains
+    // AWS S3, Cloudflare R2, or Supabase storage domains
     if (
       parsed.hostname.includes(".amazonaws.com") ||
       parsed.hostname.includes(".r2.cloudflarestorage.com") ||
-      parsed.hostname.includes(".r2.dev")
+      parsed.hostname.includes(".r2.dev") ||
+      parsed.hostname.includes(".supabase.co")
     ) {
+      if (parsed.hostname.includes(".supabase.co")) {
+        const parts = pathname.split("/");
+        const pubIdx = parts.indexOf("public");
+        if (pubIdx !== -1 && (!s3BucketName || parts[pubIdx + 1] === s3BucketName)) {
+          return parts.slice(pubIdx + 2).join("/");
+        }
+        const s3Idx = parts.indexOf("s3");
+        if (s3Idx !== -1 && (!s3BucketName || parts[s3Idx + 1] === s3BucketName)) {
+          return parts.slice(s3Idx + 2).join("/");
+        }
+      }
       return pathname;
     }
 
