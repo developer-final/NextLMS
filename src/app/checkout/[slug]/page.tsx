@@ -7,6 +7,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   CheckCircle2,
@@ -717,7 +718,35 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     {t.checkout.learnNowBtn} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-              ) : createdOrder.paymentMethod === "PAYPAL" ? (
+              ) : (
+                <>
+                  {/* Back / Change Payment Method Banner */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreatedOrder(null);
+                        setProofSubmitted(false);
+                        setProofUrl("");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/90 hover:bg-slate-700 hover:border-slate-600 px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-sm group cursor-pointer"
+                    >
+                      <ArrowLeft className="h-4 w-4 text-brand-400 group-hover:-translate-x-0.5 transition-transform" />
+                      <span>{t.checkout.changePaymentMethod}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                      <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                      <span>
+                        {t.checkout.orderCodeLabel}:{" "}
+                        <strong className="text-white font-mono">
+                          #{createdOrder.orderCode}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {createdOrder.paymentMethod === "PAYPAL" ? (
                 /* OFFICIAL PAYPAL SMART BUTTONS CARD */
                 <div className="rounded-3xl border border-blue-500/30 bg-slate-900/90 p-6 space-y-6 shadow-glow">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-4">
@@ -1299,6 +1328,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     <span>Hệ thống đang tự động lắng nghe giao dịch chuyển khoản từ ngân hàng...</span>
                   </div>
                 </div>
+              )}
+
+              {/* Bottom Return Link */}
+              <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreatedOrder(null);
+                        setProofSubmitted(false);
+                        setProofUrl("");
+                      }}
+                      className="text-xs text-slate-400 hover:text-brand-400 transition-colors inline-flex items-center gap-1.5 underline underline-offset-4 cursor-pointer"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span>{t.checkout.backToPaymentMethods}</span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}

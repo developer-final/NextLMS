@@ -239,6 +239,8 @@ export const en: DictionaryType = {
     paypalNotConfigured: "PayPal Client ID is not configured. Please contact support.",
     stripeError: "An error occurred with Stripe checkout.",
     receiptUploadFailed: "Failed to upload receipt image.",
+    changePaymentMethod: "Change payment method",
+    backToPaymentMethods: "Back to choose another payment option",
   },
   auth: {
     loginTitle: "Sign In to Account",

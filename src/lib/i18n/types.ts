@@ -251,6 +251,8 @@ export interface DictionaryType {
     paypalNotConfigured: string;
     stripeError: string;
     receiptUploadFailed: string;
+    changePaymentMethod: string;
+    backToPaymentMethods: string;
   };
   auth: {
     loginTitle: string;

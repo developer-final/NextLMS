@@ -239,6 +239,8 @@ export const vi: DictionaryType = {
     paypalNotConfigured: "Hệ thống chưa cấu hình PayPal Client ID. Vui lòng liên hệ ban quản trị.",
     stripeError: "Đã có lỗi xảy ra trong quá trình thanh toán Stripe.",
     receiptUploadFailed: "Tải ảnh biên lai thất bại.",
+    changePaymentMethod: "Đổi phương thức thanh toán",
+    backToPaymentMethods: "Quay lại cân nhắc các phương thức khác",
   },
   auth: {
     loginTitle: "Đăng nhập Tài khoản",

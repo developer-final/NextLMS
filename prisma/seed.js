@@ -517,7 +517,30 @@ Hành trình trở thành trader thành công không có đường tắt. Hãy k
     },
   });
 
-  console.log("🚀 Database Seed completed successfully with realistic SMC course and Blog data!");
+  // 14. Initialize Default System Settings (including VietQR & Bank settings)
+  console.log("Seeding default system and payment settings...");
+  const defaultSettings = [
+    { key: "appName", value: "World Trading Lab", group: "GENERAL" },
+    { key: "bankId", value: "ICB", group: "PAYMENT", description: "VietinBank (ICB)" },
+    { key: "bankName", value: "VietinBank", group: "PAYMENT", description: "Ngân hàng TMCP Công thương Việt Nam" },
+    { key: "bankAccountNo", value: "1088888888", group: "PAYMENT", description: "Số tài khoản ngân hàng nhận tiền" },
+    { key: "bankAccountName", value: "WORLD TRADING LAB", group: "PAYMENT", description: "Tên chủ tài khoản" },
+    { key: "vietqrTemplate", value: "compact2", group: "PAYMENT", description: "Giao diện mã VietQR QuickPay" },
+    { key: "paymentManualEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt chuyển khoản thủ công" },
+    { key: "paymentVietqrAutoEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt VietQR tự động" },
+    { key: "paymentVietqrProvider", value: "PAYOS", group: "PAYMENT", description: "Nhà cung cấp VietQR tự động (PAYOS/SEPAY)" },
+    { key: "usdExchangeRate", value: "25400", group: "PAYMENT", description: "Tỷ giá quy đổi USD/VND" },
+  ];
+
+  for (const s of defaultSettings) {
+    await prisma.setting.upsert({
+      where: { key: s.key },
+      update: {},
+      create: s,
+    });
+  }
+
+  console.log("🚀 Database Seed completed successfully with realistic SMC course, Blog, and Bank Settings data!");
 }
 
 main()

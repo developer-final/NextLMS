@@ -20,6 +20,12 @@ import { SystemConfig } from "@/lib/config";
 import { generateVietQRUrl } from "@/lib/vietqr";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateBankSettingsInput, isValidEmail } from "@/lib/validation";
+import {
+  getPopularBanks,
+  getOtherBanks,
+  getBankByCode,
+  VIETNAM_BANKS,
+} from "@/lib/vietnam-banks";
 
 interface SettingsFormClientProps {
   initialSettings: SystemConfig;
@@ -332,19 +338,35 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
                     </label>
                     <select
                       value={formData.bankId}
-                      onChange={(e) => handleChange("bankId", e.target.value)}
+                      onChange={(e) => {
+                        const selectedCode = e.target.value;
+                        handleChange("bankId", selectedCode);
+                        const bank = getBankByCode(selectedCode);
+                        if (bank) {
+                          handleChange("bankName", bank.shortName);
+                        }
+                      }}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
                     >
-                      <option value="MB">MB (MB Bank)</option>
-                      <option value="VCB">VCB (Vietcombank)</option>
-                      <option value="TCB">TCB (Techcombank)</option>
-                      <option value="VPB">VPB (VPBank)</option>
-                      <option value="ACB">ACB</option>
-                      <option value="ICB">ICB (VietinBank)</option>
-                      <option value="BIDV">BIDV</option>
-                      <option value="TPB">TPB (TPBank)</option>
-                      <option value="STB">STB (Sacombank)</option>
-                      <option value="MSB">MSB</option>
+                      {!VIETNAM_BANKS.some((b) => b.code === formData.bankId) && formData.bankId && (
+                        <option value={formData.bankId}>
+                          {formData.bankId} (Hiện tại)
+                        </option>
+                      )}
+                      <optgroup label="Ngân hàng phổ biến (Top Banks)">
+                        {getPopularBanks().map((b) => (
+                          <option key={b.code} value={b.code}>
+                            {b.shortName} ({b.code}) - {b.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Tất cả ngân hàng khác">
+                        {getOtherBanks().map((b) => (
+                          <option key={b.code} value={b.code}>
+                            {b.shortName} ({b.code}) - {b.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 
