@@ -101,6 +101,18 @@ async function handleCleanupCron(req: Request) {
       },
     });
 
+    // 5. Purge unverified student accounts created more than 48 hours ago (Anti-Spam DB Hygiene)
+    // Only target STUDENT role with null emailVerified and no completed orders.
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+    const purgedUnverifiedUsersResult = await prisma.user.deleteMany({
+      where: {
+        role: "STUDENT",
+        emailVerified: null,
+        createdAt: { lt: fortyEightHoursAgo },
+        orders: { none: { status: "COMPLETED" } },
+      },
+    });
+
     const durationMs = Date.now() - startTime;
 
     return NextResponse.json({
@@ -112,8 +124,9 @@ async function handleCleanupCron(req: Request) {
         deletedTokens: deletedTokensResult.count,
         cleanedAttachments: cleanedAttachmentsCount,
         purgedSoftDeletedPosts: purgedPostsResult.count,
+        purgedUnverifiedStudents: purgedUnverifiedUsersResult.count,
       },
-      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts.`,
+      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, removed ${purgedUnverifiedUsersResult.count} stale unverified bot accounts.`,
     });
   } catch (error: any) {
     const durationMs = Date.now() - startTime;

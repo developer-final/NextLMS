@@ -27,9 +27,26 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, password } = body;
+    const { name, email, password, honeypot, company_fax } = body;
 
-    // 2. Comprehensive Input Validation
+    // 2. Anti-Bot Honeypot Trap (Silent Drop)
+    // If the invisible honeypot field is populated, it was submitted by an automated bot.
+    // Return simulated success without database write or email dispatch to neutralize the bot.
+    if (
+      (honeypot && typeof honeypot === "string" && honeypot.trim() !== "") ||
+      (company_fax && typeof company_fax === "string" && company_fax.trim() !== "")
+    ) {
+      console.warn(`[Anti-Bot Trap] Honeypot triggered from IP: ${clientIp}, target: ${email || "unknown"}`);
+      return NextResponse.json(
+        {
+          message: "Registration successful! Please check your inbox to verify your account before logging in.",
+          requiresVerification: true,
+        },
+        { status: 201 }
+      );
+    }
+
+    // 3. Comprehensive Input Validation
     const validation = validateRegisterInput({ name, email, password });
     if (!validation.isValid) {
       return NextResponse.json(

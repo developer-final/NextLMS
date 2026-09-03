@@ -255,13 +255,87 @@ eLearning/
 
 ---
 
-## 🌐 8. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)
+## 📧 8. Hướng Dẫn Cấu Hình Hệ Thống Gửi Email (Gmail SMTP & Resend API)
+
+Hệ thống E-Learning hỗ trợ cơ chế gửi email thông minh với **thứ tự ưu tiên tự động (Waterfall Priority)**:
+
+```
+[ Yêu cầu gửi Email ]
+        │
+        ▼
+[ Có SMTP_USER & SMTP_PASS? ] ─── CÓ (Ưu tiên 1) ───► [ Gửi qua GMAIL SMTP ]
+        │ KHÔNG
+        ▼
+[ Có RESEND_API_KEY? ] ───────── CÓ (Ưu tiên 2) ───► [ Gửi qua RESEND REST API ]
+        │ KHÔNG
+        ▼
+[ Chế độ Dev Simulation ] ──────────────────────────► [ In nội dung & Link ra Console ]
+```
+
+---
+
+### 8.1. Giải Pháp 1: Gửi Qua Gmail SMTP (Khuyên Dùng khi dùng subdomain Vercel hoặc chưa có tên miền riêng)
+
+* **Ưu điểm**: Hoàn toàn **miễn phí**, **không cần tên miền riêng**, tỉ lệ vào Inbox của học viên cực cao, hỗ trợ chạy mượt mà ngay trên `*.vercel.app`.
+* **Giới hạn**: Tối đa **500 email / 24 giờ** với tài khoản Gmail cá nhân miễn phí (hoặc **2.000 email / ngày** với tài khoản Google Workspace).
+
+#### Các bước lấy Mật khẩu ứng dụng Google (Google App Password 16 ký tự):
+1. Đăng nhập tài khoản Google và truy cập trang Bảo mật: [https://myaccount.google.com/security](https://myaccount.google.com/security).
+2. Đảm bảo tính năng **Xác minh 2 bước (2-Step Verification)** đã được **Bật**.
+3. Truy cập trang tạo Mật khẩu ứng dụng: [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+4. Nhập tên ứng dụng (ví dụ: `Elearning Web`) $\rightarrow$ Bấm nút **Tạo (Create)**.
+5. Sao chép chuỗi mật khẩu 16 chữ cái do Google cấp (ví dụ: `abcd efgh ijkl mnop`).
+
+#### Cấu hình vào tệp `.env.production.local` (hoặc Environment Variables trên Vercel):
+```env
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
+SMTP_SECURE="true"
+SMTP_USER="dia_chi_gmail_cua_ban@gmail.com"
+SMTP_PASS="abcdefghijklmnop"
+EMAIL_FROM="World Trading Lab <dia_chi_gmail_cua_ban@gmail.com>"
+```
+
+#### Lệnh kiểm tra kết nối và gửi thử email:
+```bash
+node scripts/test-smtp.mjs dia_chi_nhan@gmail.com
+```
+
+---
+
+### 8.2. Giải Pháp 2: Gửi Qua Resend REST API (Dành cho khi đã có tên miền riêng)
+
+Khi website đã sở hữu tên miền riêng chính thức (ví dụ: `worldtradinglab.com`), bạn có thể sử dụng Resend để gửi hàng chục ngàn email/tháng:
+1. Đăng ký tài khoản tại [https://resend.com](https://resend.com).
+2. Vào mục **API Keys** $\rightarrow$ Tạo API Key mới bắt đầu bằng `re_...`.
+3. Vào mục **Domains** $\rightarrow$ Thêm tên miền riêng của bạn và cấu hình các bản ghi DNS (**DKIM, SPF, MX**) trên nhà cung cấp quản lý tên miền (Cloudflare, GoDaddy, v.v.).
+4. Cấu hình vào biến môi trường:
+   ```env
+   # Xóa hoặc để trống SMTP_USER để hệ thống tự động chuyển sang Resend
+   SMTP_USER=""
+   SMTP_PASS=""
+   RESEND_API_KEY="re_xxxxxxxxxxxxxxxxx"
+   EMAIL_FROM="World Trading Lab <noreply@worldtradinglab.com>"
+   ```
+
+---
+
+### 8.3. Các Tính Năng Tự Động Gửi Email Trong Hệ Thống
+* 🔐 **Xác thực tài khoản mới**: Tự động gửi link kích hoạt & OTP khi bật `REQUIRE_EMAIL_VERIFICATION="true"`.
+* 🔑 **Quên & Đặt lại mật khẩu**: Gửi link reset mật khẩu có chữ ký bảo mật hết hạn sau 15 phút.
+* 🧾 **Hóa đơn thanh toán thành công**: Gửi email biên nhận kèm link vào học ngay khi đơn hàng được duyệt.
+* 💬 **Thông báo Hỏi đáp (Q&A)**: Báo cho học viên khi giảng viên hoặc người khác trả lời câu hỏi của bài học.
+* ⏰ **Nhắc nhở học tập (Cron Job)**: Tự động nhắc nhở những học viên chưa hoàn thành khóa và vắng mặt $\ge$ 5 ngày.
+
+---
+
+## 🌐 9. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)
 
 Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World Trading Lab E-Learning** lên môi trường chạy thực tế (Production) theo kiến trúc **Serverless** đơn giản, bảo mật, tối ưu chi phí (0$ chi phí cố định ban đầu) và tự động hóa toàn diện.
 
 ---
 
-### 8.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)
+### 9.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)
 
 ```
 [ Lập trình viên ]
@@ -286,7 +360,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 8.2. Hướng Dẫn Đưa Dự Án Lên GitHub
+### 9.2. Hướng Dẫn Đưa Dự Án Lên GitHub
 
 1. **Khởi tạo và kiểm tra trạng thái Git cục bộ**:
    ```bash
@@ -307,7 +381,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 8.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)
+### 9.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)
 
 > [!NOTE]
 > Khi chạy trên môi trường Serverless Cloud (như Vercel/Cloudflare), hệ thống cần cơ sở dữ liệu đám mây PostgreSQL thay vì file SQLite cục bộ. Khuyến nghị sử dụng **Neon.tech** (tối ưu hóa cho Serverless Next.js, có sẵn Connection Pooling và độ trễ thấp).
@@ -352,7 +426,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 8.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)
+### 9.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)
 
 Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc độ phản hồi Server Actions và Edge CDN toàn cầu cực nhanh.
 
@@ -375,6 +449,13 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
    | `BANK_ID` | `MB` | Mã ngân hàng nhận chuyển khoản VietQR |
    | `BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
    | `BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
+   | `SMTP_HOST` | `smtp.gmail.com` | Máy chủ SMTP gửi email (Mặc định Gmail) |
+   | `SMTP_PORT` | `465` | Cổng bảo mật SSL SMTP |
+   | `SMTP_SECURE` | `true` | Sử dụng giao thức bảo mật SSL |
+   | `SMTP_USER` | `oceandemy@gmail.com` | Tài khoản Gmail dùng để gửi thư |
+   | `SMTP_PASS` | `wvniqjwfpkchgwxw` | Mật khẩu ứng dụng 16 ký tự của Google |
+   | `EMAIL_FROM` | `World Trading Lab <oceandemy@gmail.com>` | Tên và địa chỉ người gửi hiển thị cho học viên |
+   | `RESEND_API_KEY` | `re_xxxxxxxxxxxx` | Tùy chọn: Khóa API Resend (khi có domain riêng) |
    | `PAYMENT_WEBHOOK_API_KEY` | `khoa_bi_mat_webhook_tuy_chon` | Khóa xác thực webhook từ Casso/SePay |
    | `CRON_SECRET` | `wtl-cron-secret-key-32chars...` | Khóa bí mật bảo vệ API Cron (/api/cron/cleanup & study-reminders) |
 
@@ -384,7 +465,7 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
 
 ---
 
-### 8.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)
+### 9.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)
 
 1. **Đăng nhập Cloudflare**: Vào Dashboard Cloudflare $\rightarrow$ Chọn **Compute (Workers & Pages)** $\rightarrow$ **Create Application** $\rightarrow$ **Pages** $\rightarrow$ **Connect to Git**.
 2. **Chọn Repository**: Chọn repo GitHub của dự án.
@@ -398,7 +479,7 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
 
 ---
 
-### 8.6. Quy Trình CI/CD Tự Động Với GitHub Actions
+### 9.6. Quy Trình CI/CD Tự Động Với GitHub Actions
 
 Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.github/workflows/ci.yml`.
 
@@ -415,7 +496,7 @@ Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.git
 
 ---
 
-### 8.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động (Background Tasks & Maintenance)
+### 9.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động (Background Tasks & Maintenance)
 
 Hệ thống SaaS cung cấp 2 giải pháp linh hoạt để tự động hóa các tác vụ bảo trì cơ sở dữ liệu, tự động hủy đơn hàng dang dở, dọn dẹp dữ liệu rác và gửi email chạy ngầm an toàn:
 

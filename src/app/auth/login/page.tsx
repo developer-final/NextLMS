@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { GraduationCap, Lock, Mail, ArrowRight, UserCheck } from "lucide-react";
+import { GraduationCap, Lock, Mail, ArrowRight, UserCheck, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 function LoginForm() {
@@ -16,6 +16,8 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -37,6 +39,7 @@ function LoginForm() {
     }
 
     setLoading(true);
+    setUnverifiedEmail(null);
     try {
       const res = await signIn("credentials", {
         redirect: false,
@@ -55,6 +58,7 @@ function LoginForm() {
           errMessage = t.auth.accountSuspended;
         } else if (errMessage.includes("verify your email") || errMessage.includes("xác thực email")) {
           errMessage = t.auth.emailNotVerified;
+          setUnverifiedEmail(email);
         } else if (errMessage.includes("Google") || errMessage.includes("google")) {
           errMessage = t.auth.googleAccountNotice;
         }
@@ -187,15 +191,42 @@ function LoginForm() {
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/80 pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
+              className="w-full rounded-xl border border-slate-800 bg-slate-950/80 pl-10 pr-11 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-all"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+              tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
         </div>
+
+        {unverifiedEmail && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-950/40 p-3 text-xs text-amber-300 space-y-1 text-left">
+            <div className="flex items-center gap-1.5 font-semibold text-amber-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {t.auth.emailNotVerified}
+            </div>
+            <p className="text-[11px] text-amber-200/80 leading-relaxed">
+              {t.auth.resendVerifyPrompt}{" "}
+              <Link
+                href={`/auth/verify-email?email=${encodeURIComponent(unverifiedEmail)}`}
+                className="font-bold underline text-brand-400 hover:text-brand-300 transition-colors ml-1"
+              >
+                {t.auth.resendVerifyBtn} →
+              </Link>
+            </p>
+          </div>
+        )}
 
         <button
           type="submit"

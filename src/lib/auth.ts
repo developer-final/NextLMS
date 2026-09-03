@@ -63,13 +63,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Your account has been suspended. Please contact support.");
         }
 
-        if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !user.emailVerified) {
-          throw new Error("Please verify your email before logging in.");
-        }
-
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!isValid) {
           throw new Error("Invalid email or password");
+        }
+
+        if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !user.emailVerified) {
+          throw new Error("Please verify your email before logging in.");
         }
 
         return {

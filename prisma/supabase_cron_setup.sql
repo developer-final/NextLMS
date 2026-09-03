@@ -73,6 +73,26 @@ SELECT cron.schedule(
 );
 
 -- ==============================================================================
+-- JOB 4: PURGE STALE UNVERIFIED STUDENT ACCOUNTS (Runs daily at 04:00 UTC)
+-- Deletes unverified student bot registrations older than 48 hours without orders.
+-- ==============================================================================
+SELECT cron.unschedule('purge-stale-unverified-students')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'purge-stale-unverified-students');
+
+SELECT cron.schedule(
+  'purge-stale-unverified-students',
+  '0 4 * * *', -- Daily at 04:00 UTC
+  $$
+    DELETE FROM "users"
+    WHERE 
+      "role" = 'STUDENT'
+      AND "emailVerified" IS NULL
+      AND "createdAt" < NOW() - INTERVAL '48 hours'
+      AND "id" NOT IN (SELECT DISTINCT "userId" FROM "orders" WHERE "status" = 'COMPLETED');
+  $$
+);
+
+-- ==============================================================================
 -- USEFUL MONITORING QUERIES FOR ADMINS:
 -- ==============================================================================
 -- 1. View all active cron jobs:
