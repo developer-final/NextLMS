@@ -97,6 +97,7 @@ model User {
   reviews         Review[]
   comments        Comment[]
   certificates    Certificate[]
+  postsAuthored   BlogPost[]       @relation("AuthorPosts")
 
   @@map("users")
 }
@@ -113,6 +114,7 @@ model Category {
   updatedAt   DateTime @updatedAt
 
   courses Course[]
+  posts   BlogPost[]
 
   @@map("categories")
 }
@@ -146,6 +148,7 @@ model Course {
   reviews      Review[]
   certificates Certificate[]
   attachments  Attachment[]
+  tags         Tag[]
 
   @@index([status, isFeatured, createdAt(sort: Desc)])
   @@index([categoryId])
@@ -197,6 +200,7 @@ model Attachment {
   id        String   @id @default(cuid())
   courseId  String?
   lessonId  String?
+  postId    String?
   fileName  String
   fileUrl   String
   fileKey   String?
@@ -204,12 +208,62 @@ model Attachment {
   fileType  String?
   createdAt DateTime @default(now())
 
-  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  course Course?   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson Lesson?   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  post   BlogPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
   @@index([lessonId])
+  @@index([postId])
   @@map("attachments")
+}
+
+model BlogPost {
+  id              String       @id @default(cuid())
+  authorId        String
+  categoryId      String?
+  title           String
+  slug            String       @unique
+  summary         String?
+  content         String       // Rich Text / Markdown
+  coverImageUrl   String?
+  status          CourseStatus @default(DRAFT)
+  isFeatured      Boolean      @default(false)
+  viewCount       Int          @default(0)
+  readingTime     Int          @default(1) // Minutes
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  publishedAt     DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  author      User         @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags        Tag[]
+  attachments Attachment[]
+  comments    Comment[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId])
+  @@index([categoryId])
+  @@map("blog_posts")
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts   BlogPost[]
+  courses Course[]
+
+  @@index([slug])
+  @@map("tags")
 }
 
 
@@ -346,19 +400,22 @@ model Review {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  lessonId  String
+  id        String    @id @default(cuid())
+  lessonId  String?
+  postId    String?
   userId    String
   parentId  String?
   content   String
-  isPinned  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isPinned  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson?   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  post   BlogPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
+  @@index([postId])
   @@index([userId])
   @@index([parentId])
   @@map("comments")

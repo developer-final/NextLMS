@@ -8,6 +8,7 @@ import {
   cn,
   calculatePagination,
   serializePrisma,
+  calculateReadingTime,
 } from "./utils";
 
 describe("Utils Library", () => {
@@ -219,6 +220,30 @@ describe("Utils Library", () => {
       expect(serialized.createdAt).toBe(now);
       expect(serialized.orders[0].finalAmount).toBe(900000);
       expect(typeof serialized.orders[0].finalAmount).toBe("number");
+    });
+  });
+
+  describe("calculateReadingTime", () => {
+    it("should return 1 minute for empty or short text", () => {
+      expect(calculateReadingTime("")).toBe(1);
+      expect(calculateReadingTime(null)).toBe(1);
+      expect(calculateReadingTime(undefined)).toBe(1);
+      expect(calculateReadingTime("Hello World")).toBe(1);
+    });
+
+    it("should calculate approx 1 minute for 100 words", () => {
+      const words = Array(100).fill("trading").join(" ");
+      expect(calculateReadingTime(words)).toBe(1);
+    });
+
+    it("should calculate approx 2 minutes for 350 words", () => {
+      const words = Array(350).fill("trading").join(" ");
+      expect(calculateReadingTime(words)).toBe(2);
+    });
+
+    it("should calculate approx 5 minutes for 1000 words", () => {
+      const words = Array(1000).fill("trading").join(" ");
+      expect(calculateReadingTime(words)).toBe(5);
     });
   });
 });

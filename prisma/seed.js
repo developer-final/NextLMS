@@ -18,6 +18,8 @@ async function main() {
   await prisma.lesson.deleteMany();
   await prisma.section.deleteMany();
   await prisma.course.deleteMany();
+  await prisma.blogPost.deleteMany();
+  await prisma.tag.deleteMany();
   await prisma.category.deleteMany();
   await prisma.coupon.deleteMany();
   await prisma.user.deleteMany();
@@ -405,7 +407,117 @@ Trong bài học này, chúng ta tìm hiểu tư duy cốt lõi của Smart Mone
     });
   }
 
-  console.log("🚀 Database Seed completed successfully with realistic SMC course data!");
+  // 12. Create Tags & Link to Courses
+  console.log("Creating Tags and Blog Posts...");
+  const tagPriceAction = await prisma.tag.create({
+    data: { name: "Price Action", slug: "price-action", description: "Phương pháp giao dịch theo hành động giá" },
+  });
+  const tagSMC = await prisma.tag.create({
+    data: { name: "Smart Money Concepts", slug: "smart-money-concepts", description: "Chiến lược dòng tiền thông minh" },
+  });
+  const tagRisk = await prisma.tag.create({
+    data: { name: "Quản Trị Rủi Ro", slug: "quan-tri-rui-ro", description: "Bảo vệ vốn và kỷ luật giao dịch" },
+  });
+
+  if (courseSMC) {
+    await prisma.course.update({
+      where: { id: courseSMC.id },
+      data: {
+        tags: {
+          connect: [{ id: tagPriceAction.id }, { id: tagSMC.id }],
+        },
+      },
+    });
+  }
+
+  // 13. Create Sample Blog Post
+  const blogPost1 = await prisma.blogPost.create({
+    data: {
+      authorId: instructor.id,
+      categoryId: catSMC.id,
+      title: "5 Chiến Lược Price Action Thực Chiến Cho Trader 2026",
+      slug: "5-chien-luoc-price-action-thuc-chien-cho-trader-2026",
+      summary: "Khám phá 5 phương pháp phân tích hành động giá (Price Action) chuyên sâu giúp bạn bắt nhịp cùng dòng tiền thông minh và tối ưu điểm vào lệnh.",
+      content: `## 1. Giới Thiệu Về Price Action Thực Chiến
+
+Price Action (hành động giá) là phương pháp phân tích kỹ thuật dựa trên sự chuyển động thuần túy của giá trên biểu đồ mà không phụ thuộc quá mức vào các chỉ báo trễ.
+
+> "Biểu đồ giá phản ánh tất cả niềm tin, sự sợ hãi và kỳ vọng của hàng triệu người tham gia thị trường."
+
+Khi hiểu được cấu trúc thị trường, bạn sẽ không còn giao dịch theo cảm tính mà đi theo dòng tiền của các tay chơi lớn (Smart Money).
+
+## 2. Chiến Lược 1: Fakey Pattern (Phá Vỡ Giả)
+
+Phá vỡ giả là bẫy thanh khoản kinh điển của thị trường. Khi giá vượt qua ngưỡng kháng cự hoặc hỗ trợ quan trọng, đám đông nhỏ lẻ thường nhảy vào mua đuổi. Ngay sau đó, giá đảo chiều mạnh mẽ:
+
+- **Bước 1**: Xác định vùng cản then chốt (Key Level).
+- **Bước 2**: Quan sát nến Inside Bar hoặc nến pinbar quét thanh khoản.
+- **Bước 3**: Vào lệnh khi nến đảo chiều xác nhận đóng cửa.
+
+\`\`\`javascript
+// Quy tắc quản trị tỷ lệ Risk:Reward tối thiểu 1:2
+const entryPrice = 2450.5;
+const stopLoss = 2442.0;
+const risk = entryPrice - stopLoss;
+const takeProfit = entryPrice + (risk * 2.5);
+console.log("Target RR:", takeProfit);
+\`\`\`
+
+## 3. Chiến Lược 2: Order Block (Khối Lệnh Tổ Chức)
+
+Khối lệnh Order Block là vùng giá cuối cùng mà các tổ chức tài chính lớn đã tích lũy khối lượng lớn trước khi đẩy giá đi một quãng đường dài.
+
+1. Tìm cây nến ngược chiều cuối cùng trước một sóng nến tăng/giảm mạnh mẽ (Imbalance).
+2. Chờ đợi giá hồi quy (Retracement) về vùng Order Block.
+3. Tìm tín hiệu xác nhận ở khung thời gian nhỏ hơn (LTF).
+
+## 4. Quản Trị Rủi Ro & Kỷ Luật Bản Thân
+
+Không có chiến lược nào mang lại tỷ lệ thắng 100%. Yếu tố quyết định bạn có tồn tại được trên thị trường 5 năm, 10 năm hay không chính là:
+
+- Tuyệt đối không mạo hiểm quá 1% - 2% tài khoản cho một lệnh giao dịch.
+- Luôn đặt Stop Loss trước khi nghĩ đến lợi nhuận.
+- Ghi nhật ký giao dịch đều đặn sau mỗi ngày trade.
+
+## 5. Kết Luận
+
+Hành trình trở thành trader thành công không có đường tắt. Hãy kiên trì rèn luyện, kiểm tra dữ liệu lịch sử (backtest) và liên tục nâng cao tư duy quản trị vốn!`,
+      coverImageUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80",
+      status: "PUBLISHED",
+      isFeatured: true,
+      viewCount: 142,
+      readingTime: 4,
+      metaTitle: "5 Chiến Lược Price Action Đỉnh Cao Cho Trader 2026",
+      metaDescription: "Khám phá 5 phương pháp phân tích hành động giá thực chiến cùng cẩm nang quản trị rủi ro chuyên sâu.",
+      metaKeywords: "price action, smc, giao dich tai chinh, order block",
+      publishedAt: new Date(),
+      tags: {
+        connect: [{ id: tagPriceAction.id }, { id: tagSMC.id }, { id: tagRisk.id }],
+      },
+    },
+  });
+
+  // Attach Document
+  await prisma.attachment.create({
+    data: {
+      postId: blogPost1.id,
+      fileName: "Price_Action_Cheat_Sheet_2026.pdf",
+      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      fileSize: 1048576,
+      fileType: "application/pdf",
+    },
+  });
+
+  // Create Blog Comment
+  await prisma.comment.create({
+    data: {
+      postId: blogPost1.id,
+      userId: student.id,
+      content: "Bài viết rất chi tiết và thực tế! Phần giải thích về Order Block rất rõ ràng. Cảm ơn Thầy ạ!",
+    },
+  });
+
+  console.log("🚀 Database Seed completed successfully with realistic SMC course and Blog data!");
 }
 
 main()

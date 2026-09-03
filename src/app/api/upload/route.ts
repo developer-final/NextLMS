@@ -31,9 +31,10 @@ export async function POST(req: Request) {
     const type = ((formData.get("type") as string) || "attachment") as UploadTargetType;
     const courseId = (formData.get("courseId") as string) || undefined;
     const lessonId = (formData.get("lessonId") as string) || undefined;
+    const postId = (formData.get("postId") as string) || undefined;
 
     // Permissions: 'avatar' can be uploaded by any authenticated user for their own profile.
-    // Course assets ('thumbnail', 'video', 'attachment') require staff privileges.
+    // Course and blog assets ('thumbnail', 'video', 'attachment') require staff privileges.
     if (type !== "avatar" && !isStaff) {
       return NextResponse.json(
         { error: "Forbidden: You do not have permission to upload files" },
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // If INSTRUCTOR, ensure they own the course or lesson if IDs provided
+    // If INSTRUCTOR, ensure they own the course, lesson, or post if IDs provided
     if (user.role === "INSTRUCTOR") {
       if (courseId) {
         const course = await prisma.course.findUnique({
@@ -112,6 +113,18 @@ export async function POST(req: Request) {
           );
         }
       }
+      if (postId) {
+        const post = await prisma.blogPost.findUnique({
+          where: { id: postId },
+          select: { authorId: true },
+        });
+        if (post && post.authorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to add resources to this article" },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Generate safe storage key
@@ -130,7 +143,9 @@ export async function POST(req: Request) {
         : "general";
       storageKey = `courses/videos/${folder}/${Date.now()}-${validation.sanitizedName}`;
     } else {
-      const folder = lessonId
+      const folder = postId
+        ? `posts/${postId}`
+        : lessonId
         ? `lessons/${lessonId}`
         : courseId
         ? `courses/${courseId}`
@@ -154,13 +169,14 @@ export async function POST(req: Request) {
       });
     }
 
-    // If attachment and associated with a persisted course or lesson, save to database
+    // If attachment and associated with a persisted course, lesson, or post, save to database
     let createdAttachment = null;
-    if (type === "attachment" && (courseId || lessonId)) {
+    if (type === "attachment" && (courseId || lessonId || postId)) {
       createdAttachment = await prisma.attachment.create({
         data: {
           courseId: courseId || undefined,
           lessonId: lessonId || undefined,
+          postId: postId || undefined,
           fileName: validation.sanitizedName || file.name,
           fileUrl: uploadResult.url,
           fileKey: uploadResult.key,

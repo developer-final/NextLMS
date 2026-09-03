@@ -18,6 +18,7 @@ export async function GET(
       where: { id },
       include: {
         course: true,
+        post: true,
         lesson: {
           include: {
             section: {
@@ -50,6 +51,18 @@ export async function GET(
       (userRole === "INSTRUCTOR" && courseInstructorId === userId);
 
     let isAuthorized = isStaff;
+
+    // If attached to a blog post
+    if (attachment.postId) {
+      if (
+        attachment.post?.status === "PUBLISHED" ||
+        userRole === "ADMIN" ||
+        userRole === "SUPER_ADMIN" ||
+        attachment.post?.authorId === userId
+      ) {
+        isAuthorized = true;
+      }
+    }
 
     // If attached to a free preview lesson
     if (!isAuthorized && attachment.lesson?.isPreview) {

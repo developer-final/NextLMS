@@ -59,6 +59,12 @@ export function slugify(str: string): string {
     .replace(/-+/g, "-");
 }
 
+export function calculateReadingTime(text: string | null | undefined): number {
+  if (!text || !text.trim()) return 1;
+  const wordCount = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(wordCount / 200));
+}
+
 export interface PaginationResult {
   currentPage: number;
   pageSize: number;

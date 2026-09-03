@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  FileText,
   LayoutDashboard,
+  PenTool,
   PlusCircle,
   Receipt,
   Settings,
@@ -48,6 +50,19 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
       label: t.admin.sidebar.createCourse,
       icon: PlusCircle,
       color: "text-amber-400",
+    },
+    {
+      href: "/admin/posts",
+      label: t.admin.sidebar.posts,
+      icon: FileText,
+      color: "text-cyan-400",
+      exact: true,
+    },
+    {
+      href: "/admin/posts/new",
+      label: t.admin.sidebar.createPost,
+      icon: PenTool,
+      color: "text-teal-400",
     },
     {
       href: "/admin/categories",
@@ -95,7 +110,13 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
           {navItems
             .filter((item) => {
               if (userRole === "INSTRUCTOR") {
-                return ["/admin", "/admin/courses", "/admin/courses/new"].includes(item.href);
+                return [
+                  "/admin",
+                  "/admin/courses",
+                  "/admin/courses/new",
+                  "/admin/posts",
+                  "/admin/posts/new",
+                ].includes(item.href);
               }
               return true;
             })

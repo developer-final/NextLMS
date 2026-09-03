@@ -340,11 +340,12 @@ export function validateBankSettingsInput(input: {
 export function validateCommentInput(input: {
   content?: string | null;
   lessonId?: string | null;
+  postId?: string | null;
 }): ValidationResult {
-  const { content, lessonId } = input;
+  const { content, lessonId, postId } = input;
 
-  if (!lessonId?.trim()) {
-    return { isValid: false, field: "lessonId", error: "Thiếu thông tin bài học" };
+  if (!lessonId?.trim() && !postId?.trim()) {
+    return { isValid: false, field: "target", error: "Thiếu thông tin bài học hoặc bài viết" };
   }
 
   if (!content?.trim()) {

@@ -5,6 +5,8 @@ import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 import { 
   BookOpen, 
+  Compass,
+  FileText,
   GraduationCap, 
   LayoutDashboard, 
   LogOut, 
@@ -13,7 +15,6 @@ import {
   ShieldAlert, 
   User as UserIcon, 
   X,
-  Compass
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
@@ -62,6 +63,13 @@ export default function Navbar() {
           >
             <BookOpen className="h-4 w-4" />
             {t.nav.categories}
+          </Link>
+          <Link
+            href="/blog"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-300 hover:text-brand-400 transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            {t.nav.blog}
           </Link>
           <Link
             href="/about"
@@ -128,14 +136,24 @@ export default function Navbar() {
                     </Link>
 
                     {isInstructor && (
-                      <Link
-                        href="/admin/courses"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
-                      >
-                        <BookOpen className="h-4 w-4" />
-                        {t.nav.manageCourses}
-                      </Link>
+                      <>
+                        <Link
+                          href="/admin/courses"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
+                        >
+                          <BookOpen className="h-4 w-4" />
+                          {t.nav.manageCourses}
+                        </Link>
+                        <Link
+                          href="/admin/posts"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
+                        >
+                          <FileText className="h-4 w-4" />
+                          {t.admin.sidebar.posts}
+                        </Link>
+                      </>
                     )}
 
                     {isAdmin && (
@@ -208,6 +226,13 @@ export default function Navbar() {
             className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
           >
             {t.nav.categories}
+          </Link>
+          <Link
+            href="/blog"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+          >
+            {t.nav.blog}
           </Link>
           <Link
             href="/about"

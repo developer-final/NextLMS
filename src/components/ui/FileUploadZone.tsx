@@ -20,6 +20,7 @@ interface FileUploadZoneProps {
   type: "thumbnail" | "attachment" | "video";
   courseId?: string;
   lessonId?: string;
+  postId?: string;
   currentUrl?: string;
   onUploadSuccess: (result: {
     url: string;
@@ -39,6 +40,7 @@ export default function FileUploadZone({
   type,
   courseId,
   lessonId,
+  postId,
   currentUrl,
   onUploadSuccess,
   onRemove,
@@ -105,6 +107,7 @@ export default function FileUploadZone({
     formData.append("type", type);
     if (courseId) formData.append("courseId", courseId);
     if (lessonId) formData.append("lessonId", lessonId);
+    if (postId) formData.append("postId", postId);
 
     try {
       setUploadProgress(50);
