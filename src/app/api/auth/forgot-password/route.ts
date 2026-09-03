@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, forgotPasswordRateLimiter } from "@/lib/rate-limit";
@@ -53,12 +53,16 @@ export async function POST(req: Request) {
         },
       });
 
-      sendPasswordResetEmail({
-        to: cleanEmail,
-        name: user.name,
-        token,
-      }).catch((err) => {
-        console.error("[ForgotPassword] Failed to send reset email:", err);
+      after(async () => {
+        try {
+          await sendPasswordResetEmail({
+            to: cleanEmail,
+            name: user.name,
+            token,
+          });
+        } catch (err) {
+          console.error("[ForgotPassword] Failed to send reset email:", err);
+        }
       });
     }
 

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -99,13 +99,17 @@ export async function POST(req: Request) {
       return { newUser: createdUser, verificationToken: token };
     });
 
-    // Send verification email in background
-    sendVerificationEmail({
-      to: cleanEmail,
-      name: cleanName,
-      token: verificationToken,
-    }).catch((err) => {
-      console.error("[Register] Failed to send verification email:", err);
+    // Send verification email safely in background using Next.js 15 after() hook
+    after(async () => {
+      try {
+        await sendVerificationEmail({
+          to: cleanEmail,
+          name: cleanName,
+          token: verificationToken,
+        });
+      } catch (err) {
+        console.error("[Register] Failed to send verification email:", err);
+      }
     });
 
     const responseMessage = isStrictVerify

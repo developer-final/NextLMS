@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, forgotPasswordRateLimiter } from "@/lib/rate-limit";
@@ -53,11 +53,17 @@ export async function POST(req: Request) {
         },
       });
 
-      sendVerificationEmail({
-        to: cleanEmail,
-        name: user.name,
-        token,
-      }).catch((err) => console.error("Error resending verify email:", err));
+      after(async () => {
+        try {
+          await sendVerificationEmail({
+            to: cleanEmail,
+            name: user.name,
+            token,
+          });
+        } catch (err) {
+          console.error("Error resending verify email:", err);
+        }
+      });
     }
 
     // Always respond with a generic success to prevent email enumeration

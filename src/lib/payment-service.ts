@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PaymentMethod } from "@prisma/client";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/async-task";
 
 export interface ProcessPaymentParams {
   orderCode: string;
@@ -199,14 +200,18 @@ export async function completeOrderAndEnroll({
       price: `${Number(item.price).toLocaleString("vi-VN")} đ`,
     }));
 
-    sendOrderConfirmationEmail({
-      to: order.user.email,
-      name: order.user.name,
-      orderCode: order.orderCode,
-      totalAmount: `${Number(order.finalAmount).toLocaleString("vi-VN")} đ`,
-      items: emailItems,
-    }).catch((err) => {
-      console.error("[Payment Fulfillment] Failed to send invoice email:", err);
+    runInBackground(async () => {
+      try {
+        await sendOrderConfirmationEmail({
+          to: order.user!.email!,
+          name: order.user!.name,
+          orderCode: order.orderCode,
+          totalAmount: `${Number(order.finalAmount).toLocaleString("vi-VN")} đ`,
+          items: emailItems,
+        });
+      } catch (err) {
+        console.error("[Payment Fulfillment] Failed to send invoice email:", err);
+      }
     });
   }
 

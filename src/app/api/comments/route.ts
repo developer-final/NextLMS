@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -178,34 +178,35 @@ export async function POST(req: Request) {
       },
     });
 
-    // Notify original question author if this is a reply on a lesson
+    // Notify original question author safely in background if this is a reply on a lesson
     if (parentId && lessonId) {
-      prisma.comment
-        .findUnique({
-          where: { id: parentId },
-          include: {
-            user: true,
-            lesson: {
-              select: {
-                title: true,
-                slug: true,
-                section: {
-                  select: {
-                    course: { select: { slug: true } },
+      after(async () => {
+        try {
+          const parentComment = await prisma.comment.findUnique({
+            where: { id: parentId },
+            include: {
+              user: true,
+              lesson: {
+                select: {
+                  title: true,
+                  slug: true,
+                  section: {
+                    select: {
+                      course: { select: { slug: true } },
+                    },
                   },
                 },
               },
             },
-          },
-        })
-        .then((parentComment) => {
+          });
+
           if (
             parentComment &&
             parentComment.userId !== userId &&
             parentComment.user?.email &&
             parentComment.lesson
           ) {
-            sendQAReplyEmail({
+            await sendQAReplyEmail({
               to: parentComment.user.email,
               studentName: parentComment.user.name,
               replierName: session.user.name || "Instructor",
@@ -213,12 +214,12 @@ export async function POST(req: Request) {
               replyContent: trimmedContent,
               courseSlug: parentComment.lesson.section.course.slug,
               lessonSlug: parentComment.lesson.slug,
-            }).catch((err) =>
-              console.error("[Comments] Error sending QA reply email:", err)
-            );
+            });
           }
-        })
-        .catch((err) => console.error("[Comments] Error looking up parent comment:", err));
+        } catch (err) {
+          console.error("[Comments] Error sending QA reply email in background:", err);
+        }
+      });
     }
 
     return NextResponse.json({ success: true, comment });

@@ -354,6 +354,7 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
    | `NEXT_PUBLIC_BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
    | `NEXT_PUBLIC_BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
    | `PAYMENT_WEBHOOK_API_KEY` | `khoa_bi_mat_webhook_tuy_chon` | Khóa xác thực webhook từ Casso/SePay |
+   | `CRON_SECRET` | `wtl-cron-secret-key-32chars...` | Khóa bí mật bảo vệ API Cron (/api/cron/cleanup & study-reminders) |
 
 5. **Deploy**: Bấm nút **"Deploy"**.
    - Vercel sẽ tự động tải mã nguồn, chạy `prisma generate` và `next build`.
@@ -389,6 +390,69 @@ Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.git
     4. **Build Verification**: Thử nghiệm đóng gói dự án Next.js (`next build`) để phát hiện sớm các lỗi trang tĩnh hoặc bundle.
 - Nếu tất cả các bước đều vượt qua (dấu tích xanh ✅), code mới được coi là an toàn để deploy lên Production.
 - Nếu có bất kỳ lỗi nào (dấu x đỏ ❌), GitHub sẽ cảnh báo và chặn việc merge code lỗi vào nhánh chính.
+
+---
+
+### 8.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động (Background Tasks & Maintenance)
+
+Hệ thống SaaS cung cấp 2 giải pháp linh hoạt để tự động hóa các tác vụ bảo trì cơ sở dữ liệu, tự động hủy đơn hàng dang dở, dọn dẹp dữ liệu rác và gửi email chạy ngầm an toàn:
+
+#### 🟢 Giải Pháp 1: Sử Dụng Supabase `pg_cron` (Khuyên Dùng cho Database - Hoàn Toàn Miễn Phí)
+`pg_cron` là extension chạy trực tiếp bên trong engine PostgreSQL của Supabase, thao tác dữ liệu nội bộ với tốc độ mili-giây và không bị ảnh hưởng bởi giới hạn thời gian (timeout) của serverless function.
+
+**Các bước kích hoạt:**
+1. Đăng nhập vào [Supabase Dashboard](https://supabase.com/dashboard) $\rightarrow$ Chọn Project của bạn.
+2. Tại menu điều hướng bên trái, chọn mục **SQL Editor**.
+3. Mở tệp [`prisma/supabase_cron_setup.sql`](./prisma/supabase_cron_setup.sql) trong mã nguồn dự án, sao chép toàn bộ nội dung, dán vào SQL Editor và bấm nút **Run**.
+4. **Các tác vụ nền sẽ được kích hoạt tự động theo lịch trình:**
+   * **`cancel-stale-pending-orders`** (Chạy mỗi tiếng tại phút 0: `0 * * * *`): Quét và tự động chuyển các đơn hàng ở trạng thái `PENDING` quá 24 giờ sang `CANCELLED` để giải phóng slot và chuẩn hóa báo cáo doanh thu.
+   * **`cleanup-expired-auth-tokens`** (Chạy hàng ngày lúc 03:00 UTC: `0 3 * * *`): Xóa sạch các mã xác nhận email và token đặt lại mật khẩu đã hết hạn (`expiresAt < NOW()`).
+   * **`cleanup-orphaned-attachments`** (Chạy hàng ngày lúc 03:30 UTC: `30 3 * * *`): Xóa các bản ghi tải lên bị mồ côi (không gắn với bất kỳ bài học, khóa học hay bài viết nào sau 24 giờ).
+
+**Các câu lệnh SQL quản trị & giám sát trong Supabase:**
+```sql
+-- 1. Xem danh sách các cron job đang hoạt động:
+SELECT jobid, jobname, schedule, command, active FROM cron.job;
+
+-- 2. Xem lịch sử thực thi và nhật ký chi tiết của các lần chạy:
+SELECT jobid, runid, job_pid, status, return_message, start_time, end_time 
+FROM cron.job_run_details 
+ORDER BY start_time DESC 
+LIMIT 20;
+
+-- 3. Hủy một cron job nếu không còn nhu cầu:
+SELECT cron.unschedule('cancel-stale-pending-orders');
+```
+
+---
+
+#### 🔵 Giải Pháp 2: Sử Dụng Vercel Cron (Next.js App Router API Routes)
+Dành cho môi trường triển khai trên Vercel. Lịch trình đã được đăng ký sẵn trong [`vercel.json`](./vercel.json):
+* **`/api/cron/cleanup`** (`0 * * * *` - Hàng giờ): Tự động hủy đơn quá hạn 24h, xóa token hết hạn, xóa bản ghi tệp mồ côi và **xóa trực tiếp tệp vật lý trên Cloudflare R2 / AWS S3** thông qua S3 SDK, đồng thời thanh lọc các bài viết đã xóa mềm (`deletedAt`) quá 90 ngày.
+* **`/api/cron/study-reminders`** (`0 9 * * *` - 9:00 sáng hàng ngày): Quét các học viên có tiến độ chưa hoàn thành và đã không vào học từ 5 ngày trở lên để gửi email nhắc nhở học tập.
+
+**Cấu hình biến môi trường bảo vệ:**
+1. Thêm biến `CRON_SECRET` vào mục **Settings $\rightarrow$ Environment Variables** trên Vercel Dashboard (ví dụ: chuỗi ký tự bí mật dài 32+ ký tự).
+2. Khi Vercel Cron kích hoạt, nó sẽ tự động gửi header `Authorization: Bearer <CRON_SECRET>` để xác thực danh tính an toàn.
+
+**Thử nghiệm gọi thủ công (Manual Trigger):**
+```bash
+# Gọi qua tham số query bí mật:
+curl -X GET "https://your-domain.com/api/cron/cleanup?secret=YOUR_CRON_SECRET"
+
+# Hoặc gọi qua Header Bearer:
+curl -X POST "https://your-domain.com/api/cron/cleanup" \
+     -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+---
+
+#### ⚡ Cơ Chế Gửi Email Chạy Ngầm An Toàn (Next.js 15 `after()`)
+Trên các môi trường Serverless như Vercel hay AWS Lambda, việc gọi gửi email bất đồng bộ mà không có `await` (kiểu fire-and-forget `.catch()`) có thể khiến tiến trình bị ngắt đột ngột ngay khi server trả về HTTP Response, dẫn tới việc học viên không nhận được email.
+
+Hệ thống đã giải quyết triệt để vấn đề này bằng module [`src/lib/async-task.ts`](./src/lib/async-task.ts) (`runInBackground`) ứng dụng hook `after()` chuẩn của **Next.js 15**:
+* **Phạm vi bảo vệ:** Gửi email xác thực khi đăng ký, gửi lại mã kích hoạt, quên mật khẩu, email hóa đơn thanh toán thành công và thông báo phản hồi hỏi đáp Q&A.
+* **Lợi ích:** Phản hồi giao diện người dùng ngay lập tức (< 50ms), đồng thời máy chủ serverless tiếp tục giữ kết nối chạy ngầm để đảm bảo email được chuyển giao trọn vẹn qua Resend REST API.
 
 ---
 
