@@ -21,7 +21,7 @@ export async function DELETE(
       user.role === "INSTRUCTOR";
 
     if (!isStaff) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Staff privileges required" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -43,7 +43,7 @@ export async function DELETE(
 
     if (!attachment) {
       return NextResponse.json(
-        { error: "Tài liệu đính kèm không tồn tại" },
+        { error: "Attachment does not exist" },
         { status: 404 }
       );
     }
@@ -55,7 +55,7 @@ export async function DELETE(
         attachment.lesson?.section?.course?.instructorId;
       if (courseOwnerId && courseOwnerId !== user.id) {
         return NextResponse.json(
-          { error: "Bạn chỉ có thể xóa tài liệu thuộc khóa học của mình" },
+          { error: "Forbidden: You can only delete attachments from your own courses" },
           { status: 403 }
         );
       }
@@ -73,12 +73,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Đã xóa tài liệu đính kèm thành công!",
+      message: "Attachment deleted successfully!",
     });
   } catch (error: any) {
     console.error("Delete Attachment Error:", error);
     return NextResponse.json(
-      { error: "Lỗi xóa tài liệu đính kèm" },
+      { error: "Error deleting attachment" },
       { status: 500 }
     );
   }

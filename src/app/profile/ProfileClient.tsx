@@ -80,21 +80,13 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
 
     // Client-side quick size validation (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(
-        language === "vi"
-          ? "Dung lượng ảnh đại diện không được vượt quá 5MB"
-          : "Avatar image size must not exceed 5MB"
-      );
+      toast.error(t.common.fileTooLarge);
       return;
     }
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      toast.error(
-        language === "vi"
-          ? "Định dạng ảnh không được hỗ trợ. Vui lòng chọn JPG, PNG hoặc WebP"
-          : "Unsupported format. Please choose JPG, PNG or WebP"
-      );
+      toast.error(t.profile.messages.unsupportedAvatarFormat);
       return;
     }
 
@@ -111,7 +103,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Tải ảnh đại diện thất bại");
+        throw new Error(data.error || t.profile.messages.avatarUploadFailed);
       }
 
       const newAvatarUrl = data.url;
@@ -123,7 +115,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       toast.success(t.profile.messages.avatarSuccess);
     } catch (err: any) {
       console.error("Avatar upload failed:", err);
-      toast.error(err.message || "Lỗi khi tải ảnh đại diện lên máy chủ");
+      toast.error(err.message || t.profile.messages.avatarUploadFailed);
     } finally {
       setIsUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -149,20 +141,16 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Không thể khôi phục ảnh đại diện mặc định");
+        throw new Error(data.error || t.profile.messages.avatarResetFailed);
       }
 
       const defaultAvatarUrl = data.user.avatarUrl;
       setProfile((prev) => ({ ...prev, avatarUrl: defaultAvatarUrl }));
 
       await updateSession({ avatarUrl: defaultAvatarUrl });
-      toast.success(
-        language === "vi"
-          ? "Đã khôi phục ảnh đại diện mặc định"
-          : "Avatar reset to default successfully"
-      );
+      toast.success(t.profile.messages.avatarResetSuccess);
     } catch (err: any) {
-      toast.error(err.message || "Lỗi khi đặt lại ảnh đại diện");
+      toast.error(err.message || t.profile.messages.avatarResetFailed);
     } finally {
       setIsUploadingAvatar(false);
     }
@@ -172,9 +160,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error(
-        language === "vi" ? "Họ và tên không được để trống" : "Name cannot be empty"
-      );
+      toast.error(t.profile.messages.detailsSaveFailed);
       return;
     }
 
@@ -192,7 +178,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Cập nhật thông tin thất bại");
+        throw new Error(data.error || t.profile.messages.detailsSaveFailed);
       }
 
       setProfile((prev) => ({
@@ -205,9 +191,9 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       // Update NextAuth session so Navbar updates immediately
       await updateSession({ name: data.user.name });
 
-      toast.success(t.profile.messages.updateSuccess);
+      toast.success(t.profile.messages.detailsSaveSuccess);
     } catch (err: any) {
-      toast.error(err.message || "Lỗi khi lưu thông tin");
+      toast.error(err.message || t.profile.messages.detailsSaveFailed);
     } finally {
       setIsSavingDetails(false);
     }
@@ -218,29 +204,17 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
     e.preventDefault();
 
     if (profile.hasPassword && !currentPassword) {
-      toast.error(
-        language === "vi"
-          ? "Vui lòng nhập mật khẩu hiện tại"
-          : "Please enter your current password"
-      );
+      toast.error(t.profile.messages.currentPasswordIncorrect);
       return;
     }
 
     if (!newPassword || newPassword.length < 6) {
-      toast.error(
-        language === "vi"
-          ? "Mật khẩu mới phải có ít nhất 6 ký tự"
-          : "New password must be at least 6 characters"
-      );
+      toast.error(t.auth.passwordTooShort);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error(
-        language === "vi"
-          ? "Mật khẩu xác nhận không khớp"
-          : "Confirmation password does not match"
-      );
+      toast.error(t.auth.passwordMismatch);
       return;
     }
 
@@ -258,7 +232,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Đổi mật khẩu thất bại");
+        throw new Error(data.error || t.profile.messages.passwordChangeFailed);
       }
 
       setProfile((prev) => ({ ...prev, hasPassword: true }));
@@ -266,9 +240,9 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
       setNewPassword("");
       setConfirmPassword("");
 
-      toast.success(t.profile.messages.passwordSuccess);
+      toast.success(t.profile.messages.passwordChangeSuccess);
     } catch (err: any) {
-      toast.error(err.message || "Lỗi khi cập nhật mật khẩu");
+      toast.error(err.message || t.profile.messages.passwordChangeFailed);
     } finally {
       setIsChangingPassword(false);
     }
@@ -276,7 +250,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
 
   // Format creation date
   const formattedDate = new Date(profile.createdAt).toLocaleDateString(
-    language === "vi" ? "vi-VN" : "en-US",
+    language,
     {
       year: "numeric",
       month: "long",
@@ -347,16 +321,10 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
 
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-950 text-brand-400 border border-brand-800/80">
                 {profile.role === "ADMIN" || profile.role === "SUPER_ADMIN"
-                  ? language === "vi"
-                    ? "Quản trị viên"
-                    : "Administrator"
+                  ? t.profile.roles.admin
                   : profile.role === "INSTRUCTOR"
-                  ? language === "vi"
-                    ? "Giảng viên"
-                    : "Instructor"
-                  : language === "vi"
-                  ? "Học viên"
-                  : "Student"}
+                  ? t.profile.roles.instructor
+                  : t.profile.roles.student}
               </span>
 
               {profile.status === "ACTIVE" ? (
@@ -380,9 +348,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
               </p>
             ) : (
               <p className="text-xs text-slate-500 italic mb-3">
-                {language === "vi"
-                  ? "Chưa thiết lập chức danh chuyên môn"
-                  : "No professional headline set"}
+                {t.profile.noHeadline}
               </p>
             )}
 
@@ -458,9 +424,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
               {t.profile.tabs.details}
             </h2>
             <p className="text-xs text-slate-400">
-              {language === "vi"
-                ? "Cập nhật tên hiển thị, dòng giới thiệu nghề nghiệp và tiểu sử cá nhân của bạn."
-                : "Update your display name, professional headline, and personal bio."}
+              {t.profile.detailsDesc}
             </p>
           </div>
 
@@ -569,12 +533,8 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
             </h2>
             <p className="text-xs text-slate-400">
               {profile.hasPassword
-                ? language === "vi"
-                  ? "Bảo vệ tài khoản bằng cách sử dụng mật khẩu mạnh kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt."
-                  : "Protect your account by using a strong password with letters, numbers, and symbols."
-                : language === "vi"
-                ? "Tài khoản của bạn được liên kết qua Google OAuth. Bạn có thể thiết lập mật khẩu để đăng nhập trực tiếp."
-                : "Your account was created via Google OAuth. You can set up a password to log in directly via email."}
+                ? t.profile.securityDescPassword
+                : t.profile.securityDescOAuth}
             </p>
           </div>
 
@@ -717,7 +677,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
                 href="/my-courses"
                 className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-brand-400 hover:text-brand-300 transition-colors"
               >
-                {language === "vi" ? "Xem khóa học của tôi" : "Go to my courses"}
+                {t.myCourses.pageTitle}
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -737,9 +697,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
               </div>
 
               <span className="mt-6 text-xs text-slate-500">
-                {language === "vi"
-                  ? "Cấp tự động khi hoàn thành 100% khóa học"
-                  : "Issued upon 100% course completion"}
+                {t.profile.certIssuedHint}
               </span>
             </div>
 
@@ -758,9 +716,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
               </div>
 
               <span className="mt-6 text-xs text-slate-500">
-                {language === "vi"
-                  ? "Đóng góp đánh giá cho cộng đồng"
-                  : "Feedback shared with community"}
+                {t.profile.reviewsHint}
               </span>
             </div>
           </div>
@@ -769,7 +725,7 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
           <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
             <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-brand-400" />
-              {language === "vi" ? "Thông Tin Xác Thực Tài Khoản" : "Account Verification Summary"}
+              {t.profile.verificationSummary}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -780,17 +736,17 @@ export default function ProfileClient({ initialProfile }: ProfileClientProps) {
 
               <div className="p-4 rounded-xl border border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
                 <span className="text-slate-400">
-                  {language === "vi" ? "Xác thực Email:" : "Email Verified:"}
+                  {t.profile.emailVerifiedLabel}
                 </span>
                 {profile.emailVerified ? (
                   <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    {language === "vi" ? "Đã xác thực" : "Verified"}
+                    {t.profile.verified}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 font-semibold text-amber-400">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    {language === "vi" ? "Chưa kích hoạt" : "Unverified"}
+                    {t.profile.unverified}
                   </span>
                 )}
               </div>

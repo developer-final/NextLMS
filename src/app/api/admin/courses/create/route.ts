@@ -9,12 +9,12 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Please log in" }, { status: 403 });
     }
     const user = session.user;
 
     if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && user.role !== "INSTRUCTOR") {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Staff privileges required" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -111,11 +111,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Tạo khóa học thành công!",
+      message: "Course created successfully!",
       course,
     });
   } catch (error: any) {
     console.error("Create Course Error:", error);
-    return NextResponse.json({ error: "Lỗi tạo khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error creating course" }, { status: 500 });
   }
 }

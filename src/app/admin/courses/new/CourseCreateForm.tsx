@@ -29,7 +29,7 @@ interface CourseCreateFormProps {
 
 export default function CourseCreateForm({ categories }: CourseCreateFormProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(false);
 
   // General course info
@@ -118,7 +118,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
 
   const removeSection = (sIdx: number) => {
     if (sections.length <= 1) {
-      toast.error("Khóa học cần có ít nhất 1 chương");
+      toast.error(t.admin.courses.minSectionsRequired);
       return;
     }
     setSections(sections.filter((_, idx) => idx !== sIdx));
@@ -140,7 +140,7 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
   const removeLesson = (sIdx: number, lIdx: number) => {
     const updated = [...sections];
     if (updated[sIdx].lessons.length <= 1) {
-      toast.error("Mỗi chương cần có ít nhất 1 bài học");
+      toast.error(t.admin.courses.minLessonsRequired);
       return;
     }
     updated[sIdx].lessons = updated[sIdx].lessons.filter((_: any, idx: number) => idx !== lIdx);
@@ -170,7 +170,15 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
       sections,
     });
     if (!validation.isValid) {
-      toast.error(validation.error);
+      toast.error(
+        validation.error?.includes("giá gốc")
+          ? t.admin.courses.salePriceInvalid
+          : validation.error?.includes("tiêu đề")
+          ? t.admin.courses.courseTitleRequired
+          : validation.error?.includes("chương")
+          ? t.admin.courses.minSectionsRequired
+          : (t.admin.courses.courseValidationFailed || validation.error)
+      );
       return;
     }
 
@@ -585,9 +593,9 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
                               updateLessonField(sIdx, lIdx, "videoUrl", res.url);
                               updateLessonField(sIdx, lIdx, "contentType", "VIDEO_CDN");
                               setOpenLessonVideoUploadKey(null);
-                              toast.success("Đã tải video bài học lên S3 thành công!");
+                              toast.success(t.admin.courses.videoUploadSuccess);
                             }}
-                            helperText="Hỗ trợ MP4, WebM, MOV (Tối đa 1GB lưu trữ S3)"
+                            helperText={t.admin.courses.videoUploadHelp}
                             className="py-1"
                           />
                         ) : (

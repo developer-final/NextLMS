@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Vui lòng nhập đầy đủ Email và Mật khẩu");
+          throw new Error("Please enter your email and password");
         }
 
         const user = await prisma.user.findUnique({
@@ -39,26 +39,26 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          throw new Error("Tài khoản hoặc mật khẩu không chính xác");
+          throw new Error("Invalid email or password");
         }
 
         if (!user.passwordHash) {
           throw new Error(
-            "Tài khoản này được đăng ký qua Google. Vui lòng bấm 'Đăng nhập với Google' hoặc dùng tính năng 'Quên mật khẩu' để tạo mật khẩu."
+            "This account was registered via Google. Please sign in with Google or use 'Forgot Password' to set a password."
           );
         }
 
         if (user.status === "BLOCKED") {
-          throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+          throw new Error("Your account has been suspended. Please contact support.");
         }
 
         if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !user.emailVerified) {
-          throw new Error("Vui lòng xác thực email của bạn trước khi đăng nhập.");
+          throw new Error("Please verify your email before logging in.");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!isValid) {
-          throw new Error("Tài khoản hoặc mật khẩu không chính xác");
+          throw new Error("Invalid email or password");
         }
 
         return {
@@ -85,7 +85,7 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser) {
           if (dbUser.status === "BLOCKED") {
-            throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            throw new Error("Your account has been suspended. Please contact support.");
           }
           // Mark emailVerified if not set yet
           if (!dbUser.emailVerified) {
@@ -101,7 +101,7 @@ export const authOptions: NextAuthOptions = {
           dbUser = await prisma.user.create({
             data: {
               email: cleanEmail,
-              name: user.name || "Học viên Google",
+              name: user.name || "Google Student",
               avatarUrl: user.image || null,
               role,
               status: "ACTIVE",

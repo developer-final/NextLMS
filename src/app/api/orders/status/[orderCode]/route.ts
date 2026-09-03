@@ -12,7 +12,7 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: Please log in" }, { status: 401 });
     }
 
     const { orderCode } = await params;
@@ -20,7 +20,7 @@ export async function GET(
     const userRole = session.user?.role;
 
     if (!orderCode) {
-      return NextResponse.json({ error: "Thiếu mã đơn hàng" }, { status: 400 });
+      return NextResponse.json({ error: "Missing order code" }, { status: 400 });
     }
 
     const order = await prisma.order.findUnique({
@@ -47,12 +47,12 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Security check: Only owner or admin
     if (order.userId !== userId && userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Không có quyền truy cập" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: You do not have permission to view this order" }, { status: 403 });
     }
 
     return NextResponse.json({
@@ -65,6 +65,6 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Check Order Status Error:", error);
-    return NextResponse.json({ error: "Lỗi kiểm tra trạng thái đơn hàng" }, { status: 500 });
+    return NextResponse.json({ error: "Error checking order status" }, { status: 500 });
   }
 }

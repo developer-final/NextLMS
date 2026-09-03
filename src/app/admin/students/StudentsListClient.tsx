@@ -42,7 +42,7 @@ export default function StudentsListClient({
 }: StudentsListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [students, setStudents] = useState<any[]>(initialStudents);
   const [search, setSearch] = useState(currentSearch);
@@ -119,11 +119,11 @@ export default function StudentsListClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error granting access");
+        toast.error(data.error || t.admin.students.grantFailed);
         return;
       }
 
-      toast.success("🎉 " + data.message);
+      toast.success(`🎉 ${t.admin.students.grantSuccess}`);
       setSelectedStudent(null);
       // Update local state
       const targetCourse = courses.find((c) => c.id === selectedCourseId);
@@ -151,7 +151,7 @@ export default function StudentsListClient({
       );
       router.refresh();
     } catch (err) {
-      toast.error("Error granting access");
+      toast.error(t.admin.students.grantFailed);
     } finally {
       setGranting(false);
     }
@@ -172,7 +172,7 @@ export default function StudentsListClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi thu hồi quyền học");
+        toast.error(data.error || t.admin.students.revokeFailed);
         return;
       }
 
@@ -190,7 +190,7 @@ export default function StudentsListClient({
       );
       router.refresh();
     } catch {
-      toast.error("Lỗi thu hồi quyền học");
+      toast.error(t.admin.students.revokeFailed);
     }
   };
 
@@ -218,7 +218,7 @@ export default function StudentsListClient({
       setStudents((prev) =>
         prev.map((s) => (s.id === studentId ? { ...s, status: currentStatus } : s))
       );
-      toast.error("Lỗi cập nhật trạng thái");
+      toast.error(t.admin.students.statusUpdateFailed);
     }
   };
 

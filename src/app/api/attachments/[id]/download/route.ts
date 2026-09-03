@@ -32,7 +32,7 @@ export async function GET(
 
     if (!attachment) {
       return NextResponse.json(
-        { error: "Tài liệu không tồn tại hoặc đã bị gỡ bỏ" },
+        { error: "Attachment does not exist or has been removed" },
         { status: 404 }
       );
     }
@@ -76,7 +76,7 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            "Bạn cần ghi danh vào khóa học này để tải tài liệu đính kèm",
+            "You need to be enrolled in this course to download attachments",
         },
         { status: 403 }
       );
@@ -101,13 +101,13 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { error: "Không tìm thấy đường dẫn tệp tin" },
+      { error: "File URL not found" },
       { status: 404 }
     );
   } catch (error: any) {
     console.error("Download Attachment Error:", error);
     return NextResponse.json(
-      { error: "Lỗi tạo đường dẫn tải tài liệu" },
+      { error: "Error generating attachment download link" },
       { status: 500 }
     );
   }

@@ -16,11 +16,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     if (!email) {
-      toast.error(
-        language === "en"
-          ? "Please enter your email"
-          : "Vui lòng nhập địa chỉ email của bạn"
-      );
+      toast.error(t.auth.resendEmailPrompt);
       return;
     }
 
@@ -35,24 +31,15 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(
-          data.error ||
-            (language === "en"
-              ? "Failed to process request"
-              : "Không thể xử lý yêu cầu")
-        );
+        toast.error(data.error || t.common.somethingWentWrong);
         setLoading(false);
         return;
       }
 
       setSent(true);
-      toast.success(data.message);
+      toast.success(t.auth.forgotPasswordSent);
     } catch {
-      toast.error(
-        language === "en"
-          ? "Connection error. Please try again."
-          : "Đã xảy ra lỗi kết nối. Vui lòng thử lại."
-      );
+      toast.error(t.common.connectionError);
     } finally {
       setLoading(false);
     }
@@ -78,14 +65,13 @@ export default function ForgotPasswordPage() {
           <div className="space-y-5 text-center">
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/30 p-4 text-xs text-emerald-300 space-y-2">
               <div className="flex items-center justify-center gap-1.5 font-bold text-emerald-400 text-sm">
-                <CheckCircle2 className="h-4 w-4" /> Đã gửi hướng dẫn
+                <CheckCircle2 className="h-4 w-4" /> {t.auth.forgotPasswordSent}
               </div>
               <p>
-                Nếu email <strong className="text-white">{email}</strong> tồn tại trong hệ thống,
-                liên kết đặt lại mật khẩu đã được gửi đến hộp thư của bạn.
+                {t.auth.forgotPasswordInstruction}
               </p>
               <p className="text-[11px] text-slate-400">
-                ⚠️ Liên kết chỉ có hiệu lực trong vòng <strong>15 phút</strong>. Vui lòng kiểm tra cả thư mục Spam.
+                ⚠️ {t.auth.forgotPasswordSpamNote}
               </p>
             </div>
 

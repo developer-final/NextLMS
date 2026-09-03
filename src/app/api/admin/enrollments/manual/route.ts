@@ -7,18 +7,18 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
     const user = session.user;
 
     if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
 
     const { userId, courseId } = await req.json();
 
     if (!userId || !courseId) {
-      return NextResponse.json({ error: "Thiếu userId hoặc courseId" }, { status: 400 });
+      return NextResponse.json({ error: "Missing userId or courseId" }, { status: 400 });
     }
 
     const enrollment = await prisma.enrollment.upsert({
@@ -38,12 +38,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Cấp quyền học thành công cho học viên!",
+      message: "Access granted successfully to student!",
       enrollment,
     });
   } catch (error: any) {
     console.error("Manual Enrollment POST Error:", error);
-    return NextResponse.json({ error: "Lỗi cấp quyền học viên" }, { status: 500 });
+    return NextResponse.json({ error: "Error granting student access" }, { status: 500 });
   }
 }
 
@@ -51,12 +51,12 @@ export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
     const user = session.user;
 
     if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -75,16 +75,16 @@ export async function DELETE(req: Request) {
         },
       });
     } else {
-      return NextResponse.json({ error: "Thiếu thông tin đăng ký để thu hồi" }, { status: 400 });
+      return NextResponse.json({ error: "Missing enrollment info to revoke" }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
-      message: "Đã thu hồi quyền học của học viên thành công!",
+      message: "Student access revoked successfully!",
     });
   } catch (error: any) {
     console.error("Manual Enrollment DELETE Error:", error);
-    return NextResponse.json({ error: "Lỗi thu hồi quyền học" }, { status: 500 });
+    return NextResponse.json({ error: "Error revoking student access" }, { status: 500 });
   }
 }
 
@@ -92,19 +92,19 @@ export async function PATCH(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
     const user = session.user;
 
     if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Không có quyền thực hiện" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
 
     const body = await req.json();
     const { userId, status } = body;
 
     if (!userId || !status) {
-      return NextResponse.json({ error: "Thiếu userId hoặc status" }, { status: 400 });
+      return NextResponse.json({ error: "Missing userId or status" }, { status: 400 });
     }
 
     const updatedUser = await prisma.user.update({
@@ -114,11 +114,11 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Cập nhật trạng thái tài khoản thành công!",
+      message: "Student account status updated successfully!",
       user: updatedUser,
     });
   } catch (error: any) {
     console.error("Student PATCH Status Error:", error);
-    return NextResponse.json({ error: "Lỗi cập nhật học viên" }, { status: 500 });
+    return NextResponse.json({ error: "Error updating student" }, { status: 500 });
   }
 }

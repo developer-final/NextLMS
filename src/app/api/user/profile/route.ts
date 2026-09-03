@@ -15,7 +15,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để xem thông tin cá nhân" },
+        { error: "Please log in to view personal profile" },
         { status: 401 }
       );
     }
@@ -47,7 +47,7 @@ export async function GET() {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Không tìm thấy thông tin người dùng" },
+        { error: "User profile not found" },
         { status: 404 }
       );
     }
@@ -76,7 +76,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("GET /api/user/profile error:", error);
     return NextResponse.json(
-      { error: "Lỗi hệ thống khi tải thông tin cá nhân" },
+      { error: "Internal server error while loading profile" },
       { status: 500 }
     );
   }
@@ -91,7 +91,7 @@ export async function PATCH(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để cập nhật thông tin" },
+        { error: "Please log in to update profile" },
         { status: 401 }
       );
     }
@@ -102,7 +102,7 @@ export async function PATCH(req: Request) {
     const validation = validateProfileUpdate({ name, headline, bio });
     if (!validation.isValid || !validation.sanitized) {
       return NextResponse.json(
-        { error: validation.error || "Dữ liệu cập nhật không hợp lệ", field: validation.field },
+        { error: validation.error || "Invalid update payload", field: validation.field },
         { status: 400 }
       );
     }
@@ -129,7 +129,7 @@ export async function PATCH(req: Request) {
         updateData.avatarUrl = avatarUrl;
       } else {
         return NextResponse.json(
-          { error: "Đường dẫn ảnh đại diện không hợp lệ" },
+          { error: "Invalid avatar URL" },
           { status: 400 }
         );
       }
@@ -152,13 +152,13 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Cập nhật thông tin hồ sơ thành công",
+      message: "Profile updated successfully",
       user: updatedUser,
     });
   } catch (error: any) {
     console.error("PATCH /api/user/profile error:", error);
     return NextResponse.json(
-      { error: "Lỗi hệ thống khi cập nhật thông tin" },
+      { error: "Internal server error while updating profile" },
       { status: 500 }
     );
   }

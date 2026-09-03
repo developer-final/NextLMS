@@ -8,7 +8,7 @@ export const dictionaries: Record<Language, DictionaryType> = {
 };
 
 export function getDictionary(lang: Language): DictionaryType {
-  return dictionaries[lang] || dictionaries.vi;
+  return dictionaries[lang] || dictionaries.en;
 }
 
 export * from "./types";

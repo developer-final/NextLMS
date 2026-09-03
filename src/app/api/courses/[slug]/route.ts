@@ -21,11 +21,11 @@ export async function GET(
     });
 
     if (!course) {
-      return NextResponse.json({ error: "Không tìm thấy khóa học" }, { status: 404 });
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
     return NextResponse.json(course);
   } catch (error: any) {
-    return NextResponse.json({ error: "Lỗi máy chủ" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để tải tệp lên" },
+        { error: "Unauthorized: Please log in to upload files" },
         { status: 401 }
       );
     }
@@ -36,14 +36,14 @@ export async function POST(req: Request) {
     // Course assets ('thumbnail', 'video', 'attachment') require staff privileges.
     if (type !== "avatar" && !isStaff) {
       return NextResponse.json(
-        { error: "Bạn không có quyền thực hiện tải tệp lên hệ thống" },
+        { error: "Forbidden: You do not have permission to upload files" },
         { status: 403 }
       );
     }
 
     if (!file) {
       return NextResponse.json(
-        { error: "Không tìm thấy tệp tin cần tải lên" },
+        { error: "Bad Request: No file provided for upload" },
         { status: 400 }
       );
     }
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
     if (!validation.isValid) {
       return NextResponse.json(
-        { error: validation.error || "Tệp tin không hợp lệ" },
+        { error: validation.error || "Invalid file payload" },
         { status: 400 }
       );
     }
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         });
         if (course && course.instructorId !== user.id) {
           return NextResponse.json(
-            { error: "Bạn không có quyền thêm tài nguyên cho khóa học này" },
+            { error: "Forbidden: You do not have permission to add resources to this course" },
             { status: 403 }
           );
         }
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
         });
         if (lesson && lesson.section.course.instructorId !== user.id) {
           return NextResponse.json(
-            { error: "Bạn không có quyền thêm tài nguyên cho bài học này" },
+            { error: "Forbidden: You do not have permission to add resources to this lesson" },
             { status: 403 }
           );
         }
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Tải tệp tin thành công!",
+      message: "File uploaded successfully!",
       url: uploadResult.url,
       key: uploadResult.key,
       fileName: validation.sanitizedName || file.name,
@@ -183,7 +183,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Upload API Error:", error);
     return NextResponse.json(
-      { error: "Lỗi trong quá trình tải tệp lên máy chủ" },
+      { error: "Error occurred while uploading file to server" },
       { status: 500 }
     );
   }

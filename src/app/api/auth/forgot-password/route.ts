@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Bạn đã gửi yêu cầu quá nhanh. Vui lòng thử lại sau ${waitSeconds} giây.`,
+          error: `You are submitting requests too quickly. Please try again after ${waitSeconds} seconds.`,
         },
         { status: 429 }
       );
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Địa chỉ email không hợp lệ." },
+        { error: "Invalid email address." },
         { status: 400 }
       );
     }
@@ -66,12 +66,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message:
-        "Nếu địa chỉ email tồn tại trên hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu về hộp thư của bạn.",
+        "If that email address exists in our system, password reset instructions have been sent to your inbox.",
     });
   } catch (error: any) {
     console.error("[Forgot Password Error]:", error);
     return NextResponse.json(
-      { error: "Đã có lỗi xảy ra khi xử lý yêu cầu đặt lại mật khẩu." },
+      { error: "An error occurred while processing password reset request." },
       { status: 500 }
     );
   }

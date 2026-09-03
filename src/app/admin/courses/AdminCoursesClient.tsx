@@ -41,7 +41,7 @@ export default function AdminCoursesClient({
 }: AdminCoursesClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [courses, setCourses] = useState<any[]>(initialCourses);
   const [search, setSearch] = useState(currentSearch);
@@ -109,7 +109,7 @@ export default function AdminCoursesClient({
       setCourses((prev) =>
         prev.map((c) => (c.id === courseId ? { ...c, status: currentStatus } : c))
       );
-      toast.error("Lỗi cập nhật trạng thái");
+      toast.error(t.admin.courses.statusUpdateFailed);
     }
   };
 
@@ -138,7 +138,7 @@ export default function AdminCoursesClient({
       setCourses((prev) =>
         prev.map((c) => (c.id === courseId ? { ...c, isFeatured: currentFeatured } : c))
       );
-      toast.error("Lỗi cập nhật");
+      toast.error(t.admin.courses.featuredUpdateFailed);
     }
   };
 

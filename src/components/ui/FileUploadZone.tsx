@@ -46,7 +46,7 @@ export default function FileUploadZone({
   label,
   helperText,
 }: FileUploadZoneProps) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -55,28 +55,16 @@ export default function FileUploadZone({
   const isThumbnail = type === "thumbnail";
   const isVideo = type === "video";
   const defaultLabel = isThumbnail
-    ? language === "en"
-      ? "Upload Course Cover Image"
-      : "Tải lên ảnh bìa khóa học"
+    ? (t.admin.createCourse.thumbnailLabel || "Course Cover Image")
     : isVideo
-    ? language === "en"
-      ? "Upload Lesson Video (S3)"
-      : "Tải video bài học lên S3"
-    : language === "en"
-    ? "Attach Resource File"
-    : "Tải lên tệp tài liệu đính kèm";
+    ? (t.admin.courses.videoUploadSuccess ? "Upload Lesson Video (S3)" : "Upload Lesson Video")
+    : (t.admin.createCourse.uploadAttachmentBtn || "Upload Resource File");
 
   const defaultHelper = isThumbnail
-    ? language === "en"
-      ? "Accepts JPG, PNG, WEBP (Max 5MB)"
-      : "Hỗ trợ JPG, PNG, WEBP (Tối đa 5MB, tỷ lệ 16:9 khuyên dùng)"
+    ? t.profile.avatar.uploadHint
     : isVideo
-    ? language === "en"
-      ? "Accepts MP4, WEBM, MOV (Max 1GB)"
-      : "Hỗ trợ MP4, WEBM, MOV (Tối đa 1GB lưu trữ S3 bảo mật)"
-    : language === "en"
-    ? "Accepts PDF, DOCX, XLSX, ZIP, CSV, etc. (Max 50MB)"
-    : "Hỗ trợ PDF, DOCX, XLSX, PPTX, ZIP, RAR, CSV,... (Tối đa 50MB)";
+    ? t.admin.courses.videoUploadHelp
+    : t.admin.createCourse.courseAttachmentsDesc;
 
   const handleFile = async (file: File) => {
     if (!file) return;
@@ -85,46 +73,26 @@ export default function FileUploadZone({
     if (isThumbnail) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (!["jpg", "jpeg", "png", "webp"].includes(ext || "")) {
-        toast.error(
-          language === "en"
-            ? "Course cover must be JPG, PNG, or WEBP"
-            : "Ảnh bìa phải là định dạng JPG, PNG hoặc WEBP"
-        );
+        toast.error(t.common.unsupportedFileFormat);
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(
-          language === "en"
-            ? "Image size cannot exceed 5MB"
-            : "Dung lượng ảnh bìa không được vượt quá 5MB"
-        );
+        toast.error(t.common.fileTooLarge);
         return;
       }
     } else if (isVideo) {
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (!["mp4", "webm", "mov", "mkv"].includes(ext || "")) {
-        toast.error(
-          language === "en"
-            ? "Video must be MP4, WEBM, or MOV"
-            : "Video phải là định dạng MP4, WEBM hoặc MOV"
-        );
+        toast.error(t.common.unsupportedFileFormat);
         return;
       }
       if (file.size > 1024 * 1024 * 1024) {
-        toast.error(
-          language === "en"
-            ? "Video size cannot exceed 1GB (1024MB)"
-            : "Dung lượng video không được vượt quá 1GB"
-        );
+        toast.error(t.common.fileTooLarge);
         return;
       }
     } else {
       if (file.size > 50 * 1024 * 1024) {
-        toast.error(
-          language === "en"
-            ? "Attachment size cannot exceed 50MB"
-            : "Dung lượng tài liệu không được vượt quá 50MB"
-        );
+        toast.error(t.common.fileTooLarge);
         return;
       }
     }
@@ -149,16 +117,12 @@ export default function FileUploadZone({
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Tải tệp tin thất bại");
+        toast.error(data.error || t.common.uploadFailed);
         return;
       }
 
       setUploadProgress(100);
-      toast.success(
-        language === "en"
-          ? "File uploaded successfully to storage!"
-          : "Tải tệp lên thành công!"
-      );
+      toast.success(t.common.uploadSuccess);
 
       onUploadSuccess({
         url: data.url,
@@ -169,11 +133,7 @@ export default function FileUploadZone({
         attachment: data.attachment,
       });
     } catch (err: any) {
-      toast.error(
-        language === "en"
-          ? "Upload failed. Please check network connection."
-          : "Tải tệp thất bại. Vui lòng kiểm tra lại kết nối mạng."
-      );
+      toast.error(t.common.connectionError);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -233,14 +193,14 @@ export default function FileUploadZone({
                   onClick={() => fileInputRef.current?.click()}
                   className="rounded-lg bg-slate-800/90 hover:bg-slate-700 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors"
                 >
-                  {language === "en" ? "Change Image" : "Đổi ảnh khác"}
+                  {t.common.changeImage}
                 </button>
                 {onRemove && (
                   <button
                     type="button"
                     onClick={onRemove}
                     className="rounded-lg bg-rose-500/80 hover:bg-rose-600 p-1.5 text-white transition-colors"
-                    title={language === "en" ? "Remove image" : "Xóa ảnh"}
+                    title={t.common.removeImage}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -285,7 +245,7 @@ export default function FileUploadZone({
               <div className="flex flex-col items-center justify-center space-y-2 py-2">
                 <Loader2 className="h-8 w-8 animate-spin text-brand-400" />
                 <p className="text-xs font-semibold text-white">
-                  {language === "en" ? "Uploading to S3..." : "Đang tải lên lưu trữ S3..."}
+                  {t.common.uploading}
                 </p>
                 <div className="w-48 h-1.5 rounded-full bg-slate-800 overflow-hidden mt-1">
                   <div
@@ -307,10 +267,10 @@ export default function FileUploadZone({
                 </div>
                 <div className="text-xs">
                   <span className="font-bold text-brand-400 hover:underline">
-                    {language === "en" ? "Click to upload" : "Bấm để chọn tệp"}
+                    {t.common.clickToUpload}
                   </span>{" "}
                   <span className="text-slate-400">
-                    {language === "en" ? "or drag and drop here" : "hoặc kéo thả tệp vào đây"}
+                    {t.common.orDragDrop}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500">

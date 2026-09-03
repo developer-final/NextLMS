@@ -32,7 +32,7 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error(language === "en" ? "Please fill in email and password" : "Vui lòng nhập đầy đủ Email và Mật khẩu");
+      toast.error(t.auth.missingEmailOrPassword);
       return;
     }
 
@@ -45,7 +45,20 @@ function LoginForm() {
       });
 
       if (res?.error) {
-        toast.error(res.error);
+        let errMessage = res.error;
+        if (
+          errMessage.includes("Invalid email or password") ||
+          errMessage.includes("Tài khoản hoặc mật khẩu không chính xác")
+        ) {
+          errMessage = t.auth.invalidCredentials;
+        } else if (errMessage.includes("suspended") || errMessage.includes("khóa")) {
+          errMessage = t.auth.accountSuspended;
+        } else if (errMessage.includes("verify your email") || errMessage.includes("xác thực email")) {
+          errMessage = t.auth.emailNotVerified;
+        } else if (errMessage.includes("Google") || errMessage.includes("google")) {
+          errMessage = t.auth.googleAccountNotice;
+        }
+        toast.error(errMessage);
         setLoading(false);
         return;
       }
@@ -54,7 +67,7 @@ function LoginForm() {
       router.push(callbackUrl);
       router.refresh();
     } catch (error) {
-      toast.error(language === "en" ? "An error occurred during sign in" : "Đã xảy ra lỗi trong quá trình đăng nhập");
+      toast.error(t.auth.loginError);
       setLoading(false);
     }
   };

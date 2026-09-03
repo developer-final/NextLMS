@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const lessonId = searchParams.get("lessonId");
 
     if (!lessonId) {
-      return NextResponse.json({ error: "Thiếu lessonId" }, { status: 400 });
+      return NextResponse.json({ error: "Missing lessonId" }, { status: 400 });
     }
 
     const comments = await prisma.comment.findMany({
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(comments);
   } catch (error: any) {
-    return NextResponse.json({ error: "Lỗi tải bình luận" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading comments" }, { status: 500 });
   }
 }
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Vui lòng đăng nhập" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: Please log in" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Bạn đang gửi câu hỏi quá nhanh. Vui lòng chờ ${waitSeconds} giây trước khi gửi tiếp.`,
+          error: `You are submitting comments too quickly. Please wait ${waitSeconds} seconds before trying again.`,
         },
         {
           status: 429,
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     });
 
     if (!lesson) {
-      return NextResponse.json({ error: "Không tìm thấy bài học" }, { status: 404 });
+      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
     const enrollment = await prisma.enrollment.findUnique({
@@ -88,14 +88,14 @@ export async function POST(req: Request) {
 
     if (!isStaff && (!enrollment || enrollment.status !== "ACTIVE")) {
       return NextResponse.json(
-        { error: "Bạn cần đăng ký khóa học để bình luận" },
+        { error: "You need to be enrolled in this course to comment" },
         { status: 403 }
       );
     }
 
     const trimmedContent = content.trim();
     if (trimmedContent.length > 2000) {
-      return NextResponse.json({ error: "Nội dung bình luận tối đa 2,000 ký tự" }, { status: 400 });
+      return NextResponse.json({ error: "Comment cannot exceed 2000 characters" }, { status: 400 });
     }
 
     const comment = await prisma.comment.create({
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
             sendQAReplyEmail({
               to: parentComment.user.email,
               studentName: parentComment.user.name,
-              replierName: session.user.name || "Giảng viên",
+              replierName: session.user.name || "Instructor",
               lessonTitle: parentComment.lesson.title,
               replyContent: trimmedContent,
               courseSlug: parentComment.lesson.section.course.slug,
@@ -156,6 +156,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, comment });
   } catch (error: any) {
-    return NextResponse.json({ error: "Lỗi gửi bình luận" }, { status: 500 });
+    return NextResponse.json({ error: "Error submitting comment" }, { status: 500 });
   }
 }

@@ -20,7 +20,7 @@ interface CouponsListClientProps {
 }
 
 export default function CouponsListClient({ initialCoupons }: CouponsListClientProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [coupons, setCoupons] = useState<any[]>(initialCoupons);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -77,7 +77,13 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
       minOrderValue,
     });
     if (!validation.isValid) {
-      toast.error(validation.error);
+      toast.error(
+        validation.error?.includes("100%")
+          ? t.admin.coupons.discountInvalid
+          : validation.error?.includes("trống")
+          ? t.admin.coupons.codeRequired
+          : (t.common.somethingWentWrong || validation.error)
+      );
       return;
     }
 
@@ -100,14 +106,14 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error saving coupon");
+        toast.error(data.error || t.admin.coupons.saveFailed);
         return;
       }
 
       toast.success(
         editingCoupon
           ? t.admin.coupons.updateSuccess
-          : "🎉 " + (data.message || "Tạo coupon thành công")
+          : `🎉 ${t.admin.coupons.createSuccess}`
       );
 
       if (editingCoupon) {
@@ -120,7 +126,7 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
       setShowModal(false);
     } catch (err) {
-      toast.error("Error saving coupon");
+      toast.error(t.admin.coupons.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -136,14 +142,14 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error deleting coupon");
+        toast.error(data.error || t.admin.coupons.deleteFailed);
         return;
       }
 
-      toast.success("Coupon deleted");
+      toast.success(t.admin.coupons.deleteSuccess);
       setCoupons(coupons.filter((c) => c.id !== id));
     } catch (err) {
-      toast.error("Error deleting coupon");
+      toast.error(t.admin.coupons.deleteFailed);
     }
   };
 

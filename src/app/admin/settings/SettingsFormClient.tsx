@@ -26,7 +26,7 @@ interface SettingsFormClientProps {
 }
 
 export default function SettingsFormClient({ initialSettings }: SettingsFormClientProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [formData, setFormData] = useState<SystemConfig>(initialSettings);
   const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy">("payment");
   const [saving, setSaving] = useState(false);
@@ -42,7 +42,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
     e.preventDefault();
 
     if (formData.supportEmail && !isValidEmail(formData.supportEmail)) {
-      toast.error("Email hỗ trợ không đúng định dạng");
+      toast.error(t.admin.settings.invalidEmail);
       return;
     }
 
@@ -53,7 +53,13 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
         bankAccountName: formData.bankAccountName,
       });
       if (!bankVal.isValid) {
-        toast.error(bankVal.error);
+        toast.error(
+          bankVal.field === "bankId"
+            ? t.admin.settings.selectBankRequired
+            : bankVal.field === "bankAccountNo"
+            ? t.admin.settings.accountNoRequired
+            : t.admin.settings.accountHolderRequired
+        );
         return;
       }
     }
@@ -68,13 +74,13 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error saving settings");
+        toast.error(data.error || t.admin.settings.saveFailed);
         return;
       }
 
       toast.success(`🎉 ${t.admin.settings.saveSuccess}`);
     } catch (err) {
-      toast.error("Connection error while saving settings");
+      toast.error(t.admin.settings.saveConnectionError);
     } finally {
       setSaving(false);
     }

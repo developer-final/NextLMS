@@ -21,7 +21,7 @@ export async function GET() {
     return NextResponse.json({ success: true, settings });
   } catch (error: any) {
     console.error("Admin Settings GET Error:", error);
-    return NextResponse.json({ error: "Lỗi tải cấu hình" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading settings" }, { status: 500 });
   }
 }
 
@@ -41,11 +41,11 @@ export async function POST(req: Request) {
     const { settings } = body;
 
     if (!settings || typeof settings !== "object") {
-      return NextResponse.json({ error: "Dữ liệu cấu hình không hợp lệ" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid settings payload" }, { status: 400 });
     }
 
     if (settings.supportEmail && !isValidEmail(String(settings.supportEmail))) {
-      return NextResponse.json({ error: "Email hỗ trợ không đúng định dạng" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid support email format" }, { status: 400 });
     }
 
     if (settings.bankId || settings.bankAccountNo || settings.bankAccountName) {
@@ -120,11 +120,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Lưu cấu hình hệ thống thành công!",
+      message: "System settings saved successfully!",
       settings: updatedSettings,
     });
   } catch (error: any) {
     console.error("Admin Settings POST Error:", error);
-    return NextResponse.json({ error: "Lỗi lưu cấu hình hệ thống" }, { status: 500 });
+    return NextResponse.json({ error: "Error saving system settings" }, { status: 500 });
   }
 }

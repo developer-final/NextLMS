@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
     if (!token || typeof token !== "string") {
       return NextResponse.json(
-        { error: "Mã xác thực không hợp lệ hoặc bị thiếu." },
+        { error: "Invalid or missing verification token." },
         { status: 400 }
       );
     }
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     if (!verification || verification.type !== "EMAIL_VERIFY") {
       return NextResponse.json(
-        { error: "Liên kết xác thực không hợp lệ hoặc đã được sử dụng." },
+        { error: "Invalid or already used verification link." },
         { status: 400 }
       );
     }
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       });
       return NextResponse.json(
         {
-          error: "Liên kết xác thực đã hết hạn (24 giờ). Vui lòng yêu cầu gửi lại email xác thực mới.",
+          error: "Verification link has expired (24 hours). Please request a new verification email.",
           isExpired: true,
         },
         { status: 400 }
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Không tìm thấy thông tin tài khoản liên kết." },
+        { error: "Associated user account not found." },
         { status: 404 }
       );
     }
@@ -62,13 +62,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Kích hoạt tài khoản thành công! Bây giờ bạn có thể đăng nhập.",
+      message: "Account verified successfully! You can now log in.",
       email: user.email,
     });
   } catch (error: any) {
     console.error("[Verify Email Error]:", error);
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi trong quá trình kích hoạt tài khoản." },
+      { error: "An error occurred while verifying your account." },
       { status: 500 }
     );
   }

@@ -7,14 +7,14 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
-      return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized: Please log in" }, { status: 401 });
     }
 
     const userId = session.user.id;
     const { lessonId, courseId } = await req.json();
 
     if (!lessonId || !courseId) {
-      return NextResponse.json({ error: "Thiếu tham số" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required parameters: lessonId and courseId" }, { status: 400 });
     }
 
     // Security Check 1: Verify lesson belongs to the specified course
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     if (!lesson) {
       return NextResponse.json(
-        { error: "Bài học không tồn tại hoặc không thuộc khóa học này." },
+        { error: "Lesson does not exist or does not belong to this course." },
         { status: 400 }
       );
     }
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
     if (!activeEnrollment || activeEnrollment.status !== "ACTIVE") {
       return NextResponse.json(
-        { error: "Bạn chưa đăng ký hoặc chưa được kích hoạt khóa học này." },
+        { error: "You are not enrolled in or activated for this course." },
         { status: 403 }
       );
     }
@@ -124,6 +124,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Progress Complete Error:", error);
-    return NextResponse.json({ error: "Lỗi cập nhật tiến độ" }, { status: 500 });
+    return NextResponse.json({ error: "Error updating progress" }, { status: 500 });
   }
 }

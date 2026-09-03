@@ -40,7 +40,7 @@ export default function OrderListClient({
 }: OrderListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [orders, setOrders] = useState<any[]>(initialOrders);
   const [filterStatus, setFilterStatus] = useState<string>(currentStatus);
@@ -94,7 +94,7 @@ export default function OrderListClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error approving order");
+        toast.error(data.error || t.admin.orders.approveFailed);
         return;
       }
 
@@ -104,14 +104,14 @@ export default function OrderListClient({
       );
       router.refresh();
     } catch (err) {
-      toast.error("Error approving order");
+      toast.error(t.admin.orders.approveFailed);
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleCancel = async (orderId: string) => {
-    if (!confirm("Are you sure you want to cancel this order?")) return;
+    if (!confirm(t.admin.orders.cancelConfirm)) return;
 
     setProcessingId(orderId);
     try {
@@ -123,7 +123,7 @@ export default function OrderListClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error cancelling order");
+        toast.error(data.error || t.admin.orders.cancelFailed);
         return;
       }
 
@@ -133,7 +133,7 @@ export default function OrderListClient({
       );
       router.refresh();
     } catch (err) {
-      toast.error("Error cancelling order");
+      toast.error(t.admin.orders.cancelFailed);
     } finally {
       setProcessingId(null);
     }

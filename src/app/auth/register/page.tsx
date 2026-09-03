@@ -36,7 +36,7 @@ function RegisterFormContent() {
     e.preventDefault();
 
     if (!name || !email || !password || !confirmPassword) {
-      toast.error(language === "en" ? "Please fill in all fields" : "Vui lòng điền đầy đủ các thông tin");
+      toast.error(t.auth.missingEmailOrPassword);
       return;
     }
 
@@ -61,7 +61,7 @@ function RegisterFormContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || (language === "en" ? "Registration failed" : "Đăng ký thất bại"));
+        toast.error(data.error || t.common.somethingWentWrong);
         setLoading(false);
         return;
       }
@@ -92,7 +92,7 @@ function RegisterFormContent() {
         }
       }
     } catch (error) {
-      toast.error(language === "en" ? "Connection error. Please try again." : "Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
+      toast.error(t.common.connectionError);
       setLoading(false);
     }
   };
@@ -104,15 +104,16 @@ function RegisterFormContent() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/20 text-brand-400 border border-brand-500/30">
             <Mail className="h-8 w-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Kiểm Tra Hộp Thư Của Bạn 📧</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {t.auth.checkInboxTitle} 📧
+          </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            Chúng tôi đã gửi một liên kết kích hoạt tài khoản tới:
+            {t.auth.checkInboxDesc}
             <br />
             <strong className="text-brand-400">{registeredEmail}</strong>
           </p>
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-400 text-left space-y-2">
-            <p>• Vui lòng mở email và nhấn vào nút <strong>&quot;Kích Hoạt Tài Khoản Ngay&quot;</strong>.</p>
-            <p>• Kiểm tra cả thư mục <em>Spam / Thư rác</em> nếu bạn không tìm thấy trong Hộp thư chính.</p>
+            <p>• {t.auth.checkInboxSpamNote}</p>
           </div>
           <div className="pt-2">
             <Link

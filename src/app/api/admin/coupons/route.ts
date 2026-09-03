@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ success: true, coupons });
   } catch (error: any) {
     console.error("Admin Coupons GET Error:", error);
-    return NextResponse.json({ error: "Lỗi tải danh sách mã giảm giá" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading coupons" }, { status: 500 });
   }
 }
 
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Cập nhật mã giảm giá thành công!",
+        message: "Coupon updated successfully!",
         coupon: updated,
       });
     } else {
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
       if (existing) {
         return NextResponse.json(
-          { error: "Mã giảm giá này đã tồn tại trên hệ thống" },
+          { error: "This coupon code already exists" },
           { status: 409 }
         );
       }
@@ -105,13 +105,13 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Tạo mã giảm giá mới thành công!",
+        message: "Coupon created successfully!",
         coupon: created,
       });
     }
   } catch (error: any) {
     console.error("Admin Coupon Save Error:", error);
-    return NextResponse.json({ error: "Lỗi lưu mã giảm giá" }, { status: 500 });
+    return NextResponse.json({ error: "Error saving coupon" }, { status: 500 });
   }
 }
 
@@ -131,7 +131,7 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Thiếu ID mã giảm giá" }, { status: 400 });
+      return NextResponse.json({ error: "Missing coupon ID" }, { status: 400 });
     }
 
     await prisma.coupon.delete({
@@ -140,10 +140,10 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Đã xóa mã giảm giá thành công!",
+      message: "Coupon deleted successfully!",
     });
   } catch (error: any) {
     console.error("Admin Coupon DELETE Error:", error);
-    return NextResponse.json({ error: "Lỗi xóa mã giảm giá" }, { status: 500 });
+    return NextResponse.json({ error: "Error deleting coupon" }, { status: 500 });
   }
 }

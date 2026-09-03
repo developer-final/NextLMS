@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email này đã được đăng ký trên hệ thống" },
+        { error: "This email is already registered" },
         { status: 409 }
       );
     }
@@ -109,8 +109,8 @@ export async function POST(req: Request) {
     });
 
     const responseMessage = isStrictVerify
-      ? "Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản trước khi đăng nhập."
-      : "Đăng ký tài khoản thành công!";
+      ? "Registration successful! Please check your inbox to verify your account before logging in."
+      : "Account registered successfully!";
 
     return NextResponse.json(
       {
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Register Error:", error);
     return NextResponse.json(
-      { error: "Đã có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại." },
+      { error: "An error occurred during registration. Please try again." },
       { status: 500 }
     );
   }

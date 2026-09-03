@@ -92,7 +92,7 @@ export default function LessonPlayerClient({
   // Handle Mark Complete
   const handleMarkComplete = async () => {
     if (!userId) {
-      toast.error(language === "en" ? "Please sign in to save progress" : "Vui lòng đăng nhập để lưu tiến độ");
+      toast.error(t.common.unauthorized);
       return;
     }
 
@@ -109,7 +109,7 @@ export default function LessonPlayerClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || (language === "en" ? "Error updating progress" : "Lỗi cập nhật tiến độ"));
+        toast.error(data.error || t.common.somethingWentWrong);
         return;
       }
 
@@ -122,16 +122,16 @@ export default function LessonPlayerClient({
       if (data.isCompleted100) {
         setCertCode(data.certificate?.certificateCode || "CERT-WTL-PRO");
         setShowCertModal(true);
-        toast.success(language === "en" ? "🎉 Congratulations! You have completed 100% of the course!" : "🎉 Chúc mừng bạn đã hoàn thành 100% khóa học!");
+        toast.success(t.learn.completed);
       } else {
-        toast.success(language === "en" ? "Lesson marked as completed!" : "Đã hoàn thành bài học!");
+        toast.success(t.learn.completed);
         // Auto navigate to next lesson if available
         if (nextLesson) {
           router.push(`/learn/${course.slug}/${nextLesson.slug}`);
         }
       }
     } catch (err) {
-      toast.error(language === "en" ? "Error updating progress" : "Lỗi cập nhật tiến độ");
+      toast.error(t.common.somethingWentWrong);
     } finally {
       setMarkingComplete(false);
     }
@@ -163,7 +163,7 @@ export default function LessonPlayerClient({
       content: newComment,
     });
     if (!validation.isValid) {
-      toast.error(validation.error);
+      toast.error(t.learn.emptyCommentError);
       return;
     }
 
@@ -180,15 +180,15 @@ export default function LessonPlayerClient({
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || (language === "en" ? "Error submitting question" : "Lỗi gửi câu hỏi"));
+        toast.error(data.error || t.learn.commentSubmitFailed);
         return;
       }
 
       setComments([data.comment, ...comments]);
       setNewComment("");
-      toast.success(language === "en" ? "Question submitted! Instructor will reply soon." : "Đã gửi câu hỏi! Giảng viên sẽ phản hồi sớm.");
+      toast.success(t.learn.sendQuestion);
     } catch (err) {
-      toast.error(language === "en" ? "Error submitting question" : "Lỗi gửi câu hỏi");
+      toast.error(t.learn.commentSubmitFailed);
     } finally {
       setSubmittingComment(false);
     }
@@ -715,20 +715,20 @@ export default function LessonPlayerClient({
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-6 space-y-3 text-left">
               <p className="text-xs text-slate-400">{t.learn.certAwardedTo}</p>
               <h3 className="text-xl font-bold text-brand-400">
-                {userName || (language === "en" ? "Distinguished Student" : "Học viên Xuất sắc")}
+                {userName || t.learn.certDistinguishedStudent}
               </h3>
               <p className="text-xs text-slate-300">
                 {t.learn.certCompletedCourse} <strong>{course.title}</strong>
               </p>
               <div className="flex items-center justify-between border-t border-slate-800 pt-3 text-[11px] text-slate-500">
                 <span>{t.learn.certVerifyCode} <strong className="text-amber-400">{certCode || "CERT-WTL-9988"}</strong></span>
-                <span>{t.learn.certIssueDate} {new Date().toLocaleDateString(language === "en" ? "en-US" : "vi-VN")}</span>
+                <span>{t.learn.certIssueDate} {new Date().toLocaleDateString(language)}</span>
               </div>
             </div>
 
             <button
               onClick={() => {
-                toast.success(language === "en" ? "Preparing certificate download..." : "Đang chuẩn bị tải chứng chỉ PDF...");
+                toast.success(t.learn.downloading);
                 setShowCertModal(false);
               }}
               className="rounded-xl bg-amber-500 hover:bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow-gold"

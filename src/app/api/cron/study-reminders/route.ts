@@ -77,12 +77,12 @@ async function handleCronReminders(req: Request) {
       success: true,
       remindersSent: sentCount,
       totalMatched: inactiveEnrollments.length,
-      message: `Đã gửi ${sentCount} email nhắc nhở giữ nhịp học tập thành công.`,
+      message: `Sent ${sentCount} study reminder emails successfully.`,
     });
   } catch (error: any) {
     console.error("[Cron Reminder Error]:", error);
     return NextResponse.json(
-      { error: "Lỗi xử lý gửi email nhắc nhở học tập" },
+      { error: "Error sending study reminder emails" },
       { status: 500 }
     );
   }

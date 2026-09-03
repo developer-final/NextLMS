@@ -26,7 +26,7 @@ export async function GET() {
     return NextResponse.json({ success: true, categories });
   } catch (error: any) {
     console.error("Admin Categories GET Error:", error);
-    return NextResponse.json({ error: "Lỗi tải danh mục" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading categories" }, { status: 500 });
   }
 }
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const { id, name, description, icon, orderIndex, isActive } = body;
 
     if (!name?.trim()) {
-      return NextResponse.json({ error: "Tên danh mục là bắt buộc" }, { status: 400 });
+      return NextResponse.json({ error: "Category name is required" }, { status: 400 });
     }
 
     const cleanName = name.trim();
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Cập nhật danh mục thành công!",
+        message: "Category updated successfully!",
         category: updated,
       });
     } else {
@@ -91,13 +91,13 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "Tạo danh mục mới thành công!",
+        message: "Category created successfully!",
         category: created,
       });
     }
   } catch (error: any) {
     console.error("Admin Category Save Error:", error);
-    return NextResponse.json({ error: "Lỗi lưu danh mục" }, { status: 500 });
+    return NextResponse.json({ error: "Error saving category" }, { status: 500 });
   }
 }
 
@@ -117,7 +117,7 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Thiếu ID danh mục" }, { status: 400 });
+      return NextResponse.json({ error: "Missing category ID" }, { status: 400 });
     }
 
     await prisma.category.delete({
@@ -126,10 +126,10 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Đã xóa danh mục thành công!",
+      message: "Category deleted successfully!",
     });
   } catch (error: any) {
     console.error("Admin Category DELETE Error:", error);
-    return NextResponse.json({ error: "Lỗi xóa danh mục" }, { status: 500 });
+    return NextResponse.json({ error: "Error deleting category" }, { status: 500 });
   }
 }

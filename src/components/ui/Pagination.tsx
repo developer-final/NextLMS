@@ -21,7 +21,7 @@ export default function Pagination({
   buildPageUrl,
   onPageChange,
 }: PaginationProps) {
-  const { language } = useLanguage();
+  const { t } = useLanguage();
 
   if (totalPages <= 1) {
     return null;
@@ -117,7 +117,7 @@ export default function Pagination({
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">
-            {language === "en" ? "Previous" : "Trước"}
+            {t.common.previous}
           </span>
         </button>
       );
@@ -131,7 +131,7 @@ export default function Pagination({
       >
         <ChevronLeft className="h-4 w-4" />
         <span className="hidden sm:inline">
-          {language === "en" ? "Previous" : "Trước"}
+          {t.common.previous}
         </span>
       </Link>
     );
@@ -156,7 +156,7 @@ export default function Pagination({
           aria-label="Next page"
         >
           <span className="hidden sm:inline">
-            {language === "en" ? "Next" : "Sau"}
+            {t.common.next}
           </span>
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -170,7 +170,7 @@ export default function Pagination({
         aria-label="Next page"
       >
         <span className="hidden sm:inline">
-          {language === "en" ? "Next" : "Sau"}
+          {t.common.next}
         </span>
         <ChevronRight className="h-4 w-4" />
       </Link>
@@ -180,19 +180,9 @@ export default function Pagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-6 border-t border-slate-800/80">
       <div className="text-xs text-slate-400">
-        {language === "en" ? (
-          <>
-            Showing <strong className="text-white">{startItem}</strong> to{" "}
-            <strong className="text-white">{endItem}</strong> of{" "}
-            <strong className="text-brand-400">{totalItems}</strong> results
-          </>
-        ) : (
-          <>
-            Hiển thị <strong className="text-white">{startItem}</strong> -{" "}
-            <strong className="text-white">{endItem}</strong> trên tổng số{" "}
-            <strong className="text-brand-400">{totalItems}</strong> kết quả
-          </>
-        )}
+        {t.common.showing} <strong className="text-white">{startItem}</strong> {t.common.to}{" "}
+        <strong className="text-white">{endItem}</strong> {t.common.of}{" "}
+        <strong className="text-brand-400">{totalItems}</strong> {t.common.results}
       </div>
 
       <nav

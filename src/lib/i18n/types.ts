@@ -8,8 +8,8 @@ export interface LanguageOption {
 }
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: "vi", label: "Tiếng Việt", shortLabel: "VI", flag: "🇻🇳" },
   { code: "en", label: "English", shortLabel: "EN", flag: "🇬🇧" },
+  { code: "vi", label: "Tiếng Việt", shortLabel: "VI", flag: "🇻🇳" },
 ];
 
 export interface DictionaryType {
@@ -24,10 +24,22 @@ export interface DictionaryType {
     back: string;
     viewAll: string;
     hours: string;
+    days: string;
     lessons: string;
     students: string;
     free: string;
     paid: string;
+    previous: string;
+    next: string;
+    showing: string;
+    to: string;
+    of: string;
+    results: string;
+    changeImage: string;
+    removeImage: string;
+    uploading: string;
+    clickToUpload: string;
+    orDragDrop: string;
     allLevels: string;
     beginner: string;
     intermediate: string;
@@ -37,6 +49,15 @@ export interface DictionaryType {
     copy: string;
     copied: string;
     viewDetails: string;
+    connectionError: string;
+    unauthorized: string;
+    forbidden: string;
+    notFound: string;
+    somethingWentWrong: string;
+    uploadFailed: string;
+    uploadSuccess: string;
+    unsupportedFileFormat: string;
+    fileTooLarge: string;
   };
   nav: {
     allCourses: string;
@@ -171,10 +192,13 @@ export interface DictionaryType {
     certModalTitle: string;
     certModalDesc: string;
     certAwardedTo: string;
+    certDistinguishedStudent: string;
     certCompletedCourse: string;
     certVerifyCode: string;
     certIssueDate: string;
     certDownloadPdf: string;
+    emptyCommentError: string;
+    commentSubmitFailed: string;
   };
   checkout: {
     pageTitle: string;
@@ -217,6 +241,11 @@ export interface DictionaryType {
     requireLoginTitle: string;
     requireLoginDesc: string;
     loginNowBtn: string;
+    paypalSuccess: string;
+    paypalCancelled: string;
+    paypalNotConfigured: string;
+    stripeError: string;
+    receiptUploadFailed: string;
   };
   auth: {
     loginTitle: string;
@@ -273,6 +302,23 @@ export interface DictionaryType {
     resendVerifyPrompt: string;
     resendVerifyBtn: string;
     sendingResend: string;
+    missingEmailOrPassword: string;
+    invalidCredentials: string;
+    accountSuspended: string;
+    emailNotVerified: string;
+    googleAccountNotice: string;
+    loginError: string;
+    tokenMissingOrInvalid: string;
+    tokenExpired: string;
+    resendSuccess: string;
+    resendEmailPrompt: string;
+    checkInboxTitle: string;
+    checkInboxDesc: string;
+    checkInboxSpamNote: string;
+    forgotPasswordSent: string;
+    forgotPasswordInstruction: string;
+    forgotPasswordSpamNote: string;
+    resetPasswordSuccess: string;
   };
   myCourses: {
     pageTitle: string;
@@ -373,6 +419,17 @@ export interface DictionaryType {
       allStatus: string;
       filterCategory: string;
       noCoursesFound: string;
+      minSectionsRequired: string;
+      minLessonsRequired: string;
+      statusUpdateFailed: string;
+      featuredUpdateFailed: string;
+      attachmentDeleted: string;
+      attachmentDeleteFailed: string;
+      videoUploadSuccess: string;
+      videoUploadHelp: string;
+      courseValidationFailed: string;
+      courseTitleRequired: string;
+      salePriceInvalid: string;
     };
     createCourse: {
       title: string;
@@ -457,6 +514,9 @@ export interface DictionaryType {
       closeBtn: string;
       approveSuccess: string;
       cancelSuccess: string;
+      cancelConfirm: string;
+      approveFailed: string;
+      cancelFailed: string;
     };
     categories: {
       title: string;
@@ -479,6 +539,10 @@ export interface DictionaryType {
       saveBtn: string;
       savingBtn: string;
       cancelBtn: string;
+      deleteConfirm: string;
+      saveFailed: string;
+      deleteSuccess: string;
+      deleteFailed: string;
     };
     coupons: {
       title: string;
@@ -510,6 +574,12 @@ export interface DictionaryType {
       saveBtn: string;
       savingBtn: string;
       cancelBtn: string;
+      saveFailed: string;
+      deleteSuccess: string;
+      deleteFailed: string;
+      createSuccess: string;
+      codeRequired: string;
+      discountInvalid: string;
     };
     students: {
       title: string;
@@ -533,6 +603,10 @@ export interface DictionaryType {
       statusBlocked: string;
       toggleStatusBtn: string;
       statusUpdated: string;
+      grantSuccess: string;
+      grantFailed: string;
+      revokeFailed: string;
+      statusUpdateFailed: string;
     };
     settings: {
       title: string;
@@ -547,6 +621,12 @@ export interface DictionaryType {
       saveBtn: string;
       savingBtn: string;
       saveSuccess: string;
+      invalidEmail: string;
+      selectBankRequired: string;
+      accountNoRequired: string;
+      accountHolderRequired: string;
+      saveFailed: string;
+      saveConnectionError: string;
     };
   };
   policy: {
@@ -576,6 +656,21 @@ export interface DictionaryType {
       security: string;
       overview: string;
     };
+    roles: {
+      admin: string;
+      instructor: string;
+      student: string;
+    };
+    detailsDesc: string;
+    securityDescPassword: string;
+    securityDescOAuth: string;
+    noHeadline: string;
+    certIssuedHint: string;
+    reviewsHint: string;
+    verificationSummary: string;
+    emailVerifiedLabel: string;
+    verified: string;
+    unverified: string;
     avatar: {
       changeAvatar: string;
       uploadHint: string;
@@ -615,6 +710,15 @@ export interface DictionaryType {
       updateSuccess: string;
       passwordSuccess: string;
       avatarSuccess: string;
+      unsupportedAvatarFormat: string;
+      avatarUploadFailed: string;
+      avatarResetSuccess: string;
+      avatarResetFailed: string;
+      detailsSaveSuccess: string;
+      detailsSaveFailed: string;
+      passwordChangeSuccess: string;
+      passwordChangeFailed: string;
+      currentPasswordIncorrect: string;
     };
   };
 }

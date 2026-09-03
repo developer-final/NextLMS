@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Bạn thao tác quá nhanh. Vui lòng thử lại sau ${waitSeconds} giây.`,
+          error: `You are requesting too quickly. Please try again after ${waitSeconds} seconds.`,
         },
         { status: 429 }
       );
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     if (!email || !isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Địa chỉ email không hợp lệ." },
+        { error: "Invalid email address." },
         { status: 400 }
       );
     }
@@ -64,12 +64,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message:
-        "Nếu email của bạn chưa được kích hoạt, hệ thống đã gửi lại liên kết kích hoạt tài khoản.",
+        "If your email is not yet verified, a new verification link has been sent.",
     });
   } catch (error: any) {
     console.error("[Resend Verification Error]:", error);
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi khi gửi lại email xác thực." },
+      { error: "An error occurred while resending the verification email." },
       { status: 500 }
     );
   }

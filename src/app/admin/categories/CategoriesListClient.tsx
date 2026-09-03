@@ -17,7 +17,7 @@ interface CategoriesListClientProps {
 }
 
 export default function CategoriesListClient({ initialCategories }: CategoriesListClientProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [categories, setCategories] = useState<any[]>(initialCategories);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -92,14 +92,14 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
       setShowModal(false);
     } catch (err) {
-      toast.error("Error saving category");
+      toast.error(t.admin.categories.saveFailed);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string, catName: string) => {
-    if (!confirm(`Are you sure you want to delete "${catName}"?`)) return;
+    if (!confirm(`${t.admin.categories.deleteConfirm} (${catName})`)) return;
 
     try {
       const res = await fetch(`/api/admin/categories?id=${id}`, {
@@ -108,14 +108,14 @@ export default function CategoriesListClient({ initialCategories }: CategoriesLi
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Error deleting category");
+        toast.error(data.error || t.admin.categories.deleteFailed);
         return;
       }
 
-      toast.success("Category deleted");
+      toast.success(t.admin.categories.deleteSuccess);
       setCategories(categories.filter((c) => c.id !== id));
     } catch (err) {
-      toast.error("Error deleting category");
+      toast.error(t.admin.categories.deleteFailed);
     }
   };
 

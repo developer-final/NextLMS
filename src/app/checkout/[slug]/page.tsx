@@ -134,13 +134,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         const data = await res.json();
         setCourse(data);
       } catch (err) {
-        toast.error(language === "en" ? "Course information not found" : "Không tìm thấy thông tin khóa học");
+        toast.error(t.common.notFound);
       } finally {
         setLoadingCourse(false);
       }
     }
     loadCourse();
-  }, [slug, language]);
+  }, [slug, t.common.notFound]);
 
   // Realtime Polling for order completion status
   useEffect(() => {
@@ -153,11 +153,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
         const data = await res.json();
         if (data.isCompleted) {
           setIsOrderCompletedRealtime(true);
-          toast.success(
-            language === "en"
-              ? "🎉 Order verified successfully! Redirecting to course..."
-              : "🎉 Đơn hàng đã được xác nhận thành công! Đang chuyển đến khóa học..."
-          );
+          toast.success(t.checkout.paymentConfirmedTitle);
           clearInterval(interval);
           setTimeout(() => {
             router.push(`/my-courses`);
@@ -202,7 +198,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   if (!course) {
     return (
       <div className="text-center py-20 text-slate-400">
-        {language === "en" ? "Course not found or has been unpublished." : "Khóa học không tồn tại hoặc đã bị gỡ."}
+        {t.common.notFound}
       </div>
     );
   }
@@ -225,7 +221,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   // Handle Apply Coupon
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
-      toast.error(language === "en" ? "Please enter a coupon code" : "Vui lòng nhập mã giảm giá");
+      toast.error(t.checkout.couponPlaceholder);
       return;
     }
     setApplyingCoupon(true);
@@ -237,17 +233,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || (language === "en" ? "Invalid coupon code" : "Mã giảm giá không hợp lệ"));
+        toast.error(data.error || t.common.somethingWentWrong);
         return;
       }
       setAppliedCoupon(data.coupon);
-      toast.success(
-        language === "en"
-          ? `Coupon ${data.coupon.code} applied!`
-          : `Đã áp dụng mã giảm giá ${data.coupon.code}!`
-      );
+      toast.success(`${t.checkout.couponAppliedSuccess} ${data.coupon.code}`);
     } catch (err) {
-      toast.error(language === "en" ? "Error applying coupon" : "Lỗi áp dụng mã giảm giá");
+      toast.error(t.common.somethingWentWrong);
     } finally {
       setApplyingCoupon(false);
     }
@@ -261,11 +253,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       !siteSettings.cryptoBep20Address &&
       !siteSettings.cryptoTrc20Address
     ) {
-      toast.error(
-        language === "en"
-          ? "Crypto wallet address is not configured yet. Please select another payment method or contact support."
-          : "Chưa có địa chỉ ví nhận Crypto. Vui lòng chọn phương thức khác hoặc liên hệ bộ phận hỗ trợ."
-      );
+      toast.error(t.checkout.paypalNotConfigured);
       return;
     }
 
@@ -293,28 +281,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       if (!res.ok) {
         if (data.alreadyEnrolled) {
-          toast.info(language === "en" ? "You already own this course!" : "Bạn đã sở hữu khóa học này rồi!");
+          toast.info(t.myCourses.pageTitle);
           router.push(`/courses/${slug}`);
           return;
         }
-        toast.error(data.error || (language === "en" ? "Error creating order" : "Lỗi tạo đơn hàng"));
+        toast.error(data.error || t.common.somethingWentWrong);
         return;
       }
 
       setCreatedOrder(data.order);
 
       if (data.isFreeOrder) {
-        toast.success(language === "en" ? "Course activated successfully!" : "Kích hoạt khóa học thành công!");
+        toast.success(t.checkout.paymentConfirmedTitle);
         router.push(`/my-courses`);
       } else {
-        toast.success(
-          language === "en"
-            ? "Order created! Please complete payment below."
-            : "Đơn hàng đã được tạo! Vui lòng hoàn tất thanh toán bên dưới."
-        );
+        toast.success(t.checkout.confirmTransferTitle);
       }
     } catch (err) {
-      toast.error(language === "en" ? "Error occurred while creating order" : "Đã xảy ra lỗi khi tạo đơn hàng");
+      toast.error(t.common.somethingWentWrong);
     } finally {
       setIsProcessingOrder(false);
     }
@@ -332,13 +316,13 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi khởi tạo cổng Stripe");
+        toast.error(data.error || t.checkout.stripeError);
         return;
       }
-      toast.loading(language === "en" ? "Redirecting to Stripe Checkout..." : "Đang chuyển hướng sang cổng Stripe Checkout...");
+      toast.loading(t.common.loading);
       window.location.href = data.url;
     } catch (e) {
-      toast.error("Lỗi kết nối cổng thanh toán Stripe");
+      toast.error(t.checkout.stripeError);
     } finally {
       setProcessingStripe(false);
     }
@@ -361,14 +345,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Lỗi tải ảnh biên lai");
+        toast.error(data.error || t.checkout.receiptUploadFailed);
         return;
       }
 
       setProofUrl(data.url);
-      toast.success(language === "en" ? "Receipt image attached!" : "Đã đính kèm ảnh biên lai thành công!");
+      toast.success(t.common.uploadSuccess);
     } catch (err) {
-      toast.error("Lỗi khi tải ảnh lên máy chủ");
+      toast.error(t.checkout.receiptUploadFailed);
     } finally {
       setUploadingReceipt(false);
     }
@@ -384,7 +368,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
   const handleSendProof = async () => {
     if (!createdOrder) return;
     if (!proofUrl.trim()) {
-      toast.error(language === "en" ? "Please attach receipt image or transaction ID" : "Vui lòng đính kèm ảnh biên lai hoặc mã giao dịch");
+      toast.error(t.checkout.proofInputPlaceholder);
       return;
     }
     setSubmittingProof(true);
@@ -400,14 +384,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || (language === "en" ? "Error submitting proof" : "Lỗi gửi biên lai"));
+        toast.error(data.error || t.checkout.receiptUploadFailed);
         return;
       }
 
       setProofSubmitted(true);
-      toast.success(data.message || (language === "en" ? "Receipt confirmation submitted!" : "Đã gửi xác nhận biên lai!"));
+      toast.success(data.message || t.checkout.proofSubmittedSuccess);
     } catch (err) {
-      toast.error(language === "en" ? "Error submitting proof" : "Lỗi gửi biên lai");
+      toast.error(t.checkout.receiptUploadFailed);
     } finally {
       setSubmittingProof(false);
     }
@@ -513,7 +497,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                       }}
                       className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 transition-all"
                     >
-                      {language === "en" ? "Remove" : "Bỏ mã"}
+                      {t.common.cancel}
                     </button>
                   ) : (
                     <button
@@ -541,7 +525,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
             <>
               <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  {language === "en" ? "Select Payment Method" : "Chọn Phương Thức Thanh Toán"}
+                  {t.checkout.proceedPaymentBtn}
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -795,7 +779,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                               return data.paypalOrderId;
                             }}
                             onApprove={async (data) => {
-                              toast.loading("Đang xác thực giao dịch PayPal...");
+                              toast.loading(t.common.loading);
                               const res = await fetch("/api/orders/paypal-capture", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
@@ -806,24 +790,24 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                               });
                               const result = await res.json();
                               if (!res.ok) {
-                                throw new Error(result.error || "Lỗi xác thực giao dịch PayPal");
+                                throw new Error(result.error || t.checkout.paypalCancelled);
                               }
                               setIsOrderCompletedRealtime(true);
-                              toast.success("🎉 Thanh toán PayPal thành công! Khóa học đã được kích hoạt.");
+                              toast.success(t.checkout.paypalSuccess);
                               setTimeout(() => {
                                 router.push("/my-courses");
                               }, 1500);
                             }}
                             onError={(err: any) => {
                               console.error("PayPal Smart Button Error:", err);
-                              toast.error("Giao dịch PayPal bị gián đoạn hoặc bạn đã hủy thao tác.");
+                              toast.error(t.checkout.paypalCancelled);
                             }}
                           />
                         </PayPalScriptProvider>
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-amber-500/40 bg-amber-950/40 p-4 text-xs text-amber-200 text-center">
-                        Hệ thống chưa cấu hình PayPal Client ID. Vui lòng liên hệ ban quản trị.
+                        {t.checkout.paypalNotConfigured}
                       </div>
                     )}
 
@@ -1358,7 +1342,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
               <div className="flex items-center gap-2 text-slate-300 font-semibold">
                 <ShieldCheck className="h-4 w-4 text-brand-400" /> {t.checkout.qualityGuarantee}
               </div>
-              <p>• {t.checkout.refundCommitment} ({siteSettings.refundDays || 7} {language === "en" ? "days" : "ngày"}).</p>
+              <p>• {t.checkout.refundCommitment} ({siteSettings.refundDays || 7} {t.common.days}).</p>
               <p>• {t.checkout.supportCommitment}</p>
             </div>
           </div>

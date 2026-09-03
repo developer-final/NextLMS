@@ -37,7 +37,7 @@ export async function GET() {
     return NextResponse.json({ success: true, courses });
   } catch (error: any) {
     console.error("Admin Courses GET Error:", error);
-    return NextResponse.json({ error: "Lỗi tải danh sách khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading courses" }, { status: 500 });
   }
 }
 
@@ -56,7 +56,7 @@ export async function PATCH(req: Request) {
     const { id, status, isFeatured } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "Thiếu ID khóa học" }, { status: 400 });
+      return NextResponse.json({ error: "Missing course ID" }, { status: 400 });
     }
 
     const dataToUpdate: any = {};
@@ -70,12 +70,12 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Cập nhật khóa học thành công!",
+      message: "Course updated successfully!",
       course: updated,
     });
   } catch (error: any) {
     console.error("Admin Course PATCH Error:", error);
-    return NextResponse.json({ error: "Lỗi cập nhật nhanh khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error updating course" }, { status: 500 });
   }
 }
 
@@ -94,7 +94,7 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json({ error: "Thiếu ID khóa học" }, { status: 400 });
+      return NextResponse.json({ error: "Missing course ID" }, { status: 400 });
     }
 
     await prisma.course.delete({
@@ -103,10 +103,10 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Đã xóa khóa học thành công!",
+      message: "Course deleted successfully!",
     });
   } catch (error: any) {
     console.error("Admin Course DELETE Error:", error);
-    return NextResponse.json({ error: "Lỗi xóa khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error deleting course" }, { status: 500 });
   }
 }

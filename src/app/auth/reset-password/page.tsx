@@ -21,20 +21,12 @@ function ResetPasswordForm() {
     e.preventDefault();
 
     if (!token) {
-      toast.error(
-        language === "en"
-          ? "Invalid or missing reset token. Please request a new link."
-          : "Mã token không hợp lệ hoặc bị thiếu. Vui lòng yêu cầu link mới."
-      );
+      toast.error(t.auth.tokenMissingOrInvalid);
       return;
     }
 
     if (!password || !confirmPassword) {
-      toast.error(
-        language === "en"
-          ? "Please fill in both password fields"
-          : "Vui lòng điền đầy đủ cả 2 trường mật khẩu"
-      );
+      toast.error(t.auth.missingEmailOrPassword);
       return;
     }
 
@@ -59,24 +51,15 @@ function ResetPasswordForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(
-          data.error ||
-            (language === "en"
-              ? "Failed to reset password"
-              : "Không thể đặt lại mật khẩu")
-        );
+        toast.error(data.error || t.profile.messages.passwordChangeFailed);
         setLoading(false);
         return;
       }
 
-      toast.success(data.message);
+      toast.success(t.auth.resetPasswordSuccess);
       router.push("/auth/login");
     } catch {
-      toast.error(
-        language === "en"
-          ? "Connection error. Please try again."
-          : "Đã xảy ra lỗi kết nối. Vui lòng thử lại."
-      );
+      toast.error(t.common.connectionError);
       setLoading(false);
     }
   };
@@ -87,15 +70,17 @@ function ResetPasswordForm() {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30">
           <Lock className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold text-white">Liên Kết Không Hợp Lệ</h2>
+        <h2 className="text-xl font-bold text-white">
+          {t.auth.tokenMissingOrInvalid}
+        </h2>
         <p className="text-xs text-slate-400">
-          Không tìm thấy mã bảo mật trong đường dẫn. Vui lòng kiểm tra lại liên kết từ email hoặc yêu cầu liên kết mới.
+          {t.auth.tokenExpired}
         </p>
         <Link
           href="/auth/forgot-password"
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 py-2.5 text-xs font-semibold text-white transition-all"
         >
-          Yêu Cầu Liên Kết Mới
+          {t.auth.resendVerifyBtn}
         </Link>
       </div>
     );

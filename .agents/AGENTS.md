@@ -73,3 +73,13 @@ Only fall back to `grep_search` or `view_file` when:
 3. **Theme & CSS Integrity:**
    - Use the established dark-theme palette (slate-950 background, brand emerald accents, gold accents, glassmorphism).
    - Ensure responsive layout across mobile and desktop.
+
+4. **Mandatory English in Code & Comments:**
+   - All source code, identifiers (functions, variables, classes, interfaces, types), comments, docstrings, and console logs MUST be written in English.
+   - Never write comments or code strings in Vietnamese.
+   - Backend API route error and success responses (`NextResponse.json`) MUST use standardized English by default.
+
+5. **Centralized i18n Dictionary for All Messages & Notifications:**
+   - ALL user-facing messages, toasts (`toast.success`, `toast.error`, `toast.info`), confirm dialogs (`confirm(...)`), and dynamic labels MUST use the centralized dictionary lookup `t.<module>.<key>` via `const { t } = useLanguage()`.
+   - NEVER use inline ternary checks (e.g., `language === "en" ? ... : ...` or `language === "vi" ? ... : ...`) inside page components or handlers.
+   - When adding new messages, declare their keys in `DictionaryType` (`src/lib/i18n/types.ts`) and provide translations across all language dictionary files (`src/lib/i18n/en.ts`, `src/lib/i18n/vi.ts`, etc.) to guarantee seamless scalability for 15+ languages.

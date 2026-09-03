@@ -41,17 +41,17 @@ export async function GET(
     });
 
     if (!course) {
-      return NextResponse.json({ error: "Khóa học không tồn tại" }, { status: 404 });
+      return NextResponse.json({ error: "Course does not exist" }, { status: 404 });
     }
 
     if (user.role === "INSTRUCTOR" && course.instructorId !== user.id) {
-      return NextResponse.json({ error: "Không có quyền truy cập khóa học này" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: You do not have permission to access this course" }, { status: 403 });
     }
 
     return NextResponse.json({ success: true, course });
   } catch (error: any) {
     console.error("Course GET by ID Error:", error);
-    return NextResponse.json({ error: "Lỗi tải thông tin khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error loading course details" }, { status: 500 });
   }
 }
 
@@ -105,12 +105,12 @@ export async function PUT(
     });
 
     if (!existingCourse) {
-      return NextResponse.json({ error: "Khóa học không tồn tại" }, { status: 404 });
+      return NextResponse.json({ error: "Course does not exist" }, { status: 404 });
     }
 
     if (user.role === "INSTRUCTOR" && existingCourse.instructorId !== user.id) {
       return NextResponse.json(
-        { error: "Bạn chỉ có thể chỉnh sửa khóa học của chính mình" },
+        { error: "Forbidden: You can only edit your own courses" },
         { status: 403 }
       );
     }
@@ -307,12 +307,12 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: "Cập nhật khóa học thành công!",
+      message: "Course updated successfully!",
       course: updatedCourse,
     });
   } catch (error: any) {
     console.error("Course PUT Error:", error);
-    return NextResponse.json({ error: "Lỗi cập nhật khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error updating course" }, { status: 500 });
   }
 }
 
@@ -336,7 +336,7 @@ export async function DELETE(
     });
 
     if (!course) {
-      return NextResponse.json({ error: "Khóa học không tồn tại" }, { status: 404 });
+      return NextResponse.json({ error: "Course does not exist" }, { status: 404 });
     }
 
     await prisma.course.delete({
@@ -345,10 +345,10 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Đã xóa khóa học thành công!",
+      message: "Course deleted successfully!",
     });
   } catch (error: any) {
     console.error("Course DELETE Error:", error);
-    return NextResponse.json({ error: "Lỗi xóa khóa học" }, { status: 500 });
+    return NextResponse.json({ error: "Error deleting course" }, { status: 500 });
   }
 }

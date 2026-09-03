@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Vui lòng đăng nhập để thực hiện đổi mật khẩu" },
+        { error: "Please log in to change password" },
         { status: 401 }
       );
     }
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Không tìm thấy người dùng" },
+        { error: "User not found" },
         { status: 404 }
       );
     }
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     if (!validation.isValid) {
       return NextResponse.json(
-        { error: validation.error || "Dữ liệu mật khẩu không hợp lệ", field: validation.field },
+        { error: validation.error || "Invalid password payload", field: validation.field },
         { status: 400 }
       );
     }
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isMatch) {
         return NextResponse.json(
-          { error: "Mật khẩu hiện tại không chính xác", field: "currentPassword" },
+          { error: "Current password is incorrect", field: "currentPassword" },
           { status: 400 }
         );
       }
@@ -77,13 +77,13 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: hasExistingPassword
-        ? "Đổi mật khẩu thành công"
-        : "Thiết lập mật khẩu tài khoản thành công",
+        ? "Password changed successfully"
+        : "Password set successfully",
     });
   } catch (error: any) {
     console.error("POST /api/user/change-password error:", error);
     return NextResponse.json(
-      { error: "Lỗi hệ thống khi cập nhật mật khẩu" },
+      { error: "Internal server error while updating password" },
       { status: 500 }
     );
   }

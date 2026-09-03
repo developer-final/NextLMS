@@ -16,7 +16,7 @@ function VerifyEmailContent() {
     token ? "loading" : "error"
   );
   const [message, setMessage] = useState(
-    token ? "" : "Không tìm thấy mã xác thực trong đường dẫn."
+    token ? "" : t.auth.tokenMissingOrInvalid
   );
   const [resendEmail, setResendEmail] = useState("");
   const [resending, setResending] = useState(false);
@@ -41,15 +41,15 @@ function VerifyEmailContent() {
 
         if (res.ok && data.success) {
           setStatus("success");
-          setMessage(data.message || t.auth.verifySuccessDesc);
+          setMessage(t.auth.verifySuccessDesc);
         } else {
           setStatus("error");
-          setMessage(data.error || "Liên kết xác thực không hợp lệ hoặc đã hết hạn.");
+          setMessage(t.auth.tokenMissingOrInvalid);
         }
       } catch {
         if (!isMounted) return;
         setStatus("error");
-        setMessage("Lỗi kết nối trong quá trình xác thực. Vui lòng thử lại sau.");
+        setMessage(t.common.connectionError);
       }
     }
 
@@ -63,7 +63,7 @@ function VerifyEmailContent() {
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resendEmail) {
-      toast.error(language === "en" ? "Please enter your email" : "Vui lòng nhập email");
+      toast.error(t.auth.resendEmailPrompt);
       return;
     }
 
@@ -78,12 +78,12 @@ function VerifyEmailContent() {
       const data = await res.json();
       if (res.ok) {
         setResendSent(true);
-        toast.success(data.message);
+        toast.success(t.auth.resendSuccess);
       } else {
-        toast.error(data.error || "Không thể gửi lại email xác thực");
+        toast.error(data.error || t.common.somethingWentWrong);
       }
     } catch {
-      toast.error("Lỗi kết nối");
+      toast.error(t.common.connectionError);
     } finally {
       setResending(false);
     }

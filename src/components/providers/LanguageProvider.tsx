@@ -17,7 +17,7 @@ const STORAGE_KEY = "wtl_preferred_language";
 const COOKIE_NAME = "NEXT_LOCALE";
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("vi");
+  const [language, setLanguageState] = useState<Language>("en");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -28,14 +28,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         setLanguageState(savedLang);
         document.documentElement.lang = savedLang;
       } else {
-        // Fallback to browser language if available
+        // Fallback to browser language if available, default to English
         const browserLang = navigator.language.toLowerCase();
-        if (browserLang.startsWith("en")) {
-          setLanguageState("en");
-          document.documentElement.lang = "en";
-        } else {
+        if (browserLang.startsWith("vi")) {
           setLanguageState("vi");
           document.documentElement.lang = "vi";
+        } else {
+          setLanguageState("en");
+          document.documentElement.lang = "en";
         }
       }
     } catch {
@@ -79,13 +79,13 @@ export function useLanguage(): LanguageContextValue {
   const context = useContext(LanguageContext);
   if (!context) {
     // Fallback if rendered outside provider
-    const fallbackDictionary = getDictionary("vi");
+    const fallbackDictionary = getDictionary("en");
     return {
-      language: "vi",
+      language: "en",
       setLanguage: () => {},
       t: fallbackDictionary,
-      isVi: true,
-      isEn: false,
+      isVi: false,
+      isEn: true,
     };
   }
   return context;

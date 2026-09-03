@@ -32,7 +32,7 @@ interface CourseEditFormProps {
 
 export default function CourseEditForm({ course, categories }: CourseEditFormProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -131,7 +131,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
 
   const removeSection = (sIdx: number) => {
     if (sections.length <= 1) {
-      toast.error("Khóa học cần có ít nhất 1 chương");
+      toast.error(t.admin.courses.minSectionsRequired);
       return;
     }
     setSections(sections.filter((_, idx) => idx !== sIdx));
@@ -148,16 +148,16 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           method: "DELETE",
         });
         if (!res.ok) {
-          toast.error("Không thể xóa tài liệu");
+          toast.error(t.admin.courses.attachmentDeleteFailed);
           return;
         }
       } catch {
-        toast.error("Lỗi khi xóa tài liệu");
+        toast.error(t.admin.courses.attachmentDeleteFailed);
         return;
       }
     }
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
-    toast.success("Đã xóa tài liệu đính kèm");
+    toast.success(t.admin.courses.attachmentDeleted);
   };
 
   const addLessonAttachment = (sIdx: number, lIdx: number, att: any) => {
@@ -181,11 +181,11 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           method: "DELETE",
         });
         if (!res.ok) {
-          toast.error("Không thể xóa tài liệu");
+          toast.error(t.admin.courses.attachmentDeleteFailed);
           return;
         }
       } catch {
-        toast.error("Lỗi khi xóa tài liệu");
+        toast.error(t.admin.courses.attachmentDeleteFailed);
         return;
       }
     }
@@ -194,7 +194,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
       (_: any, idx: number) => idx !== aIdx
     );
     setSections(updated);
-    toast.success("Đã xóa tài liệu bài học");
+    toast.success(t.admin.courses.attachmentDeleted);
   };
 
   const addLesson = (sIdx: number) => {
@@ -215,7 +215,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
   const removeLesson = (sIdx: number, lIdx: number) => {
     const updated = [...sections];
     if (updated[sIdx].lessons.length <= 1) {
-      toast.error("Mỗi chương cần có ít nhất 1 bài học");
+      toast.error(t.admin.courses.minLessonsRequired);
       return;
     }
     updated[sIdx].lessons = updated[sIdx].lessons.filter((_: any, idx: number) => idx !== lIdx);
@@ -245,7 +245,15 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
       sections,
     });
     if (!validation.isValid) {
-      toast.error(validation.error);
+      toast.error(
+        validation.error?.includes("giá gốc")
+          ? t.admin.courses.salePriceInvalid
+          : validation.error?.includes("tiêu đề")
+          ? t.admin.courses.courseTitleRequired
+          : validation.error?.includes("chương")
+          ? t.admin.courses.minSectionsRequired
+          : (t.admin.courses.courseValidationFailed || validation.error)
+      );
       return;
     }
 
@@ -754,9 +762,9 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
                               updateLessonField(sIdx, lIdx, "videoUrl", res.url);
                               updateLessonField(sIdx, lIdx, "contentType", "VIDEO_CDN");
                               setOpenLessonVideoUploadKey(null);
-                              toast.success("Đã tải video bài học lên S3 thành công!");
+                              toast.success(t.admin.courses.videoUploadSuccess);
                             }}
-                            helperText="Hỗ trợ MP4, WebM, MOV (Tối đa 1GB lưu trữ S3)"
+                            helperText={t.admin.courses.videoUploadHelp}
                             className="py-1"
                           />
                         ) : (
