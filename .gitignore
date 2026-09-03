@@ -63,3 +63,7 @@ Thumbs.db
 # ==========================================
 *.tsbuildinfo
 .vercel/
+
+Sample/
+.agents/
+.idea/
