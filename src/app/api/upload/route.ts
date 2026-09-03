@@ -33,9 +33,9 @@ export async function POST(req: Request) {
     const lessonId = (formData.get("lessonId") as string) || undefined;
     const postId = (formData.get("postId") as string) || undefined;
 
-    // Permissions: 'avatar' can be uploaded by any authenticated user for their own profile.
+    // Permissions: 'avatar' and 'receipt' can be uploaded by any authenticated user.
     // Course and blog assets ('thumbnail', 'video', 'attachment') require staff privileges.
-    if (type !== "avatar" && !isStaff) {
+    if (type !== "avatar" && type !== "receipt" && !isStaff) {
       return NextResponse.json(
         { error: "Forbidden: You do not have permission to upload files" },
         { status: 403 }
@@ -132,6 +132,9 @@ export async function POST(req: Request) {
     if (type === "avatar") {
       const randSuffix = Math.random().toString(36).substring(2, 8);
       storageKey = `avatars/${user.id}/${Date.now()}-${randSuffix}.${validation.fileExt}`;
+    } else if (type === "receipt") {
+      const randSuffix = Math.random().toString(36).substring(2, 8);
+      storageKey = `receipts/${user.id}/${Date.now()}-${randSuffix}.${validation.fileExt}`;
     } else if (type === "thumbnail") {
       const randSuffix = Math.random().toString(36).substring(2, 8);
       storageKey = `thumbnails/${Date.now()}-${randSuffix}.${validation.fileExt}`;
@@ -158,7 +161,7 @@ export async function POST(req: Request) {
       buffer,
       key: storageKey,
       contentType: file.type || (type === "video" ? "video/mp4" : "application/octet-stream"),
-      isPublic: type === "thumbnail" || type === "avatar",
+      isPublic: type === "thumbnail" || type === "avatar" || type === "receipt",
     });
 
     // If avatar upload, automatically persist avatarUrl to User record

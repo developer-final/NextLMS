@@ -364,7 +364,7 @@ export function validateCommentInput(input: {
   return { isValid: true };
 }
 
-export type UploadTargetType = "thumbnail" | "attachment" | "video" | "avatar";
+export type UploadTargetType = "thumbnail" | "attachment" | "video" | "avatar" | "receipt";
 
 export interface FileValidationOptions {
   buffer: Buffer;
@@ -400,6 +400,9 @@ export const ALLOWED_THUMBNAIL_MIMES = new Set([
 
 export const ALLOWED_AVATAR_EXTENSIONS = ALLOWED_THUMBNAIL_EXTENSIONS;
 export const ALLOWED_AVATAR_MIMES = ALLOWED_THUMBNAIL_MIMES;
+
+export const ALLOWED_RECEIPT_EXTENSIONS = ALLOWED_THUMBNAIL_EXTENSIONS;
+export const ALLOWED_RECEIPT_MIMES = ALLOWED_THUMBNAIL_MIMES;
 
 // Allowed extensions for Course & Lesson Attachments
 export const ALLOWED_ATTACHMENT_EXTENSIONS = new Set([
@@ -622,8 +625,15 @@ export function validateFileUpload({
     };
   }
 
-  // 2. Size Limit Check (Thumbnail: 5MB, Attachment: 50MB, Video: 1024MB = 1GB)
-  const defaultLimit = type === "avatar" ? 5 : type === "thumbnail" ? 5 : type === "video" ? 1024 : 50;
+  // 2. Size Limit Check (Thumbnail: 5MB, Receipt: 10MB, Attachment: 50MB, Video: 1024MB = 1GB)
+  const defaultLimit =
+    type === "avatar" || type === "thumbnail"
+      ? 5
+      : type === "receipt"
+      ? 10
+      : type === "video"
+      ? 1024
+      : 50;
   const effectiveMaxSizeMb = maxSizeMb ?? defaultLimit;
   const maxSizeBytes = effectiveMaxSizeMb * 1024 * 1024;
 
@@ -647,6 +657,20 @@ export function validateFileUpload({
       return {
         isValid: false,
         error: "MIME type của ảnh đại diện không hợp lệ",
+      };
+    }
+  } else if (type === "receipt") {
+    if (!ALLOWED_RECEIPT_EXTENSIONS.has(ext)) {
+      return {
+        isValid: false,
+        error: "Biên lai thanh toán chỉ chấp nhận các định dạng ảnh: .jpg, .jpeg, .png, .webp",
+      };
+    }
+
+    if (mimeType && !ALLOWED_RECEIPT_MIMES.has(mimeType.toLowerCase())) {
+      return {
+        isValid: false,
+        error: "MIME type của biên lai không hợp lệ",
       };
     }
   } else if (type === "thumbnail") {

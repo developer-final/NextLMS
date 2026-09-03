@@ -15,32 +15,44 @@ export default async function MyCoursesPage() {
 
   const userId = session.user.id;
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      userId,
-      status: "ACTIVE",
-    },
-    include: {
-      course: {
-        include: {
-          instructor: {
-            select: { name: true, avatarUrl: true },
-          },
-          sections: {
-            orderBy: { orderIndex: "asc" },
-            include: {
-              lessons: {
-                orderBy: { orderIndex: "asc" },
-                select: { id: true, slug: true, title: true },
+  const [enrollments, certificates] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: {
+        userId,
+        status: "ACTIVE",
+      },
+      include: {
+        course: {
+          include: {
+            instructor: {
+              select: { name: true, avatarUrl: true },
+            },
+            sections: {
+              orderBy: { orderIndex: "asc" },
+              include: {
+                lessons: {
+                  orderBy: { orderIndex: "asc" },
+                  select: { id: true, slug: true, title: true },
+                },
               },
             },
           },
         },
       },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.certificate.findMany({
+      where: { userId },
+      select: { courseId: true, certificateCode: true },
+    }),
+  ]);
 
-  return <MyCoursesClient enrollments={serializePrisma(enrollments)} />;
+  const certMap = new Map(certificates.map((c) => [c.courseId, c.certificateCode]));
+  const enrollmentsWithCert = enrollments.map((enr) => ({
+    ...enr,
+    certificateCode: certMap.get(enr.courseId) || null,
+  }));
+
+  return <MyCoursesClient enrollments={serializePrisma(enrollmentsWithCert)} />;
 }
 

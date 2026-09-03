@@ -158,6 +158,7 @@ export interface DictionaryType {
     instructorFallbackBio: string;
     reviewsTab: string;
     noReviews: string;
+    attachmentsCount: string;
   };
   learn: {
     backToCourse: string;
@@ -198,6 +199,7 @@ export interface DictionaryType {
     certVerifyCode: string;
     certIssueDate: string;
     certDownloadPdf: string;
+    certViewOnline: string;
     emptyCommentError: string;
     commentSubmitFailed: string;
   };
@@ -819,6 +821,27 @@ export interface DictionaryType {
     commentFailed: string;
     authorBadge: string;
     reply: string;
+  };
+  certificate: {
+    pageTitle: string;
+    verifiedBadge: string;
+    officialCertificate: string;
+    certCodeLabel: string;
+    issuedTo: string;
+    studentNameFallback: string;
+    completedCourseText: string;
+    issuedOn: string;
+    instructorLabel: string;
+    authorizedSignatory: string;
+    directorSignature: string;
+    printPdfBtn: string;
+    copyLinkBtn: string;
+    linkCopied: string;
+    shareBtn: string;
+    backToCourse: string;
+    notFoundTitle: string;
+    notFoundDesc: string;
+    scanToVerify: string;
   };
 }
 

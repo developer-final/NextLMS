@@ -220,7 +220,7 @@ export default function CourseDetailClient({
                               ) || 0),
                             0
                           ) || 0)}{" "}
-                        tài liệu & file bài tập đính kèm (S3)
+                        {t.courseDetail.attachmentsCount}
                       </span>
                     </div>
                   )}

@@ -337,6 +337,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("type", "receipt");
 
       const res = await fetch("/api/upload", {
         method: "POST",

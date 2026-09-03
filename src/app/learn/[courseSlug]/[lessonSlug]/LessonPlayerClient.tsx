@@ -726,15 +726,18 @@ export default function LessonPlayerClient({
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                toast.success(t.learn.downloading);
-                setShowCertModal(false);
-              }}
-              className="rounded-xl bg-amber-500 hover:bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow-gold"
-            >
-              {t.learn.certDownloadPdf}
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link
+                href={`/certificates/${certCode || "CERT-WTL-PRO"}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowCertModal(false)}
+                className="flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow-gold transition-all hover:scale-105"
+              >
+                <Download className="h-4 w-4" />
+                {t.learn.certDownloadPdf}
+              </Link>
+            </div>
           </div>
         </div>
       )}

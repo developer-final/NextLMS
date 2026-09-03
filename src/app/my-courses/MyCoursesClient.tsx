@@ -92,9 +92,21 @@ export default function MyCoursesClient({ enrollments }: MyCoursesClientProps) {
                   )}
 
                   {isFinished && (
-                    <span className="flex items-center gap-1 text-xs font-bold text-amber-400">
-                      <Award className="h-4 w-4" /> {t.myCourses.graduatedBadge}
-                    </span>
+                    enr.certificateCode ? (
+                      <Link
+                        href={`/certificates/${enr.certificateCode}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs font-bold text-amber-400 hover:text-amber-300 hover:underline transition-colors"
+                        title={t.learn.viewCertificate}
+                      >
+                        <Award className="h-4 w-4" /> {t.myCourses.graduatedBadge}
+                      </Link>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs font-bold text-amber-400">
+                        <Award className="h-4 w-4" /> {t.myCourses.graduatedBadge}
+                      </span>
+                    )
                   )}
                 </div>
               </div>

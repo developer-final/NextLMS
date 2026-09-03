@@ -351,6 +351,45 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
     });
   });
 
+  describe("Receipt Upload Validation", () => {
+    const validPngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const validJpgBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+
+    it("should accept valid receipt payment proof image", () => {
+      const result = validateFileUpload({
+        buffer: validJpgBuffer,
+        fileName: "bank-transfer-receipt.jpg",
+        mimeType: "image/jpeg",
+        type: "receipt",
+      });
+      expect(result.isValid).toBe(true);
+      expect(result.fileExt).toBe("jpg");
+    });
+
+    it("should reject receipt with non-image format", () => {
+      const result = validateFileUpload({
+        buffer: Buffer.from("%PDF-1.4..."),
+        fileName: "receipt.pdf",
+        type: "receipt",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("Biên lai thanh toán chỉ chấp nhận các định dạng ảnh");
+    });
+
+    it("should reject receipt exceeding size limit", () => {
+      const largeBuffer = Buffer.concat([validPngBuffer, Buffer.alloc(11 * 1024 * 1024)]);
+      const result = validateFileUpload({
+        buffer: largeBuffer,
+        fileName: "huge-receipt.png",
+        mimeType: "image/png",
+        type: "receipt",
+        maxSizeMb: 10,
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("vượt quá mức cho phép");
+    });
+  });
+
   describe("validateProfileUpdate", () => {
     it("should accept valid profile input", () => {
       const result = validateProfileUpdate({
