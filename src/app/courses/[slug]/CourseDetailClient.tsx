@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { formatVND, formatDuration, getYouTubeEmbedUrl } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
@@ -35,6 +39,55 @@ export default function CourseDetailClient({
   firstLesson,
 }: CourseDetailClientProps) {
   const { t } = useLanguage();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [enrollingFree, setEnrollingFree] = useState(false);
+
+  const handleFreeEnroll = async () => {
+    if (!session?.user) {
+      router.push(`/auth/login?callbackUrl=/courses/${course.slug}`);
+      return;
+    }
+
+    setEnrollingFree(true);
+    try {
+      const res = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: course.id,
+          paymentMethod: "FREE",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.alreadyEnrolled) {
+          const targetSlug = data.firstLessonSlug || firstLesson?.slug;
+          router.push(
+            targetSlug
+              ? `/learn/${course.slug}/${targetSlug}`
+              : `/learn/${course.slug}`
+          );
+          return;
+        }
+        toast.error(data.error || t.common.somethingWentWrong);
+        return;
+      }
+
+      toast.success(t.checkout.paymentConfirmedTitle);
+      const targetSlug = data.firstLessonSlug || firstLesson?.slug;
+      router.push(
+        targetSlug
+          ? `/learn/${course.slug}/${targetSlug}`
+          : `/learn/${course.slug}`
+      );
+    } catch (e) {
+      toast.error(t.common.somethingWentWrong);
+    } finally {
+      setEnrollingFree(false);
+    }
+  };
 
   const levelLabels: Record<string, string> = {
     BEGINNER: t.common.beginner,
@@ -177,19 +230,35 @@ export default function CourseDetailClient({
                     href={
                       firstLesson
                         ? `/learn/${course.slug}/${firstLesson.slug}`
-                        : `/my-courses`
+                        : `/learn/${course.slug}`
                     }
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 py-3.5 text-sm font-bold text-slate-950 shadow-glow transition-all hover:scale-[1.02]"
                   >
                     <PlayCircle className="h-5 w-5" /> {t.courseDetail.startLearningNow}
                   </Link>
+                ) : course.isFree ? (
+                  <button
+                    type="button"
+                    onClick={handleFreeEnroll}
+                    disabled={enrollingFree}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 py-3.5 text-sm font-bold text-slate-950 shadow-glow transition-all hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
+                  >
+                    {enrollingFree ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+                    ) : (
+                      <>
+                        <Sparkles className="h-5 w-5" />
+                        <span>{t.courseDetail.enrollFree}</span>
+                      </>
+                    )}
+                  </button>
                 ) : (
                   <Link
                     href={`/checkout/${course.slug}`}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 py-3.5 text-sm font-bold text-slate-950 shadow-glow transition-all hover:scale-[1.02]"
                   >
                     <Sparkles className="h-5 w-5" />
-                    {course.isFree ? t.courseDetail.enrollFree : t.courseDetail.enrollNow}
+                    <span>{t.courseDetail.enrollNow}</span>
                   </Link>
                 )}
 

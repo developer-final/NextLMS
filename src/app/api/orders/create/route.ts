@@ -46,6 +46,17 @@ export async function POST(req: Request) {
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
+      include: {
+        sections: {
+          orderBy: { orderIndex: "asc" },
+          include: {
+            lessons: {
+              orderBy: { orderIndex: "asc" },
+              select: { id: true, slug: true },
+            },
+          },
+        },
+      },
     });
 
     if (!course || course.status !== "PUBLISHED") {
@@ -63,8 +74,14 @@ export async function POST(req: Request) {
     });
 
     if (existingEnrollment && existingEnrollment.status === "ACTIVE") {
+      const firstLessonSlug = course.sections?.[0]?.lessons?.[0]?.slug || null;
       return NextResponse.json(
-        { error: "You already own this course!", alreadyEnrolled: true },
+        {
+          error: "You already own this course!",
+          alreadyEnrolled: true,
+          courseSlug: course.slug,
+          firstLessonSlug,
+        },
         { status: 400 }
       );
     }
@@ -225,10 +242,14 @@ export async function POST(req: Request) {
       return createdOrder;
     });
 
+    const firstLessonSlug = course.sections?.[0]?.lessons?.[0]?.slug || null;
+
     return NextResponse.json({
       success: true,
       order,
       isFreeOrder,
+      courseSlug: course.slug,
+      firstLessonSlug,
       message: isFreeOrder
         ? "Course enrollment successful!"
         : "Order created successfully!",

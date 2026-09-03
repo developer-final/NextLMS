@@ -156,9 +156,12 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           setIsOrderCompletedRealtime(true);
           toast.success(t.checkout.paymentConfirmedTitle);
           clearInterval(interval);
+          const firstLessonSlug = course?.sections?.[0]?.lessons?.[0]?.slug;
           setTimeout(() => {
-            router.push(`/my-courses`);
-          }, 2000);
+            router.push(
+              firstLessonSlug ? `/learn/${slug}/${firstLessonSlug}` : `/learn/${slug}`
+            );
+          }, 1500);
         }
       } catch (e) {
         // Silent fail for polling
@@ -283,7 +286,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
       if (!res.ok) {
         if (data.alreadyEnrolled) {
           toast.info(t.myCourses.pageTitle);
-          router.push(`/courses/${slug}`);
+          const targetLessonSlug =
+            data.firstLessonSlug || course?.sections?.[0]?.lessons?.[0]?.slug;
+          router.push(
+            targetLessonSlug ? `/learn/${slug}/${targetLessonSlug}` : `/learn/${slug}`
+          );
           return;
         }
         toast.error(data.error || t.common.somethingWentWrong);
@@ -294,7 +301,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
 
       if (data.isFreeOrder) {
         toast.success(t.checkout.paymentConfirmedTitle);
-        router.push(`/my-courses`);
+        const targetLessonSlug =
+          data.firstLessonSlug || course?.sections?.[0]?.lessons?.[0]?.slug;
+        router.push(
+          targetLessonSlug ? `/learn/${slug}/${targetLessonSlug}` : `/learn/${slug}`
+        );
       } else {
         toast.success(t.checkout.confirmTransferTitle);
       }
@@ -712,7 +723,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                     {t.checkout.paymentConfirmedDesc}
                   </p>
                   <Link
-                    href={`/my-courses`}
+                    href={
+                      course?.sections?.[0]?.lessons?.[0]?.slug
+                        ? `/learn/${slug}/${course.sections[0].lessons[0].slug}`
+                        : `/learn/${slug}`
+                    }
                     className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-2.5 text-xs font-bold text-slate-950 shadow-glow"
                   >
                     {t.checkout.learnNowBtn} <ArrowRight className="h-4 w-4" />
@@ -824,8 +839,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
                               }
                               setIsOrderCompletedRealtime(true);
                               toast.success(t.checkout.paypalSuccess);
+                              const firstLessonSlug = course?.sections?.[0]?.lessons?.[0]?.slug;
                               setTimeout(() => {
-                                router.push("/my-courses");
+                                router.push(
+                                  firstLessonSlug ? `/learn/${slug}/${firstLessonSlug}` : `/learn/${slug}`
+                                );
                               }, 1500);
                             }}
                             onError={(err: any) => {
