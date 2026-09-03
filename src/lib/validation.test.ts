@@ -523,5 +523,34 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       expect(result.field).toBe("content");
     });
   });
+
+  describe("validateCourseInput", () => {
+    it("should sanitize tags and preserve valid course data", () => {
+      const result = validateCourseInput({
+        title: "Khóa học Trading chuyên nghiệp",
+        shortDescription: "<b>Mô tả ngắn</b>",
+        price: 1000000,
+        salePrice: 500000,
+        isFree: false,
+        tagNames: ["Price Action", "Crypto", "Price Action", "<script>bad</script>SMC"],
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.sanitized?.title).toBe("Khóa học Trading chuyên nghiệp");
+      expect(result.sanitized?.shortDescription).toBe("Mô tả ngắn");
+      expect(result.sanitized?.tagNames).toEqual(["Price Action", "Crypto", "badSMC"]);
+    });
+
+    it("should handle empty or null tagNames gracefully", () => {
+      const result = validateCourseInput({
+        title: "Khóa học Trading Cơ Bản",
+        price: 0,
+        isFree: true,
+      });
+
+      expect(result.isValid).toBe(true);
+      expect(result.sanitized?.tagNames).toEqual([]);
+    });
+  });
 });
 

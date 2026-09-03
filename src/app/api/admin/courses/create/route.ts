@@ -40,9 +40,27 @@ export async function POST(req: Request) {
       shortDescription: cleanShortDesc,
       description: cleanDesc,
       sections: cleanSections,
+      tagNames: cleanTags = [],
     } = validation.sanitized;
 
     const slug = slugify(cleanTitle) + "-" + Date.now().toString().slice(-4);
+
+    // Upsert tags and prepare connect relation
+    const tagConnectOps: { id: string }[] = [];
+    if (cleanTags.length > 0) {
+      for (const name of cleanTags) {
+        const tagSlug = slugify(name);
+        const tag = await prisma.tag.upsert({
+          where: { name },
+          update: {},
+          create: {
+            name,
+            slug: tagSlug || `tag-${Date.now()}`,
+          },
+        });
+        tagConnectOps.push({ id: tag.id });
+      }
+    }
 
     const course = await prisma.course.create({
       data: {
@@ -63,6 +81,7 @@ export async function POST(req: Request) {
         isFree: Boolean(isFree),
         isFeatured: Boolean(isFeatured),
         certificateEnabled: true,
+        tags: tagConnectOps.length > 0 ? { connect: tagConnectOps } : undefined,
         // Create Course-level Attachments if provided
         attachments: attachments?.length
           ? {

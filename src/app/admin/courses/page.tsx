@@ -35,9 +35,10 @@ export default async function AdminCoursesPage({ searchParams }: AdminCoursesPag
   if (q && q.trim()) {
     const trimmedQ = q.trim();
     whereClause.OR = [
-      { title: { contains: trimmedQ } },
-      { instructor: { name: { contains: trimmedQ } } },
-      { category: { name: { contains: trimmedQ } } },
+      { title: { contains: trimmedQ, mode: "insensitive" } },
+      { instructor: { name: { contains: trimmedQ, mode: "insensitive" } } },
+      { category: { name: { contains: trimmedQ, mode: "insensitive" } } },
+      { tags: { some: { name: { contains: trimmedQ, mode: "insensitive" } } } },
     ];
   }
 
@@ -48,6 +49,7 @@ export default async function AdminCoursesPage({ searchParams }: AdminCoursesPag
       include: {
         instructor: { select: { name: true } },
         category: { select: { name: true } },
+        tags: { select: { id: true, name: true, slug: true } },
         sections: {
           select: {
             id: true,

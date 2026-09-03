@@ -120,6 +120,8 @@ export const vi: DictionaryType = {
     noCoursesFound: "Không tìm thấy khóa học nào phù hợp",
     noCoursesDesc: "Vui lòng chọn danh mục khác hoặc xóa bộ lọc tìm kiếm.",
     resetFilters: "Đặt lại bộ lọc",
+    filterByTag: "Lọc theo thẻ",
+    tagFilterActive: "Đang lọc theo thẻ",
   },
   courseDetail: {
     featuredBadge: "Khóa học Tiêu biểu",
@@ -423,6 +425,9 @@ export const vi: DictionaryType = {
       courseValidationFailed: "Dữ liệu khóa học không hợp lệ",
       courseTitleRequired: "Tiêu đề khóa học không được để trống",
       salePriceInvalid: "Giá khuyến mãi không thể lớn hơn giá gốc",
+      tagsLabel: "Thẻ chủ đề (Tags)",
+      tagsPlaceholder: "Nhập tag rồi ấn Enter (Ví dụ: Price Action, SMC, Crypto)...",
+      tagsHelpText: "Gắn thẻ để tăng độ nhận diện tìm kiếm và tự động liên kết với bài viết Blog.",
     },
     createCourse: {
       title: "Tạo Khóa học & Bài giảng Mới",
@@ -436,6 +441,9 @@ export const vi: DictionaryType = {
       salePriceLabel: "Giá khuyến mãi (VND)",
       freeCheckbox: "Khóa học Miễn phí 100%",
       featuredCheckbox: "Đánh dấu là Khóa học Tiêu biểu (Featured)",
+      tagsLabel: "Thẻ chủ đề (Tags)",
+      tagsPlaceholder: "Nhập tag rồi ấn Enter (Ví dụ: Price Action, SMC, Crypto)...",
+      tagsHelpText: "Gắn thẻ để tăng độ nhận diện tìm kiếm và tự động liên kết với bài viết Blog.",
       thumbnailLabel: "URL Ảnh thu nhỏ (Thumbnail)",
       thumbnailPlaceholder: "https://images.unsplash.com/...",
       introVideoLabel: "URL Video giới thiệu học thử (YouTube)",

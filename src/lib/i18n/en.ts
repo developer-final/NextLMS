@@ -120,6 +120,8 @@ export const en: DictionaryType = {
     noCoursesFound: "No matching courses found",
     noCoursesDesc: "Please select another category or clear your search filters.",
     resetFilters: "Reset filters",
+    filterByTag: "Filter by tag",
+    tagFilterActive: "Filtered by tag",
   },
   courseDetail: {
     featuredBadge: "Featured Course",
@@ -423,6 +425,9 @@ export const en: DictionaryType = {
       courseValidationFailed: "Course validation failed",
       courseTitleRequired: "Course title cannot be empty",
       salePriceInvalid: "Sale price cannot exceed original price",
+      tagsLabel: "Course Tags",
+      tagsPlaceholder: "Type tag and hit Enter (e.g. Price Action, SMC, Crypto)...",
+      tagsHelpText: "Add tags to improve search discoverability and link with related blog posts.",
     },
     createCourse: {
       title: "Create New Course & Lessons",
@@ -436,6 +441,9 @@ export const en: DictionaryType = {
       salePriceLabel: "Sale Price (VND)",
       freeCheckbox: "100% Free Course",
       featuredCheckbox: "Mark as Featured Course",
+      tagsLabel: "Course Tags",
+      tagsPlaceholder: "Type tag and hit Enter (e.g. Price Action, SMC, Crypto)...",
+      tagsHelpText: "Add tags to improve search discoverability and link with related blog posts.",
       thumbnailLabel: "Thumbnail Image URL",
       thumbnailPlaceholder: "https://images.unsplash.com/...",
       introVideoLabel: "Intro Video URL (YouTube)",

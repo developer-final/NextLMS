@@ -31,6 +31,9 @@ const getCourseBySlug = cache(async (slug: string) => {
         },
       },
       category: true,
+      tags: {
+        select: { id: true, name: true, slug: true },
+      },
       attachments: {
         select: { id: true, fileName: true, fileSize: true, fileType: true },
       },
@@ -86,6 +89,7 @@ export async function generateMetadata({
     keywords: [
       course.title,
       course.category?.name || "Trading",
+      ...(course.tags ? course.tags.map((t) => t.name) : []),
       "World Trading Lab",
       "Online Courses",
       "Trading Education",

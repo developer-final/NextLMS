@@ -287,9 +287,28 @@ export default function AdminCoursesClient({
                           >
                             {c.title}
                           </Link>
-                          <span className="text-[10px] text-slate-400">
-                            {t.admin.courses.authorLabel} {c.instructor?.name || "Admin"}
-                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-slate-400">
+                              {t.admin.courses.authorLabel} {c.instructor?.name || "Admin"}
+                            </span>
+                            {c.tags && c.tags.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                {c.tags.slice(0, 2).map((tg: any) => (
+                                  <span
+                                    key={tg.id || tg.name}
+                                    className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-medium"
+                                  >
+                                    #{tg.name}
+                                  </span>
+                                ))}
+                                {c.tags.length > 2 && (
+                                  <span className="text-[9px] text-slate-500">
+                                    +{c.tags.length - 2}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>

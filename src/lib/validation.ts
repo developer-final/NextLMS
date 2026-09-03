@@ -145,6 +145,7 @@ export interface CourseValidationInput {
       contentBody?: string | null;
     }>;
   }> | null;
+  tagNames?: string[] | null;
 }
 
 export interface CourseValidationResult extends ValidationResult {
@@ -152,6 +153,7 @@ export interface CourseValidationResult extends ValidationResult {
     title: string;
     shortDescription: string | null;
     description: string | null;
+    tagNames?: string[];
     sections?: Array<{
       title: string;
       description: string | null;
@@ -167,7 +169,7 @@ export interface CourseValidationResult extends ValidationResult {
  * Validates and sanitizes course creation and edit payload
  */
 export function validateCourseInput(input: CourseValidationInput): CourseValidationResult {
-  const { title, shortDescription, description, price, salePrice, isFree, sections } = input;
+  const { title, shortDescription, description, price, salePrice, isFree, sections, tagNames } = input;
 
   if (!title?.trim()) {
     return { isValid: false, field: "title", error: "Course title is required" };
@@ -288,12 +290,23 @@ export function validateCourseInput(input: CourseValidationInput): CourseValidat
     }
   }
 
+  const cleanTags: string[] = [];
+  if (Array.isArray(tagNames)) {
+    for (const tag of tagNames) {
+      const cleaned = sanitizePlainText(String(tag), 50);
+      if (cleaned && !cleanTags.includes(cleaned)) {
+        cleanTags.push(cleaned);
+      }
+    }
+  }
+
   return {
     isValid: true,
     sanitized: {
       title: cleanTitle,
       shortDescription: cleanShortDesc,
       description: cleanDesc,
+      tagNames: cleanTags,
       sections: cleanSections,
     },
   };

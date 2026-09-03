@@ -24,6 +24,7 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
         category: true,
         instructor: { select: { id: true, name: true } },
         attachments: true,
+        tags: { select: { id: true, name: true, slug: true } },
         sections: {
           orderBy: { orderIndex: "asc" },
           include: {

@@ -77,6 +77,21 @@ export default function CourseDetailClient({
                 </p>
               )}
 
+              {/* Course Tags */}
+              {course.tags && course.tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {course.tags.map((tag: any) => (
+                    <Link
+                      key={tag.id || tag.slug}
+                      href={`/courses?tag=${tag.slug}`}
+                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+                    >
+                      #{tag.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {/* Meta stats */}
               <div className="flex flex-wrap items-center gap-6 pt-2 text-xs text-slate-400 border-t border-slate-800/80">
                 <div className="flex items-center gap-2">

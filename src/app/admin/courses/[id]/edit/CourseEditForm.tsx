@@ -20,6 +20,8 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Tag,
+  X,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCourseInput } from "@/lib/validation";
@@ -55,6 +57,29 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
   const [introVideoUrl, setIntroVideoUrl] = useState(course.introVideoUrl || "");
   const [shortDescription, setShortDescription] = useState(course.shortDescription || "");
   const [description, setDescription] = useState(course.description || "");
+
+  // Course tags
+  const [tags, setTags] = useState<string[]>(
+    course.tags ? course.tags.map((tg: any) => tg.name) : []
+  );
+  const [tagInput, setTagInput] = useState("");
+
+  const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
+    if (e && "key" in e && e.key !== "Enter") return;
+    if (e) e.preventDefault();
+
+    const clean = tagInput.trim().replace(/,/g, "");
+    if (!clean) return;
+
+    if (!tags.includes(clean)) {
+      setTags([...tags, clean]);
+    }
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
+  };
 
   // Course-level shared attachments
   const [attachments, setAttachments] = useState<any[]>(course.attachments || []);
@@ -279,6 +304,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           description,
           attachments,
           sections,
+          tagNames: tags,
         }),
       });
 
@@ -496,6 +522,58 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
               />
               <span>{t.admin.editCourse.certificateCheckbox}</span>
             </label>
+          </div>
+
+          {/* Tags */}
+          <div className="md:col-span-2 pt-3 border-t border-slate-800/80">
+            <label className="text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5 text-cyan-400" />
+              {t.admin.courses.tagsLabel}
+            </label>
+            <p className="text-[11px] text-slate-400 mb-2">
+              {t.admin.courses.tagsHelpText}
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder={t.admin.courses.tagsPlaceholder}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition-colors"
+              >
+                +
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {tags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium"
+                  >
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(idx)}
+                      className="hover:text-rose-400 transition-colors ml-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

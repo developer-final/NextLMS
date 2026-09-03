@@ -132,6 +132,8 @@ export interface DictionaryType {
     noCoursesFound: string;
     noCoursesDesc: string;
     resetFilters: string;
+    filterByTag: string;
+    tagFilterActive: string;
   };
   courseDetail: {
     featuredBadge: string;
@@ -435,6 +437,9 @@ export interface DictionaryType {
       courseValidationFailed: string;
       courseTitleRequired: string;
       salePriceInvalid: string;
+      tagsLabel: string;
+      tagsPlaceholder: string;
+      tagsHelpText: string;
     };
     createCourse: {
       title: string;
@@ -448,6 +453,9 @@ export interface DictionaryType {
       salePriceLabel: string;
       freeCheckbox: string;
       featuredCheckbox: string;
+      tagsLabel: string;
+      tagsPlaceholder: string;
+      tagsHelpText: string;
       thumbnailLabel: string;
       thumbnailPlaceholder: string;
       introVideoLabel: string;

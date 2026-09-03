@@ -24,6 +24,11 @@ export interface CourseCardProps {
     category?: {
       name: string;
     } | null;
+    tags?: {
+      id: string;
+      name: string;
+      slug: string;
+    }[];
     _count?: {
       sections?: number;
       enrollments?: number;
@@ -116,6 +121,22 @@ export default function CourseCard({ course }: CourseCardProps) {
           <p className="mt-2 line-clamp-2 text-xs text-slate-400 leading-relaxed">
             {course.shortDescription}
           </p>
+        )}
+
+        {/* Tags */}
+        {course.tags && course.tags.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1">
+            {course.tags.slice(0, 3).map((tag) => (
+              <Link
+                key={tag.id || tag.slug}
+                href={`/courses?tag=${tag.slug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800/80 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors border border-slate-700/40"
+              >
+                #{tag.name}
+              </Link>
+            ))}
+          </div>
         )}
 
         {/* Instructor */}

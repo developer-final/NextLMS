@@ -7,6 +7,7 @@ export const revalidate = 180; // ISR: 3 minutes
 interface CoursesPageProps {
   searchParams: Promise<{
     category?: string;
+    tag?: string;
     level?: string;
     type?: string; // free | paid
     q?: string;
@@ -15,7 +16,7 @@ interface CoursesPageProps {
 }
 
 export default async function CoursesPage({ searchParams }: CoursesPageProps) {
-  const { category, level, type, q, page } = await searchParams;
+  const { category, tag, level, type, q, page } = await searchParams;
 
   const pageSize = 6;
   const currentPage = Math.max(1, parseInt(page || "1", 10));
@@ -26,6 +27,10 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
 
   if (category) {
     whereClause.category = { slug: category };
+  }
+
+  if (tag) {
+    whereClause.tags = { some: { slug: tag } };
   }
 
   if (level) {
@@ -42,6 +47,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
     whereClause.OR = [
       { title: { contains: q, mode: "insensitive" } },
       { shortDescription: { contains: q, mode: "insensitive" } },
+      { tags: { some: { name: { contains: q, mode: "insensitive" } } } },
     ];
   }
 
@@ -55,6 +61,9 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
         },
         category: {
           select: { name: true, slug: true },
+        },
+        tags: {
+          select: { id: true, name: true, slug: true },
         },
         sections: {
           include: {
@@ -87,6 +96,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
       courses={serializePrisma(courses) as any}
       categories={categories}
       category={category}
+      tag={tag}
       level={level}
       type={type}
       q={q}

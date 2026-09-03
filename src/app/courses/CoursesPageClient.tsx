@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
-import { BookOpen } from "lucide-react";
+import { BookOpen, X } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import Pagination from "@/components/ui/Pagination";
 
@@ -24,6 +24,7 @@ interface CoursesPageClientProps {
   courses: CourseCardProps["course"][];
   categories: CategoryWithCount[];
   category?: string;
+  tag?: string;
   level?: string;
   type?: string;
   q?: string;
@@ -34,6 +35,7 @@ export default function CoursesPageClient({
   courses,
   categories,
   category,
+  tag,
   level,
   type,
   q,
@@ -44,10 +46,21 @@ export default function CoursesPageClient({
   const buildPageUrl = (pageNumber: number) => {
     const params = new URLSearchParams();
     if (category) params.set("category", category);
+    if (tag) params.set("tag", tag);
     if (level) params.set("level", level);
     if (type) params.set("type", type);
     if (q) params.set("q", q);
     if (pageNumber > 1) params.set("page", pageNumber.toString());
+    const query = params.toString();
+    return query ? `/courses?${query}` : "/courses";
+  };
+
+  const getUrlWithoutTag = () => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (level) params.set("level", level);
+    if (type) params.set("type", type);
+    if (q) params.set("q", q);
     const query = params.toString();
     return query ? `/courses?${query}` : "/courses";
   };
@@ -88,6 +101,23 @@ export default function CoursesPageClient({
           </Link>
         ))}
       </div>
+
+      {/* Active Tag Filter Indicator */}
+      {tag && (
+        <div className="flex items-center gap-2 mb-6 -mt-2">
+          <span className="text-xs text-slate-400">{t.courses.tagFilterActive}:</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+            #{tag}
+            <Link
+              href={getUrlWithoutTag()}
+              className="hover:text-rose-400 transition-colors ml-1"
+              title="Remove tag filter"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Link>
+          </span>
+        </div>
+      )}
 
       {/* Course Grid */}
       {courses.length === 0 ? (

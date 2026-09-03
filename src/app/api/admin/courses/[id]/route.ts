@@ -26,6 +26,7 @@ export async function GET(
         category: true,
         instructor: { select: { id: true, name: true, email: true } },
         attachments: true,
+        tags: { select: { id: true, name: true, slug: true } },
         sections: {
           orderBy: { orderIndex: "asc" },
           include: {
@@ -99,6 +100,7 @@ export async function PUT(
       title: cleanTitle,
       shortDescription: cleanShortDesc,
       description: cleanDesc,
+      tagNames: cleanTags,
     } = validation.sanitized;
 
     const existingCourse = await prisma.course.findUnique({
@@ -133,6 +135,27 @@ export async function PUT(
 
     const isFreeBool = Boolean(isFree);
 
+    // Upsert tags if provided
+    let tagOps: { set: { id: string }[] } | undefined = undefined;
+    if (cleanTags !== undefined) {
+      const tagConnectOps: { id: string }[] = [];
+      if (cleanTags.length > 0) {
+        for (const name of cleanTags) {
+          const tagSlug = slugify(name);
+          const tag = await prisma.tag.upsert({
+            where: { name },
+            update: {},
+            create: {
+              name,
+              slug: tagSlug || `tag-${Date.now()}`,
+            },
+          });
+          tagConnectOps.push({ id: tag.id });
+        }
+      }
+      tagOps = { set: tagConnectOps };
+    }
+
     // Perform database operations in transaction
     const updatedCourse = await prisma.$transaction(async (tx) => {
       // 1. Update basic course metadata
@@ -153,6 +176,7 @@ export async function PUT(
           isFree: isFreeBool,
           isFeatured: Boolean(isFeatured),
           certificateEnabled: certificateEnabled !== undefined ? Boolean(certificateEnabled) : true,
+          ...(tagOps ? { tags: tagOps } : {}),
         },
       });
 
