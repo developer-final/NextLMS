@@ -204,25 +204,27 @@ export default function CourseDetailClient({
                   )}
                 </div>
 
-                {/* Price Display */}
-                <div className="mb-6">
-                  {course.isFree ? (
-                    <div className="text-3xl font-black text-brand-400">{t.courseDetail.free100}</div>
-                  ) : course.salePrice ? (
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-3xl font-black text-brand-400">
-                        {formatVND(course.salePrice)}
-                      </span>
-                      <span className="text-sm text-slate-500 line-through">
+                {/* Price Display (Hidden if enrolled) */}
+                {!isEnrolled && (
+                  <div className="mb-6">
+                    {course.isFree ? (
+                      <div className="text-3xl font-black text-brand-400">{t.courseDetail.free100}</div>
+                    ) : course.salePrice ? (
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-3xl font-black text-brand-400">
+                          {formatVND(course.salePrice)}
+                        </span>
+                        <span className="text-sm text-slate-500 line-through">
+                          {formatVND(course.price)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-3xl font-black text-white">
                         {formatVND(course.price)}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-3xl font-black text-white">
-                      {formatVND(course.price)}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Main Action Button */}
                 {isEnrolled ? (

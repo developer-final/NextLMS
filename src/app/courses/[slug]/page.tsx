@@ -9,7 +9,7 @@ import { serializePrisma } from "@/lib/utils";
 import { getSecureStreamUrl } from "@/lib/s3";
 import CourseDetailClient from "./CourseDetailClient";
 
-export const revalidate = 300; // ISR: 5 minutes
+export const revalidate = 0;
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -123,16 +123,26 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   // Check enrollment
   let isEnrolled = false;
   if (userId) {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId,
-          courseId: course.id,
-        },
-      },
-    });
-    if (enrollment && enrollment.status === "ACTIVE") {
+    const userRole = (session?.user as any)?.role;
+    const isStaff =
+      userRole === "ADMIN" ||
+      userRole === "SUPER_ADMIN" ||
+      (userRole === "INSTRUCTOR" && course.instructorId === userId);
+
+    if (isStaff) {
       isEnrolled = true;
+    } else {
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          userId_courseId: {
+            userId,
+            courseId: course.id,
+          },
+        },
+      });
+      if (enrollment && enrollment.status === "ACTIVE") {
+        isEnrolled = true;
+      }
     }
   }
 
