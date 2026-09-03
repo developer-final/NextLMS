@@ -5,6 +5,7 @@ import ToastProvider from "@/components/providers/ToastProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "World Trading Lab - Nền tảng Đào tạo Giao dịch & Đầu tư Chuyên sâu",
@@ -32,6 +33,7 @@ export default function RootLayout({
             <Footer />
           </LanguageProvider>
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -12,3 +12,4 @@ export function getDictionary(lang: Language): DictionaryType {
 }
 
 export * from "./types";
+export * from "./geo";

@@ -34,6 +34,7 @@
     "@paypal/react-paypal-js": "^10.4.0",
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^9.15.0",
+    "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.460.0",
