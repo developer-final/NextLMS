@@ -104,11 +104,12 @@ export async function POST(req: Request) {
 
         // If previously completed, revoke access and refund coupon usage
         if (wasCompleted) {
-          for (const item of order.orderItems) {
+          const courseIds = order.orderItems.map((item) => item.courseId);
+          if (courseIds.length > 0) {
             await tx.enrollment.deleteMany({
               where: {
                 userId: order.userId,
-                courseId: item.courseId,
+                courseId: { in: courseIds },
               },
             });
           }

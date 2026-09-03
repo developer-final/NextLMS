@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { formatVND } from "@/lib/utils";
 import {
@@ -16,28 +17,72 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import Pagination from "@/components/ui/Pagination";
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+}
 
 interface AdminCoursesClientProps {
   courses: any[];
+  currentSearch?: string;
+  currentStatus?: string;
+  pagination: PaginationInfo;
 }
 
-export default function AdminCoursesClient({ courses: initialCourses }: AdminCoursesClientProps) {
+export default function AdminCoursesClient({
+  courses: initialCourses,
+  currentSearch = "",
+  currentStatus = "ALL",
+  pagination,
+}: AdminCoursesClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLanguage();
+
   const [courses, setCourses] = useState<any[]>(initialCourses);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [search, setSearch] = useState(currentSearch);
+  const [filterStatus, setFilterStatus] = useState<string>(currentStatus);
   const [courseToDelete, setCourseToDelete] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Filtered courses
-  const filtered = courses.filter((c) => {
-    const matchStatus = filterStatus === "ALL" || c.status === filterStatus;
-    const matchSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.instructor?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.category?.name?.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
-  });
+  useEffect(() => {
+    setCourses(initialCourses);
+  }, [initialCourses]);
+
+  useEffect(() => {
+    setSearch(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    setFilterStatus(currentStatus);
+  }, [currentStatus]);
+
+  const buildUrl = (pageNumber: number, statusVal?: string, searchVal?: string) => {
+    const params = new URLSearchParams();
+    const s = statusVal !== undefined ? statusVal : filterStatus;
+    const q = searchVal !== undefined ? searchVal : search;
+    if (s && s !== "ALL") params.set("status", s);
+    if (q && q.trim()) params.set("q", q.trim());
+    if (pageNumber > 1) params.set("page", pageNumber.toString());
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(buildUrl(1, filterStatus, search));
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setFilterStatus(newStatus);
+    router.push(buildUrl(1, newStatus, search));
+  };
+
+  const filtered = courses;
 
   // Toggle Publish / Draft
   const handleToggleStatus = async (courseId: string, currentStatus: string) => {
@@ -58,6 +103,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
         throw new Error();
       }
       toast.success(t.admin.courses.statusUpdated);
+      router.refresh();
     } catch {
       // Rollback on error
       setCourses((prev) =>
@@ -86,6 +132,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
         throw new Error();
       }
       toast.success(t.admin.courses.featuredUpdated);
+      router.refresh();
     } catch {
       // Rollback on error
       setCourses((prev) =>
@@ -114,6 +161,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
       toast.success(t.admin.courses.deleteSuccess);
       setCourses((prev) => prev.filter((c) => c.id !== courseToDelete.id));
       setCourseToDelete(null);
+      router.refresh();
     } catch (err) {
       toast.error(t.admin.courses.deleteError);
     } finally {
@@ -128,7 +176,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
         <div>
           <h1 className="text-2xl font-extrabold text-white">{t.admin.courses.title}</h1>
           <p className="text-xs text-slate-400 mt-1">
-            {t.admin.courses.subtitle} ({courses.length})
+            {t.admin.courses.subtitle} ({pagination.totalItems})
           </p>
         </div>
 
@@ -151,7 +199,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilterStatus(tab.key)}
+              onClick={() => handleStatusChange(tab.key)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 filterStatus === tab.key
                   ? "bg-brand-500 text-slate-950 shadow-glow"
@@ -164,7 +212,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
         </div>
 
         {/* Search */}
-        <div className="relative w-full sm:w-72">
+        <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
@@ -173,7 +221,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
             placeholder={t.admin.courses.searchPlaceholder}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
-        </div>
+        </form>
       </div>
 
       {/* Course List Table */}
@@ -200,7 +248,7 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
             ) : (
               filtered.map((c) => {
                 const totalLessons = c.sections?.reduce(
-                  (acc: number, s: any) => acc + (s.lessons?.length || 0),
+                  (acc: number, s: any) => acc + (s._count?.lessons ?? s.lessons?.length ?? 0),
                   0
                 ) || 0;
 
@@ -333,6 +381,15 @@ export default function AdminCoursesClient({ courses: initialCourses }: AdminCou
           </tbody>
         </table>
       </div>
+
+      {/* Reusable Server Pagination */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        buildPageUrl={(page) => buildUrl(page)}
+      />
 
       {/* Confirmation Modal Delete */}
       {courseToDelete && (

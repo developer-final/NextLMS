@@ -7,7 +7,16 @@ import StudentsListClient from "./StudentsListClient";
 
 export const revalidate = 0;
 
-export default async function AdminStudentsPage() {
+interface AdminStudentsPageProps {
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    courseId?: string;
+    status?: string;
+  }>;
+}
+
+export default async function AdminStudentsPage({ searchParams }: AdminStudentsPageProps) {
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
@@ -15,9 +24,39 @@ export default async function AdminStudentsPage() {
     redirect("/admin/courses");
   }
 
-  const [students, courses] = await Promise.all([
+  const { page, q, courseId, status } = await searchParams;
+
+  const pageSize = 10;
+  const currentPage = Math.max(1, parseInt(page || "1", 10));
+
+  const whereClause: any = {
+    role: "STUDENT",
+  };
+
+  if (status && status !== "ALL") {
+    whereClause.status = status;
+  }
+
+  if (courseId && courseId !== "ALL") {
+    whereClause.enrollments = {
+      some: {
+        courseId,
+      },
+    };
+  }
+
+  if (q && q.trim()) {
+    const trimmedQ = q.trim();
+    whereClause.OR = [
+      { name: { contains: trimmedQ } },
+      { email: { contains: trimmedQ } },
+    ];
+  }
+
+  const [totalStudents, students, courses] = await Promise.all([
+    prisma.user.count({ where: whereClause }),
     prisma.user.findMany({
-      where: { role: "STUDENT" },
+      where: whereClause,
       include: {
         enrollments: {
           include: {
@@ -26,14 +65,33 @@ export default async function AdminStudentsPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
     }),
     prisma.course.findMany({
       where: { status: "PUBLISHED" },
       select: { id: true, title: true },
+      orderBy: { title: "asc" },
     }),
   ]);
 
-  return <StudentsListClient initialStudents={serializePrisma(students)} courses={courses} />;
+  const totalPages = Math.max(1, Math.ceil(totalStudents / pageSize));
+
+  return (
+    <StudentsListClient
+      initialStudents={serializePrisma(students)}
+      courses={courses}
+      currentSearch={q || ""}
+      currentCourseId={courseId || "ALL"}
+      currentStatus={status || "ALL"}
+      pagination={{
+        currentPage,
+        totalPages,
+        totalItems: totalStudents,
+        pageSize,
+      }}
+    />
+  );
 }
 
 

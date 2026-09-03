@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -15,28 +16,72 @@ import {
 import { formatVND } from "@/lib/utils";
 import { isValidSafeUrl } from "@/lib/validation";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import Pagination from "@/components/ui/Pagination";
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+}
 
 interface OrderListClientProps {
   initialOrders: any[];
+  currentSearch?: string;
+  currentStatus?: string;
+  pagination: PaginationInfo;
 }
 
-export default function OrderListClient({ initialOrders }: OrderListClientProps) {
+export default function OrderListClient({
+  initialOrders,
+  currentSearch = "",
+  currentStatus = "ALL",
+  pagination,
+}: OrderListClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLanguage();
+
   const [orders, setOrders] = useState<any[]>(initialOrders);
-  const [filterStatus, setFilterStatus] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>(currentStatus);
+  const [searchQuery, setSearchQuery] = useState(currentSearch);
   const [selectedProofImg, setSelectedProofImg] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Filter orders
-  const filteredOrders = orders.filter((order) => {
-    const matchStatus = filterStatus === "ALL" || order.status === filterStatus;
-    const matchSearch =
-      order.orderCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchStatus && matchSearch;
-  });
+  useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
+
+  useEffect(() => {
+    setSearchQuery(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    setFilterStatus(currentStatus);
+  }, [currentStatus]);
+
+  const buildUrl = (pageNumber: number, statusVal?: string, searchVal?: string) => {
+    const params = new URLSearchParams();
+    const s = statusVal !== undefined ? statusVal : filterStatus;
+    const q = searchVal !== undefined ? searchVal : searchQuery;
+    if (s && s !== "ALL") params.set("status", s);
+    if (q && q.trim()) params.set("q", q.trim());
+    if (pageNumber > 1) params.set("page", pageNumber.toString());
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(buildUrl(1, filterStatus, searchQuery));
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setFilterStatus(newStatus);
+    router.push(buildUrl(1, newStatus, searchQuery));
+  };
+
+  const filteredOrders = orders;
 
   const handleApprove = async (orderId: string) => {
     setProcessingId(orderId);
@@ -57,6 +102,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
       setOrders(
         orders.map((o) => (o.id === orderId ? { ...o, status: "COMPLETED" } : o))
       );
+      router.refresh();
     } catch (err) {
       toast.error("Error approving order");
     } finally {
@@ -85,6 +131,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
       setOrders(
         orders.map((o) => (o.id === orderId ? { ...o, status: "CANCELLED" } : o))
       );
+      router.refresh();
     } catch (err) {
       toast.error("Error cancelling order");
     } finally {
@@ -97,7 +144,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-2xl font-extrabold text-white">{t.admin.orders.title}</h1>
         <p className="text-xs text-slate-400 mt-1">
-          {t.admin.orders.subtitle} ({orders.length})
+          {t.admin.orders.subtitle} ({pagination.totalItems})
         </p>
       </div>
 
@@ -112,7 +159,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilterStatus(tab.key)}
+              onClick={() => handleStatusChange(tab.key)}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 filterStatus === tab.key
                   ? "bg-brand-500 text-slate-950 shadow-glow"
@@ -124,7 +171,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
           ))}
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
@@ -133,7 +180,7 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
             placeholder={t.admin.orders.searchPlaceholder}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
-        </div>
+        </form>
       </div>
 
       {/* Orders Table */}
@@ -249,6 +296,15 @@ export default function OrderListClient({ initialOrders }: OrderListClientProps)
           </tbody>
         </table>
       </div>
+
+      {/* Reusable Server Pagination */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        buildPageUrl={(page) => buildUrl(page)}
+      />
 
       {/* Modal View Proof Image */}
       {selectedProofImg && (

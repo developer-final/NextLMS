@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import {
   Ban,
@@ -13,28 +14,95 @@ import {
   X,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import Pagination from "@/components/ui/Pagination";
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+}
 
 interface StudentsListClientProps {
   initialStudents: any[];
   courses: any[];
+  currentSearch?: string;
+  currentCourseId?: string;
+  currentStatus?: string;
+  pagination: PaginationInfo;
 }
 
 export default function StudentsListClient({
   initialStudents,
   courses,
+  currentSearch = "",
+  currentCourseId = "ALL",
+  currentStatus = "ALL",
+  pagination,
 }: StudentsListClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLanguage();
+
   const [students, setStudents] = useState<any[]>(initialStudents);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(currentSearch);
+  const [filterCourseId, setFilterCourseId] = useState<string>(currentCourseId);
+  const [filterStatus, setFilterStatus] = useState<string>(currentStatus);
+
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id || "");
   const [granting, setGranting] = useState(false);
 
-  const filtered = students.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    setStudents(initialStudents);
+  }, [initialStudents]);
+
+  useEffect(() => {
+    setSearch(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    setFilterCourseId(currentCourseId);
+  }, [currentCourseId]);
+
+  useEffect(() => {
+    setFilterStatus(currentStatus);
+  }, [currentStatus]);
+
+  const buildUrl = (
+    pageNumber: number,
+    courseIdVal?: string,
+    statusVal?: string,
+    searchVal?: string
+  ) => {
+    const params = new URLSearchParams();
+    const cId = courseIdVal !== undefined ? courseIdVal : filterCourseId;
+    const s = statusVal !== undefined ? statusVal : filterStatus;
+    const q = searchVal !== undefined ? searchVal : search;
+    if (cId && cId !== "ALL") params.set("courseId", cId);
+    if (s && s !== "ALL") params.set("status", s);
+    if (q && q.trim()) params.set("q", q.trim());
+    if (pageNumber > 1) params.set("page", pageNumber.toString());
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(buildUrl(1, filterCourseId, filterStatus, search));
+  };
+
+  const handleCourseFilterChange = (cId: string) => {
+    setFilterCourseId(cId);
+    router.push(buildUrl(1, cId, filterStatus, search));
+  };
+
+  const handleStatusFilterChange = (s: string) => {
+    setFilterStatus(s);
+    router.push(buildUrl(1, filterCourseId, s, search));
+  };
+
+  const filtered = students;
 
   const handleGrantAccess = async () => {
     if (!selectedStudent || !selectedCourseId) return;
@@ -81,6 +149,7 @@ export default function StudentsListClient({
           return s;
         })
       );
+      router.refresh();
     } catch (err) {
       toast.error("Error granting access");
     } finally {
@@ -119,6 +188,7 @@ export default function StudentsListClient({
           return s;
         })
       );
+      router.refresh();
     } catch {
       toast.error("Lỗi thu hồi quyền học");
     }
@@ -142,6 +212,7 @@ export default function StudentsListClient({
         throw new Error();
       }
       toast.success(t.admin.students.statusUpdated);
+      router.refresh();
     } catch {
       // Rollback
       setStudents((prev) =>
@@ -156,13 +227,13 @@ export default function StudentsListClient({
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-2xl font-extrabold text-white">{t.admin.students.title}</h1>
         <p className="text-xs text-slate-400 mt-1">
-          {t.admin.students.subtitle} ({students.length})
+          {t.admin.students.subtitle} ({pagination.totalItems})
         </p>
       </div>
 
-      {/* Search */}
-      <div className="flex justify-between items-center">
-        <div className="relative w-72">
+      {/* Filters & Search */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-72">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
@@ -171,6 +242,33 @@ export default function StudentsListClient({
             placeholder={`${t.admin.students.nameHeader}, email...`}
             className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
           />
+        </form>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Filter by Course */}
+          <select
+            value={filterCourseId}
+            onChange={(e) => handleCourseFilterChange(e.target.value)}
+            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-300 focus:border-brand-500 focus:outline-none max-w-[200px] truncate"
+          >
+            <option value="ALL">Tất cả khóa học</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+
+          {/* Filter by Account Status */}
+          <select
+            value={filterStatus}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-300 focus:border-brand-500 focus:outline-none"
+          >
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="ACTIVE">Đang hoạt động</option>
+            <option value="BLOCKED">Bị khóa</option>
+          </select>
         </div>
       </div>
 
@@ -280,6 +378,15 @@ export default function StudentsListClient({
           </tbody>
         </table>
       </div>
+
+      {/* Reusable Server Pagination */}
+      <Pagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        pageSize={pagination.pageSize}
+        buildPageUrl={(page) => buildUrl(page)}
+      />
 
       {/* Grant Access Modal */}
       {selectedStudent && (
