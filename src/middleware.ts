@@ -6,7 +6,13 @@ import { evaluateRbacAccess } from "@/lib/rbac";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const secret = process.env.NEXTAUTH_SECRET || "default_super_secret_for_dev_jwt_key_2026";
+  const secret = (() => {
+    const s = process.env.NEXTAUTH_SECRET;
+    if (!s && process.env.NODE_ENV === "production") {
+      throw new Error("NEXTAUTH_SECRET environment variable must be set in production");
+    }
+    return s || "default_super_secret_for_dev_jwt_key_2026";
+  })();
   const token = await getToken({ req, secret });
 
   const decision = evaluateRbacAccess(pathname, token, req.url);

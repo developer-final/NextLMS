@@ -118,3 +118,8 @@ export const forgotPasswordRateLimiter = new MemoryRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 5, // max 5 reset/verification requests per 15 mins per IP
 });
+
+export const loginRateLimiter = new MemoryRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 10, // max 10 login attempts per 15 mins per IP
+});

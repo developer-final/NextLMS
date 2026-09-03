@@ -43,7 +43,15 @@ export async function POST(req: Request) {
         );
       }
     } else {
-      // In dev simulation without secret
+      // Reject unsigned webhook payloads in production
+      if (process.env.NODE_ENV === "production") {
+        console.error("[Stripe Webhook] Webhook secret is not configured in production!");
+        return NextResponse.json(
+          { error: "Stripe Webhook Secret is not configured" },
+          { status: 500 }
+        );
+      }
+      // Dev simulation without secret
       try {
         event = JSON.parse(rawBody);
       } catch {

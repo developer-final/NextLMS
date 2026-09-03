@@ -30,8 +30,16 @@ async function handleCleanupCron(req: Request) {
     const bearerSecret = authHeader?.replace(/^Bearer\s+/i, "");
     const providedSecret = bearerSecret || querySecret;
 
-    if (cronSecret && providedSecret !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (cronSecret) {
+      if (providedSecret !== cronSecret) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    } else if (process.env.NODE_ENV === "production") {
+      console.error("[Cron Cleanup] CRON_SECRET is not configured in production!");
+      return NextResponse.json(
+        { error: "CRON_SECRET is not configured" },
+        { status: 500 }
+      );
     }
 
     const now = new Date();

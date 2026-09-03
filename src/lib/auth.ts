@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { loginRateLimiter } from "@/lib/rate-limit";
 import type { UserRole } from "@/types";
 
 export const authOptions: NextAuthOptions = {
@@ -29,7 +30,17 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
+        // Rate limiting: extract IP from forwarded headers
+        const forwarded = req?.headers?.["x-forwarded-for"];
+        const clientIp = typeof forwarded === "string"
+          ? forwarded.split(",")[0].trim()
+          : (req?.headers?.["x-real-ip"] as string) || "127.0.0.1";
+        const rateCheck = loginRateLimiter.check(clientIp);
+        if (!rateCheck.allowed) {
+          throw new Error("Too many login attempts. Please try again later.");
+        }
+
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Please enter your email and password");
         }
