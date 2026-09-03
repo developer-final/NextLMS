@@ -428,7 +428,7 @@ SELECT cron.unschedule('cancel-stale-pending-orders');
 
 #### 🔵 Giải Pháp 2: Sử Dụng Vercel Cron (Next.js App Router API Routes)
 Dành cho môi trường triển khai trên Vercel. Lịch trình đã được đăng ký sẵn trong [`vercel.json`](./vercel.json):
-* **`/api/cron/cleanup`** (`0 * * * *` - Hàng giờ): Tự động hủy đơn quá hạn 24h, xóa token hết hạn, xóa bản ghi tệp mồ côi và **xóa trực tiếp tệp vật lý trên Cloudflare R2 / AWS S3** thông qua S3 SDK, đồng thời thanh lọc các bài viết đã xóa mềm (`deletedAt`) quá 90 ngày.
+* **`/api/cron/cleanup`** (`0 2 * * *` - 2:00 sáng hàng ngày): Tự động hủy đơn quá hạn 24h, xóa token hết hạn, xóa bản ghi tệp mồ côi và **xóa trực tiếp tệp vật lý trên Cloudflare R2 / AWS S3** thông qua S3 SDK, đồng thời thanh lọc các bài viết đã xóa mềm (`deletedAt`) quá 90 ngày (chuẩn tương thích gói Vercel Hobby miễn phí).
 * **`/api/cron/study-reminders`** (`0 9 * * *` - 9:00 sáng hàng ngày): Quét các học viên có tiến độ chưa hoàn thành và đã không vào học từ 5 ngày trở lên để gửi email nhắc nhở học tập.
 
 **Cấu hình biến môi trường bảo vệ:**

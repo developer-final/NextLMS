@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/cleanup",
-      "schedule": "0 * * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/study-reminders",
