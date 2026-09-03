@@ -65,6 +65,28 @@ Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi ph�
    # hoặc: npx next build
    ```
 
+6. **Sao lưu toàn bộ tệp từ Supabase / S3 về máy cục bộ (`Storage/S3`)**:
+   ```bash
+   npm run storage:backup
+   # hoặc môi trường Production: npm run storage:backup:prod
+   ```
+
+7. **Phục hồi hoặc Tải toàn bộ thư mục `Storage/S3` lên Bucket mới (Bất kỳ nhà cung cấp S3/R2 nào)**:
+   ```bash
+   npm run storage:restore
+   # hoặc: npm run storage:upload
+   # hoặc môi trường Production: npm run storage:restore:prod
+   ```
+
+8. **Cập nhật đồng loạt đường dẫn URL ảnh/media trong Database sang nhà cung cấp mới**:
+   ```bash
+   # Xem trước danh sách các bản ghi sẽ thay đổi (Dry run an toàn)
+   npm run storage:migrate-urls -- --from="https://old-storage.com" --to="https://new-storage.com"
+
+   # Xác nhận cập nhật vĩnh viễn vào Database
+   npm run storage:migrate-urls -- --from="https://old-storage.com" --to="https://new-storage.com" --confirm
+   ```
+
 ---
 
 ## 🔑 3. Tài khoản Mẫu để Thử nghiệm (Sample Accounts)

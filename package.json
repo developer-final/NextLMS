@@ -23,7 +23,15 @@
     "db:seed": "dotenv -e .env.development.local -- node prisma/seed.js",
     "db:seed:prod": "dotenv -e .env.production.local -- node prisma/seed.js",
     "db:studio": "dotenv -e .env.development.local -- prisma studio",
-    "db:studio:prod": "dotenv -e .env.production.local -- prisma studio"
+    "db:studio:prod": "dotenv -e .env.production.local -- prisma studio",
+    "storage:backup": "dotenv -e .env.development.local -- node scripts/backup-storage.mjs",
+    "storage:backup:prod": "dotenv -e .env.production.local -- node scripts/backup-storage.mjs",
+    "storage:restore": "dotenv -e .env.development.local -- node scripts/restore-storage.mjs",
+    "storage:restore:prod": "dotenv -e .env.production.local -- node scripts/restore-storage.mjs",
+    "storage:upload": "dotenv -e .env.development.local -- node scripts/restore-storage.mjs",
+    "storage:upload:prod": "dotenv -e .env.production.local -- node scripts/restore-storage.mjs",
+    "storage:migrate-urls": "dotenv -e .env.development.local -- node scripts/migrate-storage-urls.mjs",
+    "storage:migrate-urls:prod": "dotenv -e .env.production.local -- node scripts/migrate-storage-urls.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
