@@ -21,10 +21,57 @@ export interface SendEmailResult {
   error?: string;
 }
 
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+
+let cachedTransporter: Transporter | null = null;
+let lastSmtpConfigKey = "";
+
+/**
+ * Retrieve or initialize a cached Nodemailer Transporter.
+ * Automatically handles cache invalidation when environment variables change.
+ */
+function getSmtpTransporter(): Transporter | null {
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "").trim();
+  if (!user || !pass) {
+    cachedTransporter = null;
+    lastSmtpConfigKey = "";
+    return null;
+  }
+
+  const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
+  const port = parseInt(process.env.SMTP_PORT?.trim() || "465", 10);
+  const secure =
+    process.env.SMTP_SECURE !== undefined
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465;
+
+  const configKey = `${host}:${port}:${secure}:${user}:${pass}`;
+  if (cachedTransporter && lastSmtpConfigKey === configKey) {
+    return cachedTransporter;
+  }
+
+  cachedTransporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass,
+    },
+  });
+  lastSmtpConfigKey = configKey;
+
+  return cachedTransporter;
+}
+
 /**
  * Base email dispatcher.
- * Automatically switches between Resend REST API (if RESEND_API_KEY is present)
- * and development console logging fallback.
+ * Automatically switches between:
+ * 1. SMTP Transporter (if SMTP_USER & SMTP_PASS are present, e.g. Gmail)
+ * 2. Resend REST API (if RESEND_API_KEY is present)
+ * 3. Development console logging fallback (if neither is configured)
  */
 export async function sendEmail({
   to,
@@ -33,62 +80,93 @@ export async function sendEmail({
   text,
   actionUrl,
 }: SendEmailOptions): Promise<SendEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from =
-    process.env.EMAIL_FROM || "World Trading Lab <onboarding@resend.dev>";
+  const smtpUser = process.env.SMTP_USER?.trim();
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const defaultFrom = smtpUser
+    ? `World Trading Lab <${smtpUser}>`
+    : "World Trading Lab <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM?.trim() || defaultFrom;
 
-  // Fallback: If no API key provided, simulate sending by logging to console
-  if (!apiKey) {
-    console.log("\n" + "=".repeat(64));
-    console.log("📧 [EMAIL SIMULATION] Resend API Key is not set or in Dev mode");
-    console.log(`   To:         ${to}`);
-    console.log(`   From:       ${from}`);
-    console.log(`   Subject:    ${subject}`);
-    if (actionUrl) {
-      console.log(`   Action URL: 🔗 ${actionUrl}`);
-    }
-    console.log("=".repeat(64) + "\n");
-    return { success: true, simulated: true };
-  }
+  const transporter = getSmtpTransporter();
 
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+  // 1. SMTP Mode (Gmail, Google Workspace, Custom SMTP)
+  if (transporter) {
+    try {
+      const info = await transporter.sendMail({
         from,
-        to: [to],
+        to,
         subject,
         html,
         text: text || undefined,
-      }),
-    });
+      });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("[Email Error] Resend API responded with error:", data);
+      return {
+        success: true,
+        messageId: info.messageId,
+        simulated: false,
+      };
+    } catch (error: any) {
+      console.error("[Email Error] SMTP transmission failure:", error);
       return {
         success: false,
-        error: data?.message || "Failed to send email via Resend",
+        error: error?.message || "Failed to send email via SMTP",
       };
     }
-
-    return {
-      success: true,
-      messageId: data.id,
-      simulated: false,
-    };
-  } catch (error: any) {
-    console.error("[Email Error] Exception sending email:", error);
-    return {
-      success: false,
-      error: error?.message || "Internal email transmission failure",
-    };
   }
+
+  // 2. Resend REST API Mode
+  if (resendApiKey) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text: text || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("[Email Error] Resend API responded with error:", data);
+        return {
+          success: false,
+          error: data?.message || "Failed to send email via Resend",
+        };
+      }
+
+      return {
+        success: true,
+        messageId: data.id,
+        simulated: false,
+      };
+    } catch (error: any) {
+      console.error("[Email Error] Exception sending email:", error);
+      return {
+        success: false,
+        error: error?.message || "Internal email transmission failure",
+      };
+    }
+  }
+
+  // 3. Fallback: If neither SMTP nor Resend is configured, simulate sending by logging to console
+  console.log("\n" + "=".repeat(64));
+  console.log("📧 [EMAIL SIMULATION] Neither SMTP nor Resend API Key is set (Dev mode)");
+  console.log(`   To:         ${to}`);
+  console.log(`   From:       ${from}`);
+  console.log(`   Subject:    ${subject}`);
+  if (actionUrl) {
+    console.log(`   Action URL: 🔗 ${actionUrl}`);
+  }
+  console.log("=".repeat(64) + "\n");
+  return { success: true, simulated: true };
 }
 
 /**

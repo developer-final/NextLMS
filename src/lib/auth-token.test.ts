@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 import {
   sendEmail,
   sendVerificationEmail,
@@ -119,23 +120,42 @@ describe("Email & Token Utilities", () => {
     });
   });
 
-  describe("Email Dispatcher with Dev Simulation Fallback", () => {
-    let savedEnv: string | undefined;
+  describe("Email Dispatcher with Multi-Channel & Dev Simulation Fallback", () => {
+    let savedResendKey: string | undefined;
+    let savedSmtpUser: string | undefined;
+    let savedSmtpPass: string | undefined;
 
     beforeEach(() => {
-      savedEnv = process.env.RESEND_API_KEY;
+      savedResendKey = process.env.RESEND_API_KEY;
+      savedSmtpUser = process.env.SMTP_USER;
+      savedSmtpPass = process.env.SMTP_PASS;
+
       delete process.env.RESEND_API_KEY;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASS;
     });
 
     afterEach(() => {
-      if (savedEnv !== undefined) {
-        process.env.RESEND_API_KEY = savedEnv;
+      if (savedResendKey !== undefined) {
+        process.env.RESEND_API_KEY = savedResendKey;
       } else {
         delete process.env.RESEND_API_KEY;
       }
+
+      if (savedSmtpUser !== undefined) {
+        process.env.SMTP_USER = savedSmtpUser;
+      } else {
+        delete process.env.SMTP_USER;
+      }
+
+      if (savedSmtpPass !== undefined) {
+        process.env.SMTP_PASS = savedSmtpPass;
+      } else {
+        delete process.env.SMTP_PASS;
+      }
     });
 
-    it("should simulate email dispatch when RESEND_API_KEY is not set", async () => {
+    it("should simulate email dispatch when neither SMTP nor Resend is set", async () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       const result = await sendEmail({
@@ -213,7 +233,65 @@ describe("Email & Token Utilities", () => {
       expect(res.simulated).toBe(true);
     });
 
-    it("should call Resend REST API when RESEND_API_KEY is provided", async () => {
+    it("should dispatch email via SMTP when SMTP_USER and SMTP_PASS are configured", async () => {
+      process.env.SMTP_USER = "sender@gmail.com";
+      process.env.SMTP_PASS = "mock_16_char_pass";
+
+      const sendMailMock = vi.fn().mockResolvedValue({ messageId: "smtp_msg_1001" });
+      const createTransportSpy = vi.spyOn(nodemailer, "createTransport").mockReturnValue({
+        sendMail: sendMailMock,
+      } as any);
+
+      const result = await sendEmail({
+        to: "learner@test.com",
+        subject: "SMTP Test Subject",
+        html: "<p>SMTP Test HTML</p>",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.simulated).toBe(false);
+      expect(result.messageId).toBe("smtp_msg_1001");
+      expect(createTransportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true,
+          auth: {
+            user: "sender@gmail.com",
+            pass: "mock_16_char_pass",
+          },
+        })
+      );
+      expect(sendMailMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "learner@test.com",
+          subject: "SMTP Test Subject",
+          html: "<p>SMTP Test HTML</p>",
+        })
+      );
+    });
+
+    it("should handle SMTP errors gracefully", async () => {
+      process.env.SMTP_USER = "sender@gmail.com";
+      process.env.SMTP_PASS = "bad_password";
+
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(nodemailer, "createTransport").mockReturnValue({
+        sendMail: vi.fn().mockRejectedValue(new Error("Invalid login: 535-5.7.8 Username and Password not accepted")),
+      } as any);
+
+      const result = await sendEmail({
+        to: "learner@test.com",
+        subject: "Failing Subject",
+        html: "<p>Will fail</p>",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid login");
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it("should call Resend REST API when RESEND_API_KEY is provided and SMTP is not set", async () => {
       process.env.RESEND_API_KEY = "re_test_mock_valid_key";
 
       const mockFetch = vi.fn().mockResolvedValue({
