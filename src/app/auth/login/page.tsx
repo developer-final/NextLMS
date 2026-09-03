@@ -132,7 +132,7 @@ function LoginForm() {
       </div>
 
       {/* Quick Test Accounts Notice (Only in Development Mode) */}
-      {(process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === "true") && (
+      {(process.env.NODE_ENV === "development") && (
         <div className="rounded-xl border border-brand-500/30 bg-brand-950/40 p-3 text-xs text-brand-300">
           <div className="font-semibold flex items-center gap-1.5 text-brand-400 mb-1.5">
             <UserCheck className="h-4 w-4" /> {t.auth.demoAccountsTitle}

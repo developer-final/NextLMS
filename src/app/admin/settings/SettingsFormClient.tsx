@@ -750,6 +750,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
                 type="text"
                 value={formData.appName}
                 onChange={(e) => handleChange("appName", e.target.value)}
+                placeholder="World Trading Lab"
                 className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
               />
             </div>

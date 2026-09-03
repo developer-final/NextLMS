@@ -37,10 +37,10 @@ jobs:
       DIRECT_URL: "postgresql://postgres:password@localhost:5432/testdb?schema=public"
       NEXTAUTH_SECRET: "ci-secret-key-for-testing-only-1234567890"
       NEXTAUTH_URL: "http://localhost:3000"
-      NEXT_PUBLIC_APP_NAME: "World Trading Lab"
-      NEXT_PUBLIC_BANK_ID: "MB"
-      NEXT_PUBLIC_BANK_ACCOUNT_NO: "0988888888"
-      NEXT_PUBLIC_BANK_ACCOUNT_NAME: "WORLD TRADING LAB"
+      APP_NAME: "World Trading Lab"
+      BANK_ID: "MB"
+      BANK_ACCOUNT_NO: "0988888888"
+      BANK_ACCOUNT_NAME: "WORLD TRADING LAB"
       CRON_SECRET: "ci-cron-secret-32chars-key-1234567890"
 
     steps:

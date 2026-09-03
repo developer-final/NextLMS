@@ -55,21 +55,22 @@ export interface SystemConfig {
 }
 
 export const DEFAULT_CONFIG: SystemConfig = {
-  appName: process.env.NEXT_PUBLIC_APP_NAME || "World Trading Lab",
-  appSlogan: "Học viện Đào tạo Trading Thực chiến",
+  appName: process.env.APP_NAME || "World Trading Lab",
+  appSlogan: process.env.APP_SLOGAN || "Học viện Đào tạo Trading Thực chiến",
   appDescription:
+    process.env.APP_DESCRIPTION ||
     "Nền tảng đào tạo trực tuyến hàng đầu về Giao dịch Tài chính, Đầu tư Chứng khoán, Crypto và Kỹ năng Thực chiến.",
-  supportEmail: "support@worldtradinglab.com",
-  supportHotline: "0988.888.888",
-  zaloUrl: "https://zalo.me/0988888888",
-  telegramUrl: "https://t.me/worldtradinglab",
-  facebookUrl: "https://facebook.com/worldtradinglab",
+  supportEmail: process.env.SUPPORT_EMAIL || "support@worldtradinglab.com",
+  supportHotline: process.env.SUPPORT_HOTLINE || "0988.888.888",
+  zaloUrl: process.env.ZALO_URL || "https://zalo.me/0988888888",
+  telegramUrl: process.env.TELEGRAM_URL || "https://t.me/worldtradinglab",
+  facebookUrl: process.env.FACEBOOK_URL || "https://facebook.com/worldtradinglab",
 
-  bankId: process.env.NEXT_PUBLIC_BANK_ID || "MB",
-  bankName: "MB Bank (Ngân hàng Quân Đội)",
-  bankAccountNo: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NO || "0988888888",
-  bankAccountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
-  vietqrTemplate: "compact2",
+  bankId: process.env.BANK_ID || "MB",
+  bankName: process.env.BANK_NAME || "MB Bank (Ngân hàng Quân Đội)",
+  bankAccountNo: process.env.BANK_ACCOUNT_NO || "0988888888",
+  bankAccountName: process.env.BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
+  vietqrTemplate: process.env.VIETQR_TEMPLATE || "compact2",
 
   paymentManualEnabled: true,
   paymentVietqrAutoEnabled: true,
@@ -81,18 +82,18 @@ export const DEFAULT_CONFIG: SystemConfig = {
   sepayAccountNumber: process.env.SEPAY_ACCOUNT_NO || "",
 
   paymentPaypalEnabled: true,
-  paypalClientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+  paypalClientId: process.env.PAYPAL_CLIENT_ID || "",
   paypalSecret: process.env.PAYPAL_SECRET || "",
   paypalMode: "sandbox",
   paymentStripeEnabled: false,
-  stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
+  stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
   usdExchangeRate: 25400,
 
   paymentCryptoEnabled: true,
-  cryptoBep20Address: process.env.NEXT_PUBLIC_CRYPTO_BEP20_ADDRESS || "",
-  cryptoTrc20Address: process.env.NEXT_PUBLIC_CRYPTO_TRC20_ADDRESS || "",
+  cryptoBep20Address: process.env.CRYPTO_BEP20_ADDRESS || "",
+  cryptoTrc20Address: process.env.CRYPTO_TRC20_ADDRESS || "",
 
   statsStudentCount: "5,000+",
   statsSatisfactionRate: "98.6%",
@@ -187,3 +188,12 @@ export async function getSystemSettings(): Promise<SystemConfig> {
     return DEFAULT_CONFIG;
   }
 }
+
+/**
+ * Invalidate cached system settings to force fresh fetch from database
+ */
+export function invalidateSettingsCache() {
+  cachedSettings = null;
+  cacheTimestamp = 0;
+}
+

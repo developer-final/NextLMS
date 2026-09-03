@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getSystemSettings, DEFAULT_CONFIG } from "@/lib/config";
+import { getSystemSettings, invalidateSettingsCache, DEFAULT_CONFIG } from "@/lib/config";
 import { validateBankSettingsInput, isValidEmail, sanitizePlainText, isValidSafeUrl } from "@/lib/validation";
 
 export async function GET() {
@@ -125,6 +126,13 @@ export async function POST(req: Request) {
     });
 
     await prisma.$transaction(updatePromises);
+
+    invalidateSettingsCache();
+    try {
+      revalidatePath("/", "layout");
+    } catch {
+      // Ignore if called outside of request context
+    }
 
     const updatedSettings = await getSystemSettings();
 

@@ -13,9 +13,9 @@ export interface VietQRParams {
 }
 
 export function generateVietQRUrl({
-  bankId = process.env.NEXT_PUBLIC_BANK_ID || "MB",
-  accountNo = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NO || "0988888888",
-  accountName = process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
+  bankId = process.env.BANK_ID || "MB",
+  accountNo = process.env.BANK_ACCOUNT_NO || "0988888888",
+  accountName = process.env.BANK_ACCOUNT_NAME || "WORLD TRADING LAB",
   amount,
   description,
   template = "compact2",

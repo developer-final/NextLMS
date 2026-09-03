@@ -41,10 +41,10 @@ Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi ph�
    NEXTAUTH_SECRET="super-secret-jwt-key-for-elearning-platform-dev-mode-2026"
    
    # Cấu hình Ngân hàng nhận thanh toán VietQR
-   NEXT_PUBLIC_BANK_ID="MB"
-   NEXT_PUBLIC_BANK_ACCOUNT_NO="0988888888"
-   NEXT_PUBLIC_BANK_ACCOUNT_NAME="WORLD TRADING LAB"
-   NEXT_PUBLIC_APP_NAME="World Trading Lab"
+   BANK_ID="MB"
+   BANK_ACCOUNT_NO="0988888888"
+   BANK_ACCOUNT_NAME="WORLD TRADING LAB"
+   APP_NAME="World Trading Lab"
    ```
 
 3. **Khởi tạo Cơ sở dữ liệu & Nạp dữ liệu mẫu (Seed Data)**:
@@ -153,8 +153,8 @@ Bạn có thể chuyển đổi hệ thống sang bất kỳ lĩnh vực nào (L
 
 ### Bước 1: Đổi Tên Thương Hiệu & Thông Tin Liên Hệ
 * Mở file [`.env`](./.env) và [`src/lib/config.ts`](./src/lib/config.ts):
-  * `NEXT_PUBLIC_APP_NAME`: Tên thương hiệu mới (VD: `CodeMaster Academy`, `IELTS Pro Lab`...).
-  * `NEXT_PUBLIC_BANK_ACCOUNT_NAME`: Tên chủ tài khoản nhận học phí.
+  * `APP_NAME`: Tên thương hiệu mới (VD: `CodeMaster Academy`, `IELTS Pro Lab`...).
+  * `BANK_ACCOUNT_NAME`: Tên chủ tài khoản nhận học phí.
   * `appSlogan`, `appDescription`: Khẩu hiệu và mô tả tổng quan nền tảng.
   * `supportEmail`, `supportHotline`, `zaloUrl`, `facebookUrl`: Kênh hỗ trợ của bạn.
 
@@ -349,10 +349,10 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
    | `DATABASE_URL` | `postgresql://alex:...@...neon.tech/neondb?sslmode=require` | Chuỗi kết nối PostgreSQL lấy từ Neon/Supabase |
    | `NEXTAUTH_SECRET` | Chạy lệnh `openssl rand -base64 32` để tạo mã | Khóa bí mật mã hóa phiên đăng nhập JWT |
    | `NEXTAUTH_URL` | `https://ten-du-an-cua-ban.vercel.app` | Địa chỉ URL chạy chính thức của website |
-   | `NEXT_PUBLIC_APP_NAME` | `World Trading Lab` | Tên hiển thị của thương hiệu |
-   | `NEXT_PUBLIC_BANK_ID` | `MB` | Mã ngân hàng nhận chuyển khoản VietQR |
-   | `NEXT_PUBLIC_BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
-   | `NEXT_PUBLIC_BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
+   | `APP_NAME` | `World Trading Lab` | Tên hiển thị của thương hiệu |
+   | `BANK_ID` | `MB` | Mã ngân hàng nhận chuyển khoản VietQR |
+   | `BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
+   | `BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
    | `PAYMENT_WEBHOOK_API_KEY` | `khoa_bi_mat_webhook_tuy_chon` | Khóa xác thực webhook từ Casso/SePay |
    | `CRON_SECRET` | `wtl-cron-secret-key-32chars...` | Khóa bí mật bảo vệ API Cron (/api/cron/cleanup & study-reminders) |
 
