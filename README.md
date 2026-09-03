@@ -135,6 +135,10 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 | `npm run dev` | Khởi chạy máy chủ phát triển cục bộ tại `http://localhost:3000` |
 | `npm run build` | Biên dịch tối ưu toàn bộ dự án cho môi trường Production |
 | `npm start` | Chạy ứng dụng đã build ở chế độ Production |
+| `npm run type-check` | Kiểm tra lỗi kiểu dữ liệu TypeScript toàn dự án (`tsc --noEmit`) |
+| `npm run lint` | Soát lỗi cú pháp và tiêu chuẩn mã nguồn |
+| `npm test` | Chạy bộ kiểm thử tự động test cases với Vitest |
+| `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
 | `npx prisma db push` | Đẩy các thay đổi trong file `prisma/schema.prisma` vào Database |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
 | `node prisma/seed.js` | Nạp lại dữ liệu mẫu (Khóa học SMC, tài khoản Admin, Giảng viên, Học viên) |
@@ -229,9 +233,38 @@ eLearning/
 
 ---
 
-## 🌐 8. Hướng Dẫn Đưa Lên GitHub & Triển Khai Cloud (0$ Vercel / Cloudflare)
+## 🌐 8. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)
 
-### 8.1. Hướng Dẫn Đưa Dự Án Lên GitHub
+Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World Trading Lab E-Learning** lên môi trường chạy thực tế (Production) theo kiến trúc **Serverless** đơn giản, bảo mật, tối ưu chi phí (0$ chi phí cố định ban đầu) và tự động hóa toàn diện.
+
+---
+
+### 8.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)
+
+```
+[ Lập trình viên ]
+          │
+          ▼  git push / pull request
+[ GitHub Repository ]
+          │
+          ├─────────────────────────────────────────────────┐
+          ▼                                                 ▼
+[ GitHub Actions CI ]                             [ Vercel Serverless ]
+- Type-check (TypeScript)                         - Tự động Deploy khi CI pass
+- Linting (ESLint)                                - Tự động cấp HTTPS / SSL
+- Unit Tests (Vitest)                             - Global Edge CDN & Caching
+- Build Verification                              - Tự động quản lý preview URL cho PR
+                                                            │
+                                                            ▼ (Query / Mutation)
+                                                  [ Cloud PostgreSQL ]
+                                                  (Neon.tech hoặc Supabase)
+                                                  - Tự động backup
+                                                  - Connection Pooling
+```
+
+---
+
+### 8.2. Hướng Dẫn Đưa Dự Án Lên GitHub
 
 1. **Khởi tạo và kiểm tra trạng thái Git cục bộ**:
    ```bash
@@ -252,70 +285,111 @@ eLearning/
 
 ---
 
-### 8.2. Triển Khai Lên Vercel (Khuyên dùng - Tối ưu 100% cho Next.js 15)
+### 8.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)
 
-Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc độ phản hồi Server Actions và Edge CDN toàn cầu cực nhanh.
+> [!NOTE]
+> Khi chạy trên môi trường Serverless Cloud (như Vercel/Cloudflare), hệ thống cần cơ sở dữ liệu đám mây PostgreSQL thay vì file SQLite cục bộ. Khuyến nghị sử dụng **Neon.tech** (tối ưu hóa cho Serverless Next.js, có sẵn Connection Pooling và độ trễ thấp).
 
-1. **Đăng nhập Vercel**: Truy cập [vercel.com](https://vercel.com) $\rightarrow$ Đăng nhập bằng tài khoản GitHub.
-2. **Import Repository**:
-   * Bấm **"Add New..."** $\rightarrow$ Chọn **"Project"**.
-   * Tìm đến Repository dự án vừa đẩy lên GitHub $\rightarrow$ Bấm **"Import"**.
-3. **Cài đặt Biến môi trường (Environment Variables)**:
-   Mở mục **Environment Variables** trên Vercel và điền các giá trị từ file [`.env.example`](./.env.example):
+#### Cách tạo trên Neon.tech (khoảng 1 phút):
+1. Truy cập [https://neon.tech](https://neon.tech) và đăng nhập bằng tài khoản GitHub hoặc Google.
+2. Bấm **Create Project**:
+   - **Project name**: `elearning-platform`
+   - **Postgres version**: Mặc định (16 hoặc 15)
+   - **Region**: Chọn vùng gần Việt Nam nhất (ví dụ: `Singapore - ap-southeast-1`).
+3. Sau khi tạo xong, Neon sẽ hiển thị chuỗi kết nối dạng:
+   ```text
+   postgresql://alex:AbC123dEf@ep-cool-mountain-123456.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Sao chép chuỗi kết nối này.
 
-   | Tên Biến (Key) | Giá trị Mẫu | Ghi chú |
-   | :--- | :--- | :--- |
-   | `DATABASE_URL` | `postgresql://...` | Chuỗi kết nối PostgreSQL (Neon/Supabase) |
-   | `NEXTAUTH_URL` | `https://your-project.vercel.app` | Tên miền chính thức của ứng dụng |
-   | `NEXTAUTH_SECRET` | `super-secret-key-32-chars-random` | Khóa bí mật mã hóa JWT session |
-   | `NEXT_PUBLIC_APP_NAME` | `World Trading Lab` | Tên thương hiệu hiển thị |
-   | `NEXT_PUBLIC_BANK_ID` | `MB` | Mã ngân hàng nhận VietQR |
-   | `NEXT_PUBLIC_BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản ngân hàng |
-   | `NEXT_PUBLIC_BANK_ACCOUNT_NAME`| `WORLD TRADING LAB` | Tên chủ tài khoản |
-
-4. **Deploy**: Bấm nút **"Deploy"** $\rightarrow$ Hệ thống tự động cài đặt gói, chạy `prisma generate` và biên dịch production trong 1-2 phút.
+#### Cập Nhật Cấu Hình Prisma & Đẩy Dữ Liệu Lên DB Cloud:
+1. Mở file [`.env`](./.env) (hoặc `.env.production.local`) và dán chuỗi kết nối:
+   ```env
+   DATABASE_URL="postgresql://alex:AbC123dEf@ep-cool-mountain-123456.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+   ```
+2. Mở file [`prisma/schema.prisma`](./prisma/schema.prisma), đảm bảo provider là `postgresql`:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+3. Chạy lệnh đồng bộ bảng dữ liệu lên PostgreSQL Cloud:
+   ```bash
+   npx prisma db push
+   ```
+   *(Lệnh này sẽ tự động tạo tất cả các bảng: users, courses, lessons, orders,... trên cơ sở dữ liệu cloud)*
+4. Chạy lệnh nạp dữ liệu mẫu ban đầu (khóa học, danh mục, tài khoản admin):
+   ```bash
+   npm run db:seed
+   ```
+5. Kiểm tra dữ liệu trực tiếp bằng giao diện trực quan của Prisma Studio (nếu muốn):
+   ```bash
+   npx prisma studio
+   ```
 
 ---
 
-### 8.3. Triển Khai Lên Cloudflare (Cloudflare Pages)
+### 8.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)
+
+Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc độ phản hồi Server Actions và Edge CDN toàn cầu cực nhanh.
+
+1. **Đăng nhập Vercel**: Truy cập [https://vercel.com](https://vercel.com) $\rightarrow$ Đăng nhập bằng tài khoản GitHub.
+2. **Import Repository**:
+   - Bấm **Add New...** $\rightarrow$ Chọn **Project**.
+   - Chọn kho mã nguồn (Repository) của dự án `eLearning` $\rightarrow$ Bấm **Import**.
+3. **Configure Project**:
+   - **Framework Preset**: Tự động nhận diện là `Next.js`.
+   - **Root Directory**: `./` (để mặc định).
+4. **Cài đặt Biến Môi Trường (Environment Variables)**:
+   Mở mục **Environment Variables** trên Vercel và điền các biến cấu hình cần thiết:
+
+   | Tên Biến Môi Trường | Giá Trị Mẫu | Mô Tả |
+   | :--- | :--- | :--- |
+   | `DATABASE_URL` | `postgresql://alex:...@...neon.tech/neondb?sslmode=require` | Chuỗi kết nối PostgreSQL lấy từ Neon/Supabase |
+   | `NEXTAUTH_SECRET` | Chạy lệnh `openssl rand -base64 32` để tạo mã | Khóa bí mật mã hóa phiên đăng nhập JWT |
+   | `NEXTAUTH_URL` | `https://ten-du-an-cua-ban.vercel.app` | Địa chỉ URL chạy chính thức của website |
+   | `NEXT_PUBLIC_APP_NAME` | `World Trading Lab` | Tên hiển thị của thương hiệu |
+   | `NEXT_PUBLIC_BANK_ID` | `MB` | Mã ngân hàng nhận chuyển khoản VietQR |
+   | `NEXT_PUBLIC_BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
+   | `NEXT_PUBLIC_BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
+   | `PAYMENT_WEBHOOK_API_KEY` | `khoa_bi_mat_webhook_tuy_chon` | Khóa xác thực webhook từ Casso/SePay |
+
+5. **Deploy**: Bấm nút **"Deploy"**.
+   - Vercel sẽ tự động tải mã nguồn, chạy `prisma generate` và `next build`.
+   - Trong vòng 1 - 2 phút, website sẽ chính thức online với chứng chỉ SSL HTTPS hoàn toàn miễn phí.
+
+---
+
+### 8.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)
 
 1. **Đăng nhập Cloudflare**: Vào Dashboard Cloudflare $\rightarrow$ Chọn **Compute (Workers & Pages)** $\rightarrow$ **Create Application** $\rightarrow$ **Pages** $\rightarrow$ **Connect to Git**.
 2. **Chọn Repository**: Chọn repo GitHub của dự án.
 3. **Cài đặt Build Settings**:
-   * **Framework Preset**: `Next.js`
-   * **Build command**: `npx @cloudflare/next-on-pages` (hoặc `prisma generate && next build`)
-   * **Build output directory**: `.vercel/output/static`
-   * **Node.js Compatibility Flag**: Bật `nodejs_compat` trong phần Settings $\rightarrow$ Functions $\rightarrow$ Compatibility Flags.
+   - **Framework Preset**: `Next.js`
+   - **Build command**: `npx @cloudflare/next-on-pages` (hoặc `prisma generate && next build`)
+   - **Build output directory**: `.vercel/output/static`
+   - **Node.js Compatibility Flag**: Bật `nodejs_compat` trong phần Settings $\rightarrow$ Functions $\rightarrow$ Compatibility Flags.
 4. **Thêm Environment Variables**: Thêm đầy đủ các biến môi trường như bảng ở mục Vercel.
 5. **Save and Deploy**.
 
 ---
 
-### 8.4. Cấu Hình Cơ Sở Dữ Liệu Cloud (0$ PostgreSQL với Neon hoặc Supabase)
+### 8.6. Quy Trình CI/CD Tự Động Với GitHub Actions
 
-> [!NOTE]
-> Khi chạy trên môi trường Serverless Cloud (như Vercel/Cloudflare), hệ thống cần cơ sở dữ liệu đám mây PostgreSQL thay vì file SQLite cục bộ.
+Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.github/workflows/ci.yml`.
 
-1. **Tạo Database PostgreSQL miễn phí**:
-   * Truy cập [Neon.tech](https://neon.tech) hoặc [Supabase.com](https://supabase.com) $\rightarrow$ Tạo một Project mới (miễn phí 100%).
-   * Sao chép chuỗi kết nối dạng: `postgresql://username:password@ep-xyz.neon.tech/neondb?sslmode=require`.
-2. **Chuyển Provider sang PostgreSQL trong Prisma**:
-   * Mở file [`prisma/schema.prisma`](./prisma/schema.prisma), đổi dòng 6:
-     ```prisma
-     datasource db {
-       provider = "postgresql"
-       url      = env("DATABASE_URL")
-     }
-     ```
-3. **Đồng bộ bảng dữ liệu & Nạp dữ liệu mẫu lên Cloud**:
-   ```bash
-   # Đẩy bảng lên cloud database
-   npx prisma db push
-
-   # Nạp dữ liệu mẫu lên cloud database
-   node prisma/seed.js
-   ```
+#### Cơ chế hoạt động:
+- Mỗi khi lập trình viên `git push` hoặc tạo `Pull Request` lên nhánh `main`, `master`, hoặc `develop`:
+  - GitHub Actions sẽ tự động khởi động một máy chủ ảo Ubuntu độc lập.
+  - Tự động chạy chuỗi 4 lớp kiểm tra chất lượng mã nguồn:
+    1. **Type Check**: Chạy `tsc --noEmit` để đảm bảo không có lỗi ép kiểu, lỗi logic TypeScript.
+    2. **Linting**: Chạy `npm run lint` kiểm tra chuẩn viết mã nguồn.
+    3. **Unit Tests**: Tự động thực thi toàn bộ test cases với Vitest.
+    4. **Build Verification**: Thử nghiệm đóng gói dự án Next.js (`next build`) để phát hiện sớm các lỗi trang tĩnh hoặc bundle.
+- Nếu tất cả các bước đều vượt qua (dấu tích xanh ✅), code mới được coi là an toàn để deploy lên Production.
+- Nếu có bất kỳ lỗi nào (dấu x đỏ ❌), GitHub sẽ cảnh báo và chặn việc merge code lỗi vào nhánh chính.
 
 ---
 
-© 2026 **World Trading Lab**. Đã đăng ký bản quyền. Xây dựng với đam mê và tinh thần phụng sự học viên!
+© 2026 **World Trading Lab**. Đã đăng ký bản quyền. Xây dựng với tinh thần phụng sự.
