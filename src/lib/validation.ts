@@ -362,3 +362,435 @@ export function validateCommentInput(input: {
 
   return { isValid: true };
 }
+
+export type UploadTargetType = "thumbnail" | "attachment" | "video" | "avatar";
+
+export interface FileValidationOptions {
+  buffer: Buffer;
+  fileName: string;
+  mimeType?: string;
+  type: UploadTargetType;
+  maxSizeMb?: number;
+}
+
+export interface FileValidationResult {
+  isValid: boolean;
+  error?: string;
+  sanitizedName?: string;
+  fileExt?: string;
+  detectedMime?: string;
+}
+
+// Dangerous executable and script file extensions (Blacklist)
+export const DANGEROUS_EXTENSIONS = new Set([
+  "exe", "bat", "cmd", "sh", "bash", "ps1", "vbs", "msi", "jar", "com", "scr", "bin",
+  "pif", "vb", "wsf", "hta", "cpl", "msc", "reg",
+  "php", "phtml", "php3", "php4", "php5", "phps", "asp", "aspx", "jsp", "jspx", "cgi", "pl",
+  "html", "htm", "xhtml", "svg", "js", "mjs", "ts", "jsx", "tsx",
+]);
+
+// Allowed extensions for Course Thumbnails and User Avatars
+export const ALLOWED_THUMBNAIL_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
+export const ALLOWED_THUMBNAIL_MIMES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+export const ALLOWED_AVATAR_EXTENSIONS = ALLOWED_THUMBNAIL_EXTENSIONS;
+export const ALLOWED_AVATAR_MIMES = ALLOWED_THUMBNAIL_MIMES;
+
+// Allowed extensions for Course & Lesson Attachments
+export const ALLOWED_ATTACHMENT_EXTENSIONS = new Set([
+  "pdf",
+  "doc", "docx",
+  "xls", "xlsx",
+  "ppt", "pptx",
+  "txt", "csv", "json", "sql",
+  "zip", "rar", "7z", "tar", "gz",
+  "jpg", "jpeg", "png", "webp",
+]);
+
+// Allowed extensions for Course & Lesson Videos
+export const ALLOWED_VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "mkv"]);
+export const ALLOWED_VIDEO_MIMES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-matroska",
+]);
+
+/**
+ * Sanitizes a file name to prevent path traversal and shell injection
+ */
+export function sanitizeFileName(fileName: string): string {
+  if (!fileName || typeof fileName !== "string") return "file";
+
+  // Strip path traversal sequences and directory separators
+  let name = fileName.replace(/^.*[\\/]/, "");
+  
+  // Extract extension
+  const lastDot = name.lastIndexOf(".");
+  let baseName = lastDot > 0 ? name.substring(0, lastDot) : name;
+  let ext = lastDot > 0 ? name.substring(lastDot + 1) : "";
+
+  // Replace invalid characters with dash
+  baseName = baseName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  ext = ext.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  if (!baseName) baseName = "attachment";
+  if (baseName.length > 80) baseName = baseName.substring(0, 80);
+
+  return ext ? `${baseName}.${ext}` : baseName;
+}
+
+/**
+ * Verifies Magic Bytes (File signatures) to prevent malicious files pretending to be images/docs
+ */
+export function verifyMagicBytes(
+  buffer: Buffer,
+  ext: string
+): { isValid: boolean; error?: string } {
+  if (!buffer || buffer.length < 4) {
+    return { isValid: false, error: "Tệp tin không hợp lệ hoặc dữ liệu bị trống" };
+  }
+
+  // 1. Critical Blacklist Check: Executable PE (MZ header)
+  if (buffer[0] === 0x4d && buffer[1] === 0x5a) {
+    return { isValid: false, error: "Phát hiện tệp thực thi Windows độc hại (.exe/.dll)" };
+  }
+
+  // 2. Critical Blacklist Check: Linux ELF binary
+  if (buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46) {
+    return { isValid: false, error: "Phát hiện tệp thực thi Linux độc hại" };
+  }
+
+  // 3. Critical Blacklist Check: Shell Script '#!' (0x23 0x21)
+  if (buffer[0] === 0x23 && buffer[1] === 0x21) {
+    return { isValid: false, error: "Phát hiện tập lệnh thực thi shell script" };
+  }
+
+  // 4. Critical Blacklist Check: HTML / XML script tags (XSS vector in files)
+  const headerPreview = buffer.subarray(0, Math.min(buffer.length, 128)).toString("utf8").toLowerCase();
+  if (
+    headerPreview.includes("<?php") ||
+    headerPreview.includes("<script") ||
+    headerPreview.includes("<html") ||
+    headerPreview.includes("<!doctype html")
+  ) {
+    return { isValid: false, error: "Phát hiện mã kịch bản web độc hại trong nội dung tệp" };
+  }
+
+  const normalizedExt = ext.toLowerCase();
+
+  // 5. Whitelist validation by format
+  if (normalizedExt === "jpg" || normalizedExt === "jpeg") {
+    // JPEG magic bytes: FF D8 FF
+    if (buffer[0] !== 0xff || buffer[1] !== 0xd8 || buffer[2] !== 0xff) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng ảnh JPEG thực tế" };
+    }
+  } else if (normalizedExt === "png") {
+    // PNG magic bytes: 89 50 4E 47
+    if (
+      buffer[0] !== 0x89 ||
+      buffer[1] !== 0x50 ||
+      buffer[2] !== 0x4e ||
+      buffer[3] !== 0x47
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng ảnh PNG thực tế" };
+    }
+  } else if (normalizedExt === "webp") {
+    // WEBP magic bytes: RIFF....WEBP (52 49 46 46 .... 57 45 42 50)
+    if (
+      buffer.length < 12 ||
+      buffer[0] !== 0x52 ||
+      buffer[1] !== 0x49 ||
+      buffer[2] !== 0x46 ||
+      buffer[3] !== 0x46 ||
+      buffer[8] !== 0x57 ||
+      buffer[9] !== 0x45 ||
+      buffer[10] !== 0x42 ||
+      buffer[11] !== 0x50
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng ảnh WebP thực tế" };
+    }
+  } else if (normalizedExt === "pdf") {
+    // PDF magic bytes: %PDF (25 50 44 46)
+    if (
+      buffer[0] !== 0x25 ||
+      buffer[1] !== 0x50 ||
+      buffer[2] !== 0x44 ||
+      buffer[3] !== 0x46
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với tài liệu PDF thực tế" };
+    }
+  } else if (
+    normalizedExt === "zip" ||
+    normalizedExt === "docx" ||
+    normalizedExt === "xlsx" ||
+    normalizedExt === "pptx"
+  ) {
+    // PKZip based: PK.. (50 4B 03 04)
+    if (buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+      return { isValid: false, error: `Chữ ký tệp không khớp với định dạng ${normalizedExt.toUpperCase()} thực tế` };
+    }
+  } else if (normalizedExt === "rar") {
+    // RAR magic bytes: Rar! (52 61 72 21)
+    if (
+      buffer[0] !== 0x52 ||
+      buffer[1] !== 0x61 ||
+      buffer[2] !== 0x72 ||
+      buffer[3] !== 0x21
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng RAR thực tế" };
+    }
+  } else if (normalizedExt === "7z") {
+    // 7-Zip magic bytes: 37 7A BC AF 27 1C
+    if (
+      buffer.length < 6 ||
+      buffer[0] !== 0x37 ||
+      buffer[1] !== 0x7a ||
+      buffer[2] !== 0xbc ||
+      buffer[3] !== 0xaf
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng 7z thực tế" };
+    }
+  } else if (normalizedExt === "mp4" || normalizedExt === "mov") {
+    // MP4/MOV ISO base media container: bytes 4-7 are 'ftyp' (0x66 0x74 0x79 0x70)
+    if (
+      buffer.length < 8 ||
+      buffer[4] !== 0x66 ||
+      buffer[5] !== 0x74 ||
+      buffer[6] !== 0x79 ||
+      buffer[7] !== 0x70
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng video MP4/MOV thực tế" };
+    }
+  } else if (normalizedExt === "webm" || normalizedExt === "mkv") {
+    // WebM / Matroska EBML header: 1A 45 DF A3
+    if (
+      buffer.length < 4 ||
+      buffer[0] !== 0x1a ||
+      buffer[1] !== 0x45 ||
+      buffer[2] !== 0xdf ||
+      buffer[3] !== 0xa3
+    ) {
+      return { isValid: false, error: "Chữ ký tệp không khớp với định dạng video WebM/MKV thực tế" };
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates uploaded file completely: size, extension, MIME type, blacklist, and binary magic bytes
+ */
+export function validateFileUpload({
+  buffer,
+  fileName,
+  mimeType,
+  type,
+  maxSizeMb,
+}: FileValidationOptions): FileValidationResult {
+  if (!buffer || buffer.length === 0) {
+    return { isValid: false, error: "Dữ liệu tệp tin bị trống" };
+  }
+
+  if (!fileName || !fileName.trim()) {
+    return { isValid: false, error: "Thiếu tên tệp tin" };
+  }
+
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot <= 0) {
+    return { isValid: false, error: "Tệp tin phải có phần mở rộng hợp lệ" };
+  }
+
+  const ext = fileName.substring(lastDot + 1).toLowerCase();
+
+  // 1. Blacklist Check
+  if (DANGEROUS_EXTENSIONS.has(ext)) {
+    return {
+      isValid: false,
+      error: `Định dạng tệp .${ext} bị cấm tải lên vì lý do an toàn bảo mật`,
+    };
+  }
+
+  // 2. Size Limit Check (Thumbnail: 5MB, Attachment: 50MB, Video: 1024MB = 1GB)
+  const defaultLimit = type === "avatar" ? 5 : type === "thumbnail" ? 5 : type === "video" ? 1024 : 50;
+  const effectiveMaxSizeMb = maxSizeMb ?? defaultLimit;
+  const maxSizeBytes = effectiveMaxSizeMb * 1024 * 1024;
+
+  if (buffer.length > maxSizeBytes) {
+    return {
+      isValid: false,
+      error: `Dung lượng tệp vượt quá mức cho phép (Tối đa ${effectiveMaxSizeMb}MB)`,
+    };
+  }
+
+  // 3. Whitelist check by type
+  if (type === "avatar") {
+    if (!ALLOWED_AVATAR_EXTENSIONS.has(ext)) {
+      return {
+        isValid: false,
+        error: "Ảnh đại diện chỉ chấp nhận các định dạng: .jpg, .jpeg, .png, .webp",
+      };
+    }
+
+    if (mimeType && !ALLOWED_AVATAR_MIMES.has(mimeType.toLowerCase())) {
+      return {
+        isValid: false,
+        error: "MIME type của ảnh đại diện không hợp lệ",
+      };
+    }
+  } else if (type === "thumbnail") {
+    if (!ALLOWED_THUMBNAIL_EXTENSIONS.has(ext)) {
+      return {
+        isValid: false,
+        error: "Ảnh bìa khóa học chỉ chấp nhận các định dạng: .jpg, .jpeg, .png, .webp",
+      };
+    }
+
+    if (mimeType && !ALLOWED_THUMBNAIL_MIMES.has(mimeType.toLowerCase())) {
+      return {
+        isValid: false,
+        error: "MIME type của ảnh bìa không hợp lệ",
+      };
+    }
+  } else if (type === "video") {
+    if (!ALLOWED_VIDEO_EXTENSIONS.has(ext)) {
+      return {
+        isValid: false,
+        error: `Định dạng .${ext} không được hỗ trợ cho video bài giảng. Vui lòng chọn .mp4, .webm, hoặc .mov`,
+      };
+    }
+  } else {
+    // attachment type
+    if (!ALLOWED_ATTACHMENT_EXTENSIONS.has(ext)) {
+      return {
+        isValid: false,
+        error: `Định dạng .${ext} không được hỗ trợ cho tài liệu đính kèm`,
+      };
+    }
+  }
+
+  // 4. Magic Bytes Binary Signature Check
+  const magicCheck = verifyMagicBytes(buffer, ext);
+  if (!magicCheck.isValid) {
+    return {
+      isValid: false,
+      error: magicCheck.error || "Tệp tin không vượt qua bước kiểm tra bảo mật",
+    };
+  }
+
+
+  const sanitized = sanitizeFileName(fileName);
+
+  return {
+    isValid: true,
+    sanitizedName: sanitized,
+    fileExt: ext,
+  };
+}
+
+export interface ProfileUpdateInput {
+  name?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+}
+
+export interface ProfileValidationResult {
+  isValid: boolean;
+  field?: string;
+  error?: string;
+  sanitized?: {
+    name: string;
+    headline: string | null;
+    bio: string | null;
+  };
+}
+
+/**
+ * Validates user profile update inputs
+ */
+export function validateProfileUpdate(input: ProfileUpdateInput): ProfileValidationResult {
+  if (!input.name || !input.name.trim()) {
+    return { isValid: false, field: "name", error: "Họ và tên không được để trống" };
+  }
+  const cleanName = input.name.trim();
+  if (cleanName.length < 2 || cleanName.length > 100) {
+    return { isValid: false, field: "name", error: "Họ và tên phải từ 2 đến 100 ký tự" };
+  }
+
+  const cleanHeadline = input.headline !== undefined ? input.headline?.trim() || null : undefined;
+  if (cleanHeadline && cleanHeadline.length > 150) {
+    return { isValid: false, field: "headline", error: "Chức danh / Headline không được vượt quá 150 ký tự" };
+  }
+
+  const cleanBio = input.bio !== undefined ? input.bio?.trim() || null : undefined;
+  if (cleanBio && cleanBio.length > 1000) {
+    return { isValid: false, field: "bio", error: "Tiểu sử không được vượt quá 1000 ký tự" };
+  }
+
+  return {
+    isValid: true,
+    sanitized: {
+      name: cleanName,
+      headline: cleanHeadline ?? null,
+      bio: cleanBio ?? null,
+    },
+  };
+}
+
+export interface ChangePasswordInput {
+  currentPassword?: string | null;
+  newPassword?: string | null;
+  confirmPassword?: string | null;
+  requireCurrentPassword?: boolean;
+}
+
+export interface ChangePasswordValidationResult {
+  isValid: boolean;
+  field?: string;
+  error?: string;
+}
+
+/**
+ * Validates password change input payload
+ */
+export function validateChangePassword(input: ChangePasswordInput): ChangePasswordValidationResult {
+  const { currentPassword, newPassword, confirmPassword, requireCurrentPassword = true } = input;
+
+  if (requireCurrentPassword && !currentPassword) {
+    return { isValid: false, field: "currentPassword", error: "Vui lòng nhập mật khẩu hiện tại" };
+  }
+
+  if (!newPassword) {
+    return { isValid: false, field: "newPassword", error: "Vui lòng nhập mật khẩu mới" };
+  }
+
+  if (newPassword.length < 6) {
+    return { isValid: false, field: "newPassword", error: "Mật khẩu mới phải có ít nhất 6 ký tự" };
+  }
+
+  if (newPassword.length > 128) {
+    return { isValid: false, field: "newPassword", error: "Mật khẩu không được vượt quá 128 ký tự" };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { isValid: false, field: "confirmPassword", error: "Xác nhận mật khẩu mới không khớp" };
+  }
+
+  if (requireCurrentPassword && currentPassword === newPassword) {
+    return { isValid: false, field: "newPassword", error: "Mật khẩu mới không được trùng với mật khẩu hiện tại" };
+  }
+
+  return { isValid: true };
+}
+
+

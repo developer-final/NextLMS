@@ -17,6 +17,7 @@ import {
   Lock,
   MessageSquare,
   Paperclip,
+  Download,
   PlayCircle,
   Send,
   Sparkles,
@@ -26,6 +27,7 @@ import {
 import { formatDuration, getYouTubeEmbedUrl } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCommentInput } from "@/lib/validation";
+import CustomVideoPlayer from "@/components/learn/CustomVideoPlayer";
 
 interface LessonPlayerClientProps {
   course: any;
@@ -82,6 +84,10 @@ export default function LessonPlayerClient({
   const [showCertModal, setShowCertModal] = useState(false);
 
   const isCurrentCompleted = completedIds.includes(currentLesson.id);
+
+  const lessonAttachments = currentLesson.attachments || [];
+  const courseAttachments = course.attachments || [];
+  const totalAttachmentsCount = lessonAttachments.length + courseAttachments.length;
 
   // Handle Mark Complete
   const handleMarkComplete = async () => {
@@ -261,28 +267,20 @@ export default function LessonPlayerClient({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Media Player */}
-              {currentLesson.contentType === "VIDEO_YOUTUBE" && currentLesson.videoUrl && (
-                <div className="video-responsive-wrapper shadow-2xl border border-slate-800 bg-black">
-                  <iframe
-                    src={getYouTubeEmbedUrl(currentLesson.videoUrl) || ""}
-                    title={currentLesson.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              )}
-
-              {currentLesson.contentType === "VIDEO_CDN" && currentLesson.videoUrl && (
-                <div className="video-responsive-wrapper shadow-2xl border border-slate-800 bg-black">
-                  <video
-                    src={currentLesson.videoUrl}
-                    controls
-                    controlsList="nodownload"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              {/* Media Player (Custom LMS Video Player with S3 Signed URL & YouTube Auto-detect) */}
+              {currentLesson.videoUrl ? (
+                <CustomVideoPlayer
+                  src={currentLesson.videoUrl}
+                  title={currentLesson.title}
+                  lessonId={currentLesson.id}
+                  poster={course.thumbnailUrl}
+                  onEnded={() => {
+                    if (isEnrolled && !isCurrentCompleted) {
+                      handleMarkComplete();
+                    }
+                  }}
+                />
+              ) : null}
 
               {/* Lesson Title & Mark Completed Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
@@ -334,6 +332,21 @@ export default function LessonPlayerClient({
                   }`}
                 >
                   <MessageSquare className="h-4 w-4" /> {t.learn.qaDiscussionTab}
+                </button>
+                <button
+                  onClick={() => handleTabChange("attachments")}
+                  className={`flex items-center gap-1.5 pb-2 text-xs font-bold border-b-2 transition-all ${
+                    activeTab === "attachments"
+                      ? "border-brand-500 text-brand-400"
+                      : "border-transparent text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Paperclip className="h-4 w-4" /> {t.learn.attachmentsTab}
+                  {totalAttachmentsCount > 0 && (
+                    <span className="ml-1 rounded-full bg-brand-500/20 px-1.5 py-0.5 text-[10px] text-brand-400 font-bold border border-brand-500/30">
+                      {totalAttachmentsCount}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -403,6 +416,110 @@ export default function LessonPlayerClient({
                   )}
                 </div>
               )}
+
+              {/* Tab 3: Attachments (Lesson & Course-wide) */}
+              {activeTab === "attachments" && (
+                <div className="space-y-6 py-2">
+                  {/* Lesson-specific attachments */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-brand-400 flex items-center gap-1.5">
+                      <Paperclip className="h-4 w-4" />
+                      {t.learn.lessonAttachmentsTitle}
+                    </h4>
+
+                    {lessonAttachments.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic bg-slate-900/40 rounded-xl p-3 border border-slate-800/60">
+                        {t.learn.noAttachments}
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {lessonAttachments.map((att: any) => (
+                          <div
+                            key={att.id}
+                            className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/60 p-4 transition-colors hover:border-slate-700 hover:bg-slate-900/90"
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="rounded-xl bg-brand-500/10 p-2.5 text-brand-400 border border-brand-500/20">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="overflow-hidden">
+                                <p className="truncate text-xs font-bold text-white max-w-xs sm:max-w-md">
+                                  {att.fileName}
+                                </p>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {att.fileSize
+                                    ? `${(att.fileSize / 1024 / 1024).toFixed(2)} MB`
+                                    : "Tài liệu đính kèm"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <a
+                              href={`/api/attachments/${att.id}/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 rounded-xl bg-brand-500 hover:bg-brand-400 px-4 py-2 text-xs font-bold text-slate-950 shadow-glow transition-all"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>{t.learn.downloadAttachment}</span>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Course-wide shared attachments */}
+                  <div className="space-y-3 pt-3 border-t border-slate-800/80">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <BookOpen className="h-4 w-4" />
+                      {t.learn.courseAttachmentsTitle}
+                    </h4>
+
+                    {courseAttachments.length === 0 ? (
+                      <p className="text-xs text-slate-500 italic bg-slate-900/40 rounded-xl p-3 border border-slate-800/60">
+                        Chưa có tài liệu dùng chung toàn khóa học.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {courseAttachments.map((att: any) => (
+                          <div
+                            key={att.id}
+                            className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/60 p-4 transition-colors hover:border-slate-700 hover:bg-slate-900/90"
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-400 border border-emerald-500/20">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="overflow-hidden">
+                                <p className="truncate text-xs font-bold text-white max-w-xs sm:max-w-md">
+                                  {att.fileName}
+                                </p>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {att.fileSize
+                                    ? `${(att.fileSize / 1024 / 1024).toFixed(2)} MB`
+                                    : "Tài liệu toàn khóa học"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <a
+                              href={`/api/attachments/${att.id}/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-xs font-bold text-slate-950 shadow-glow transition-all"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>{t.learn.downloadAttachment}</span>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
 
               {/* Prev / Next Lesson Navigation Buttons */}
               <div className="flex items-center justify-between border-t border-slate-800 pt-6">

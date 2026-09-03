@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSecureStreamUrl } from "@/lib/s3";
 import { formatDuration, getYouTubeEmbedUrl, serializePrisma } from "@/lib/utils";
 import LessonPlayerClient from "./LessonPlayerClient";
 
@@ -27,6 +28,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       instructor: {
         select: { name: true, avatarUrl: true, headline: true },
       },
+      attachments: true,
       sections: {
         orderBy: { orderIndex: "asc" },
         include: {
@@ -130,12 +132,20 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   const safeCourse = {
     ...course,
+    attachments: isEnrolled ? course.attachments : [],
     sections: safeSections,
   };
 
+
+  // Generate secure presigned streaming URL if video is on S3/R2 (Expires in 2 hours = 7200s)
+  const signedVideoUrl =
+    canAccessLesson && currentLesson?.videoUrl
+      ? await getSecureStreamUrl(currentLesson.videoUrl, 7200)
+      : null;
+
   const safeCurrentLesson = {
     ...currentLesson,
-    videoUrl: canAccessLesson ? currentLesson.videoUrl : null,
+    videoUrl: signedVideoUrl,
     contentBody: canAccessLesson ? currentLesson.contentBody : null,
     attachments: canAccessLesson ? currentLesson.attachments : [],
   };

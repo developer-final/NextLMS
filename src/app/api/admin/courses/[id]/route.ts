@@ -25,6 +25,7 @@ export async function GET(
       include: {
         category: true,
         instructor: { select: { id: true, name: true, email: true } },
+        attachments: true,
         sections: {
           orderBy: { orderIndex: "asc" },
           include: {
@@ -85,6 +86,7 @@ export async function PUT(
       isFree,
       isFeatured,
       certificateEnabled,
+      attachments,
       sections,
     } = body;
 
@@ -210,6 +212,8 @@ export async function PUT(
               const les = sec.lessons[lIdx];
               const lessonSlug = slugify(les.title || `lesson-${lIdx + 1}`) + "-" + (lIdx + 1);
 
+              let targetLessonId = les.id;
+
               if (les.id) {
                 // Update lesson
                 await tx.lesson.update({
@@ -227,7 +231,7 @@ export async function PUT(
                 });
               } else {
                 // Create lesson
-                await tx.lesson.create({
+                const newLes = await tx.lesson.create({
                   data: {
                     sectionId: sectionRecord.id,
                     title: les.title || `Bài ${lIdx + 1}`,
@@ -240,14 +244,66 @@ export async function PUT(
                     orderIndex: lIdx + 1,
                   },
                 });
+                targetLessonId = newLes.id;
+              }
+
+              // Sync attachments for this lesson if provided
+              if (targetLessonId && Array.isArray(les.attachments)) {
+                const payloadLesAttIds = les.attachments.map((a: any) => a.id).filter(Boolean);
+                await tx.attachment.deleteMany({
+                  where: {
+                    lessonId: targetLessonId,
+                    id: { notIn: payloadLesAttIds },
+                  },
+                });
+
+                const newLesAtts = les.attachments.filter((a: any) => !a.id);
+                if (newLesAtts.length > 0) {
+                  await tx.attachment.createMany({
+                    data: newLesAtts.map((a: any) => ({
+                      lessonId: targetLessonId,
+                      fileName: a.fileName,
+                      fileUrl: a.fileUrl,
+                      fileKey: a.fileKey || null,
+                      fileSize: a.fileSize || null,
+                      fileType: a.fileType || null,
+                    })),
+                  });
+                }
               }
             }
           }
         }
       }
 
+      // 3. Sync course-level attachments if provided
+      if (Array.isArray(attachments)) {
+        const payloadAttachmentIds = attachments.map((a: any) => a.id).filter(Boolean);
+        await tx.attachment.deleteMany({
+          where: {
+            courseId: id,
+            id: { notIn: payloadAttachmentIds },
+          },
+        });
+
+        const newCourseAtts = attachments.filter((a: any) => !a.id);
+        if (newCourseAtts.length > 0) {
+          await tx.attachment.createMany({
+            data: newCourseAtts.map((a: any) => ({
+              courseId: id,
+              fileName: a.fileName,
+              fileUrl: a.fileUrl,
+              fileKey: a.fileKey || null,
+              fileSize: a.fileSize || null,
+              fileType: a.fileType || null,
+            })),
+          });
+        }
+      }
+
       return course;
     });
+
 
     return NextResponse.json({
       success: true,

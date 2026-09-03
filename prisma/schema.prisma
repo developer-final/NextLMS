@@ -145,6 +145,7 @@ model Course {
   orderItems   OrderItem[]
   reviews      Review[]
   certificates Certificate[]
+  attachments  Attachment[]
 
   @@index([status, isFeatured, createdAt(sort: Desc)])
   @@index([categoryId])
@@ -194,18 +195,23 @@ model Lesson {
 
 model Attachment {
   id        String   @id @default(cuid())
-  lessonId  String
+  courseId  String?
+  lessonId  String?
   fileName  String
   fileUrl   String
+  fileKey   String?
   fileSize  Int?
   fileType  String?
   createdAt DateTime @default(now())
 
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
   @@index([lessonId])
   @@map("attachments")
 }
+
 
 model Enrollment {
   id              String           @id @default(cuid())

@@ -23,11 +23,15 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
       include: {
         category: true,
         instructor: { select: { id: true, name: true } },
+        attachments: true,
         sections: {
           orderBy: { orderIndex: "asc" },
           include: {
             lessons: {
               orderBy: { orderIndex: "asc" },
+              include: {
+                attachments: true,
+              },
             },
           },
         },

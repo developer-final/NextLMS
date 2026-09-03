@@ -110,6 +110,15 @@ export default function Navbar() {
 
                   <div className="py-1">
                     <Link
+                      href="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
+                    >
+                      <UserIcon className="h-4 w-4" />
+                      {t.nav.profile}
+                    </Link>
+
+                    <Link
                       href="/my-courses"
                       onClick={() => setUserMenuOpen(false)}
                       className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-brand-400 transition-colors"
@@ -210,6 +219,13 @@ export default function Navbar() {
 
           {session ? (
             <>
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-brand-400"
+              >
+                {t.nav.profile}
+              </Link>
               <Link
                 href="/my-courses"
                 onClick={() => setMobileMenuOpen(false)}

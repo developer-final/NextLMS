@@ -9,6 +9,9 @@ import {
   validateCouponInput,
   validateBankSettingsInput,
   validateCommentInput,
+  validateFileUpload,
+  validateProfileUpdate,
+  validateChangePassword,
 } from "./validation";
 
 describe("Auth Validation Logic (TC-AUTH-01)", () => {
@@ -298,4 +301,152 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       expect(res.error).toContain("không được vượt quá 2000 ký tự");
     });
   });
+
+  describe("Avatar Upload Validation", () => {
+    // Valid PNG buffer header: 89 50 4E 47
+    const validPngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    // Valid JPEG buffer header: FF D8 FF
+    const validJpgBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+
+    it("should accept valid avatar image with matching magic bytes", () => {
+      const result = validateFileUpload({
+        buffer: validPngBuffer,
+        fileName: "my-avatar.png",
+        mimeType: "image/png",
+        type: "avatar",
+      });
+      expect(result.isValid).toBe(true);
+      expect(result.fileExt).toBe("png");
+    });
+
+    it("should reject avatar with unsupported extension like .gif or .exe", () => {
+      const result = validateFileUpload({
+        buffer: validPngBuffer,
+        fileName: "malicious.exe",
+        type: "avatar",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("bị cấm tải lên");
+
+      const gifResult = validateFileUpload({
+        buffer: Buffer.from("GIF89a..."),
+        fileName: "avatar.gif",
+        type: "avatar",
+      });
+      expect(gifResult.isValid).toBe(false);
+      expect(gifResult.error).toContain("Ảnh đại diện chỉ chấp nhận");
+    });
+
+    it("should reject avatar exceeding size limit", () => {
+      const largeBuffer = Buffer.concat([validJpgBuffer, Buffer.alloc(6 * 1024 * 1024)]);
+      const result = validateFileUpload({
+        buffer: largeBuffer,
+        fileName: "huge-avatar.jpg",
+        mimeType: "image/jpeg",
+        type: "avatar",
+        maxSizeMb: 5,
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("vượt quá mức cho phép");
+    });
+  });
+
+  describe("validateProfileUpdate", () => {
+    it("should accept valid profile input", () => {
+      const result = validateProfileUpdate({
+        name: "Nguyen Van A",
+        headline: "Senior Forex Trader & Mentor",
+        bio: "Experienced in price action and risk management.",
+      });
+      expect(result.isValid).toBe(true);
+      expect(result.sanitized?.name).toBe("Nguyen Van A");
+      expect(result.sanitized?.headline).toBe("Senior Forex Trader & Mentor");
+    });
+
+    it("should reject empty or too short name", () => {
+      expect(validateProfileUpdate({ name: "" }).isValid).toBe(false);
+      expect(validateProfileUpdate({ name: "   " }).isValid).toBe(false);
+      expect(validateProfileUpdate({ name: "A" }).isValid).toBe(false);
+    });
+
+    it("should reject headline exceeding 150 characters", () => {
+      const result = validateProfileUpdate({
+        name: "Valid Name",
+        headline: "x".repeat(151),
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("headline");
+    });
+
+    it("should reject bio exceeding 1000 characters", () => {
+      const result = validateProfileUpdate({
+        name: "Valid Name",
+        bio: "x".repeat(1001),
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("bio");
+    });
+  });
+
+  describe("validateChangePassword", () => {
+    it("should accept valid password change with current password", () => {
+      const result = validateChangePassword({
+        currentPassword: "OldPassword123",
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+      });
+      expect(result.isValid).toBe(true);
+    });
+
+    it("should reject if current password is missing when required", () => {
+      const result = validateChangePassword({
+        currentPassword: "",
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+        requireCurrentPassword: true,
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("currentPassword");
+    });
+
+    it("should allow missing current password when requireCurrentPassword is false (OAuth account)", () => {
+      const result = validateChangePassword({
+        newPassword: "NewPassword456",
+        confirmPassword: "NewPassword456",
+        requireCurrentPassword: false,
+      });
+      expect(result.isValid).toBe(true);
+    });
+
+    it("should reject if new password is too short (< 6 chars)", () => {
+      const result = validateChangePassword({
+        currentPassword: "OldPassword123",
+        newPassword: "123",
+        confirmPassword: "123",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("newPassword");
+    });
+
+    it("should reject if confirmation does not match", () => {
+      const result = validateChangePassword({
+        currentPassword: "OldPassword123",
+        newPassword: "NewPassword456",
+        confirmPassword: "DifferentPassword789",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.field).toBe("confirmPassword");
+    });
+
+    it("should reject if new password is identical to current password", () => {
+      const result = validateChangePassword({
+        currentPassword: "SamePassword123",
+        newPassword: "SamePassword123",
+        confirmPassword: "SamePassword123",
+      });
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain("không được trùng");
+    });
+  });
 });
+

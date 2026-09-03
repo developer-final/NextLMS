@@ -17,6 +17,7 @@ import {
   Star,
   User,
 } from "lucide-react";
+import CustomVideoPlayer from "@/components/learn/CustomVideoPlayer";
 
 interface CourseDetailClientProps {
   course: any;
@@ -118,12 +119,10 @@ export default function CourseDetailClient({
                 {/* Intro Video / Thumbnail Preview */}
                 <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-slate-800 mb-6">
                   {course.introVideoUrl ? (
-                    <iframe
-                      src={getYouTubeEmbedUrl(course.introVideoUrl) || ""}
+                    <CustomVideoPlayer
+                      src={course.introVideoUrl}
                       title={course.title}
-                      className="h-full w-full object-cover"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
+                      poster={course.thumbnailUrl}
                     />
                   ) : (
                     <img
@@ -196,6 +195,33 @@ export default function CourseDetailClient({
                     <div className="flex items-center gap-2">
                       <Award className="h-4 w-4 text-amber-400" />
                       <span>{t.courseDetail.perk4}</span>
+                    </div>
+                  )}
+                  {((course.attachments?.length || 0) +
+                    (course.sections?.reduce(
+                      (acc: number, s: any) =>
+                        acc +
+                        (s.lessons?.reduce(
+                          (lAcc: number, l: any) => lAcc + (l.attachments?.length || 0),
+                          0
+                        ) || 0),
+                      0
+                    ) || 0) > 0) && (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-brand-400" />
+                      <span>
+                        {(course.attachments?.length || 0) +
+                          (course.sections?.reduce(
+                            (acc: number, s: any) =>
+                              acc +
+                              (s.lessons?.reduce(
+                                (lAcc: number, l: any) => lAcc + (l.attachments?.length || 0),
+                                0
+                              ) || 0),
+                            0
+                          ) || 0)}{" "}
+                        tài liệu & file bài tập đính kèm (S3)
+                      </span>
                     </div>
                   )}
                 </div>

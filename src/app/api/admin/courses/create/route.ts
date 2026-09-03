@@ -35,6 +35,7 @@ export async function POST(req: Request) {
       level,
       isFree,
       isFeatured,
+      attachments,
       sections,
     } = body;
 
@@ -59,6 +60,18 @@ export async function POST(req: Request) {
         isFree: Boolean(isFree),
         isFeatured: Boolean(isFeatured),
         certificateEnabled: true,
+        // Create Course-level Attachments if provided
+        attachments: attachments?.length
+          ? {
+              create: attachments.map((att: any) => ({
+                fileName: att.fileName,
+                fileUrl: att.fileUrl,
+                fileKey: att.fileKey || null,
+                fileSize: att.fileSize || null,
+                fileType: att.fileType || null,
+              })),
+            }
+          : undefined,
         // Create Sections & Lessons if provided
         sections: sections?.length
           ? {
@@ -76,6 +89,17 @@ export async function POST(req: Request) {
                         contentBody: les.contentBody || null,
                         isPreview: Boolean(les.isPreview),
                         orderIndex: lIdx + 1,
+                        attachments: les.attachments?.length
+                          ? {
+                              create: les.attachments.map((att: any) => ({
+                                fileName: att.fileName,
+                                fileUrl: att.fileUrl,
+                                fileKey: att.fileKey || null,
+                                fileSize: att.fileSize || null,
+                                fileType: att.fileType || null,
+                              })),
+                            }
+                          : undefined,
                       })),
                     }
                   : undefined,

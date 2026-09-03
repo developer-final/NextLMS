@@ -16,9 +16,14 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertTriangle,
+  Paperclip,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCourseInput } from "@/lib/validation";
+import FileUploadZone from "@/components/ui/FileUploadZone";
 
 interface CourseEditFormProps {
   course: any;
@@ -46,9 +51,16 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
     course.certificateEnabled !== undefined ? Boolean(course.certificateEnabled) : true
   );
   const [thumbnailUrl, setThumbnailUrl] = useState(course.thumbnailUrl || "");
+  const [manualThumbnail, setManualThumbnail] = useState(false);
   const [introVideoUrl, setIntroVideoUrl] = useState(course.introVideoUrl || "");
   const [shortDescription, setShortDescription] = useState(course.shortDescription || "");
   const [description, setDescription] = useState(course.description || "");
+
+  // Course-level shared attachments
+  const [attachments, setAttachments] = useState<any[]>(course.attachments || []);
+  const [showCourseUpload, setShowCourseUpload] = useState(false);
+  const [openLessonUploadKey, setOpenLessonUploadKey] = useState<string | null>(null);
+  const [openLessonVideoUploadKey, setOpenLessonVideoUploadKey] = useState<string | null>(null);
 
   // Sections & Lessons structure
   const [sections, setSections] = useState<any[]>(
@@ -67,6 +79,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
                 contentType: l.contentType || "VIDEO_YOUTUBE",
                 isPreview: Boolean(l.isPreview),
                 contentBody: l.contentBody || "",
+                attachments: l.attachments || [],
               }))
             : [
                 {
@@ -76,6 +89,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
                   contentType: "VIDEO_YOUTUBE",
                   isPreview: true,
                   contentBody: "",
+                  attachments: [],
                 },
               ],
         }))
@@ -123,6 +137,66 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
     setSections(sections.filter((_, idx) => idx !== sIdx));
   };
 
+  const addCourseAttachment = (att: any) => {
+    setAttachments((prev) => [...prev, att]);
+  };
+
+  const handleRemoveCourseAttachment = async (idx: number, att: any) => {
+    if (att.id) {
+      try {
+        const res = await fetch(`/api/admin/courses/attachments/${att.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          toast.error("Không thể xóa tài liệu");
+          return;
+        }
+      } catch {
+        toast.error("Lỗi khi xóa tài liệu");
+        return;
+      }
+    }
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+    toast.success("Đã xóa tài liệu đính kèm");
+  };
+
+  const addLessonAttachment = (sIdx: number, lIdx: number, att: any) => {
+    const updated = [...sections];
+    if (!updated[sIdx].lessons[lIdx].attachments) {
+      updated[sIdx].lessons[lIdx].attachments = [];
+    }
+    updated[sIdx].lessons[lIdx].attachments.push(att);
+    setSections(updated);
+  };
+
+  const handleRemoveLessonAttachment = async (
+    sIdx: number,
+    lIdx: number,
+    aIdx: number,
+    att: any
+  ) => {
+    if (att.id) {
+      try {
+        const res = await fetch(`/api/admin/courses/attachments/${att.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          toast.error("Không thể xóa tài liệu");
+          return;
+        }
+      } catch {
+        toast.error("Lỗi khi xóa tài liệu");
+        return;
+      }
+    }
+    const updated = [...sections];
+    updated[sIdx].lessons[lIdx].attachments = updated[sIdx].lessons[lIdx].attachments.filter(
+      (_: any, idx: number) => idx !== aIdx
+    );
+    setSections(updated);
+    toast.success("Đã xóa tài liệu bài học");
+  };
+
   const addLesson = (sIdx: number) => {
     const updated = [...sections];
     updated[sIdx].lessons.push({
@@ -132,9 +206,11 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
       contentType: "VIDEO_YOUTUBE",
       isPreview: false,
       contentBody: "",
+      attachments: [],
     });
     setSections(updated);
   };
+
 
   const removeLesson = (sIdx: number, lIdx: number) => {
     const updated = [...sections];
@@ -193,6 +269,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           introVideoUrl,
           shortDescription,
           description,
+          attachments,
           sections,
         }),
       });
@@ -423,15 +500,34 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
 
         <div className="space-y-4 text-xs">
           <div>
-            <label className="block text-slate-300 font-semibold mb-1">
-              {t.admin.createCourse.thumbnailLabel}
-            </label>
-            <input
-              type="text"
-              value={thumbnailUrl}
-              onChange={(e) => setThumbnailUrl(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-slate-300 font-semibold">
+                {t.admin.createCourse.coverImageLabel || t.admin.createCourse.thumbnailLabel}
+              </label>
+              <button
+                type="button"
+                onClick={() => setManualThumbnail(!manualThumbnail)}
+                className="text-[11px] text-brand-400 hover:underline"
+              >
+                {manualThumbnail ? "Tải ảnh từ máy tính (S3)" : "Nhập URL thủ công"}
+              </button>
+            </div>
+
+            {manualThumbnail ? (
+              <input
+                type="text"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
+              />
+            ) : (
+              <FileUploadZone
+                type="thumbnail"
+                currentUrl={thumbnailUrl}
+                onUploadSuccess={(res) => setThumbnailUrl(res.url)}
+                onRemove={() => setThumbnailUrl("")}
+              />
+            )}
           </div>
 
           <div>
@@ -470,20 +566,94 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
         </div>
       </div>
 
-      {/* 3. Curriculum Sections & Lessons */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      {/* 3. Course-wide Shared Attachments (Collapsible) */}
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
-              <Layers className="h-4 w-4" /> 3. {t.admin.createCourse.curriculum}
+              <Paperclip className="h-4 w-4" /> 3. {t.admin.createCourse.courseAttachmentsLabel}
+              <span className="text-xs font-normal text-slate-400 normal-case">
+                ({attachments.length} tệp)
+              </span>
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {sections.length} {t.admin.courses.chaptersLessons.split("•")[0]} •{" "}
-              {sections.reduce((acc, s) => acc + (s.lessons?.length || 0), 0)}{" "}
-              {t.admin.courses.chaptersLessons.split("•")[1] || "lessons"}
+            <p className="text-xs text-slate-400 mt-1">
+              {t.admin.createCourse.courseAttachmentsDesc}
             </p>
           </div>
 
+          <button
+            type="button"
+            onClick={() => setShowCourseUpload(!showCourseUpload)}
+            className="flex items-center gap-1.5 rounded-xl border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 px-3.5 py-1.5 text-xs font-bold text-brand-400 transition-all"
+          >
+            {showCourseUpload ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" /> Thu gọn khung tải lên
+              </>
+            ) : (
+              <>
+                <Plus className="h-3.5 w-3.5" /> + Tải lên tài liệu mới
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Collapsible Upload Zone */}
+        {showCourseUpload && (
+          <div className="pt-2">
+            <FileUploadZone
+              type="attachment"
+              courseId={course.id}
+              onUploadSuccess={(res) => addCourseAttachment(res.attachment || res)}
+              helperText="Hỗ trợ PDF, Word, Excel, PowerPoint, ZIP, RAR, CSV,... (Tối đa 50MB)"
+            />
+          </div>
+        )}
+
+        {/* Attachment List */}
+        {attachments.length > 0 && (
+          <div className="space-y-2 pt-1">
+            {attachments.map((att, idx) => (
+              <div
+                key={att.id || idx}
+                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-xs"
+              >
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  <div className="rounded-lg bg-slate-800 p-2 text-brand-400">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="truncate font-semibold text-white max-w-sm">
+                      {att.fileName}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {att.fileSize ? `${(att.fileSize / 1024 / 1024).toFixed(2)} MB` : "Tệp đính kèm"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCourseAttachment(idx, att)}
+                    className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors"
+                    title="Xóa tài liệu này"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Curriculum Sections & Lessons */}
+      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
+            <Layers className="h-4 w-4" /> 4. {t.admin.createCourse.curriculum}
+          </h3>
           <button
             type="button"
             onClick={addSection}
@@ -554,16 +724,52 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="sm:col-span-2">
-                        <input
-                          type="text"
-                          value={les.videoUrl || ""}
-                          onChange={(e) =>
-                            updateLessonField(sIdx, lIdx, "videoUrl", e.target.value)
-                          }
-                          placeholder={t.admin.createCourse.videoUrlPlaceholder}
-                          className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
-                        />
+                      <div className="sm:col-span-2 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-semibold">
+                            Video bài giảng
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const key = `${sIdx}-${lIdx}`;
+                              setOpenLessonVideoUploadKey(
+                                openLessonVideoUploadKey === key ? null : key
+                              );
+                            }}
+                            className="text-[10px] text-brand-400 hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <Video className="h-3 w-3" />
+                            {openLessonVideoUploadKey === `${sIdx}-${lIdx}`
+                              ? "Nhập link thủ công"
+                              : "Tải video lên S3 (1GB)"}
+                          </button>
+                        </div>
+
+                        {openLessonVideoUploadKey === `${sIdx}-${lIdx}` ? (
+                          <FileUploadZone
+                            type="video"
+                            lessonId={les.id}
+                            onUploadSuccess={(res) => {
+                              updateLessonField(sIdx, lIdx, "videoUrl", res.url);
+                              updateLessonField(sIdx, lIdx, "contentType", "VIDEO_CDN");
+                              setOpenLessonVideoUploadKey(null);
+                              toast.success("Đã tải video bài học lên S3 thành công!");
+                            }}
+                            helperText="Hỗ trợ MP4, WebM, MOV (Tối đa 1GB lưu trữ S3)"
+                            className="py-1"
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={les.videoUrl || ""}
+                            onChange={(e) =>
+                              updateLessonField(sIdx, lIdx, "videoUrl", e.target.value)
+                            }
+                            placeholder={t.admin.createCourse.videoUrlPlaceholder}
+                            className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none"
+                          />
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -602,8 +808,85 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
                         className="w-full rounded-lg border border-slate-800/80 bg-slate-950/60 px-3 py-1 text-[11px] text-slate-300 placeholder-slate-600 focus:border-brand-500 focus:outline-none"
                       />
                     </div>
+
+                    {/* Lesson Attachments Box (Collapsible) */}
+                    <div className="pt-2 border-t border-slate-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+                          <Paperclip className="h-3.5 w-3.5 text-brand-400" />
+                          {t.admin.createCourse.lessonAttachmentsLabel} ({les.attachments?.length || 0})
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const key = `${sIdx}-${lIdx}`;
+                            setOpenLessonUploadKey(openLessonUploadKey === key ? null : key);
+                          }}
+                          className="text-[11px] font-semibold text-brand-400 hover:underline flex items-center gap-1"
+                        >
+                          {openLessonUploadKey === `${sIdx}-${lIdx}` ? (
+                            <>
+                              <ChevronUp className="h-3 w-3" /> Thu gọn
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3" /> Đính kèm tệp
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Small Upload Zone for Lesson - Only shown when expanded */}
+                      {openLessonUploadKey === `${sIdx}-${lIdx}` && (
+                        <div className="pt-1">
+                          <FileUploadZone
+                            type="attachment"
+                            lessonId={les.id}
+                            onUploadSuccess={(res) =>
+                              addLessonAttachment(sIdx, lIdx, res.attachment || res)
+                            }
+                            helperText="Tải file bài tập, slide hoặc dữ liệu riêng cho bài này"
+                            className="py-1"
+                          />
+                        </div>
+                      )}
+
+                      {/* Lesson Attachment Items */}
+                      {les.attachments && les.attachments.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          {les.attachments.map((att: any, aIdx: number) => (
+                            <div
+                              key={att.id || aIdx}
+                              className="flex items-center justify-between rounded-lg bg-slate-950 px-3 py-2 text-[11px] border border-slate-800/80"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <FileText className="h-3.5 w-3.5 text-brand-400 shrink-0" />
+                                <span className="truncate text-slate-200">{att.fileName}</span>
+                                {att.fileSize && (
+                                  <span className="text-slate-500 text-[10px]">
+                                    ({(att.fileSize / 1024 / 1024).toFixed(2)} MB)
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveLessonAttachment(sIdx, lIdx, aIdx, att)
+                                }
+                                className="text-slate-500 hover:text-rose-400 p-1"
+                                title="Xóa tài liệu bài học này"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
+
 
                 <button
                   type="button"

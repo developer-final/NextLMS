@@ -1,94 +1,189 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import fs from "fs/promises";
-import path from "path";
+import { prisma } from "@/lib/prisma";
+import { uploadFileToStorage } from "@/lib/s3";
+import {
+  validateFileUpload,
+  UploadTargetType,
+} from "@/lib/validation";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/jpg",
-];
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: "Please log in to upload files" },
+        { error: "Vui lòng đăng nhập để tải tệp lên" },
         { status: 401 }
       );
     }
 
+    const user = session.user;
+    const isStaff =
+      user.role === "ADMIN" ||
+      user.role === "SUPER_ADMIN" ||
+      user.role === "INSTRUCTOR";
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const type = ((formData.get("type") as string) || "attachment") as UploadTargetType;
+    const courseId = (formData.get("courseId") as string) || undefined;
+    const lessonId = (formData.get("lessonId") as string) || undefined;
+
+    // Permissions: 'avatar' can be uploaded by any authenticated user for their own profile.
+    // Course assets ('thumbnail', 'video', 'attachment') require staff privileges.
+    if (type !== "avatar" && !isStaff) {
+      return NextResponse.json(
+        { error: "Bạn không có quyền thực hiện tải tệp lên hệ thống" },
+        { status: 403 }
+      );
+    }
 
     if (!file) {
       return NextResponse.json(
-        { error: "No file provided for upload" },
+        { error: "Không tìm thấy tệp tin cần tải lên" },
         { status: 400 }
       );
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Custom max size from environment
+    const maxVideoSize = process.env.MAX_VIDEO_SIZE_MB
+      ? parseInt(process.env.MAX_VIDEO_SIZE_MB, 10)
+      : 1024;
+    const maxAttachmentSize = process.env.MAX_ATTACHMENT_SIZE_MB
+      ? parseInt(process.env.MAX_ATTACHMENT_SIZE_MB, 10)
+      : 50;
+    const maxAvatarSize = process.env.MAX_AVATAR_SIZE_MB
+      ? parseInt(process.env.MAX_AVATAR_SIZE_MB, 10)
+      : 5;
+
+    // Validate size, extension, MIME, blacklist and magic bytes
+    const validation = validateFileUpload({
+      buffer,
+      fileName: file.name,
+      mimeType: file.type,
+      type,
+      maxSizeMb:
+        type === "video"
+          ? maxVideoSize
+          : type === "avatar"
+          ? maxAvatarSize
+          : type === "attachment"
+          ? maxAttachmentSize
+          : 5,
+    });
+
+    if (!validation.isValid) {
       return NextResponse.json(
-        {
-          error:
-            "Unsupported file format. Please upload PNG, JPG, or WEBP images.",
+        { error: validation.error || "Tệp tin không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    // If INSTRUCTOR, ensure they own the course or lesson if IDs provided
+    if (user.role === "INSTRUCTOR") {
+      if (courseId) {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { instructorId: true },
+        });
+        if (course && course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Bạn không có quyền thêm tài nguyên cho khóa học này" },
+            { status: 403 }
+          );
+        }
+      }
+      if (lessonId) {
+        const lesson = await prisma.lesson.findUnique({
+          where: { id: lessonId },
+          include: { section: { include: { course: true } } },
+        });
+        if (lesson && lesson.section.course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Bạn không có quyền thêm tài nguyên cho bài học này" },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // Generate safe storage key
+    let storageKey = "";
+    if (type === "avatar") {
+      const randSuffix = Math.random().toString(36).substring(2, 8);
+      storageKey = `avatars/${user.id}/${Date.now()}-${randSuffix}.${validation.fileExt}`;
+    } else if (type === "thumbnail") {
+      const randSuffix = Math.random().toString(36).substring(2, 8);
+      storageKey = `thumbnails/${Date.now()}-${randSuffix}.${validation.fileExt}`;
+    } else if (type === "video") {
+      const folder = lessonId
+        ? `lessons/${lessonId}`
+        : courseId
+        ? `courses/${courseId}`
+        : "general";
+      storageKey = `courses/videos/${folder}/${Date.now()}-${validation.sanitizedName}`;
+    } else {
+      const folder = lessonId
+        ? `lessons/${lessonId}`
+        : courseId
+        ? `courses/${courseId}`
+        : "general";
+      storageKey = `attachments/${folder}/${Date.now()}-${validation.sanitizedName}`;
+    }
+
+    // Upload to S3 / Cloudflare R2 (or local dev storage fallback)
+    const uploadResult = await uploadFileToStorage({
+      buffer,
+      key: storageKey,
+      contentType: file.type || (type === "video" ? "video/mp4" : "application/octet-stream"),
+      isPublic: type === "thumbnail" || type === "avatar",
+    });
+
+    // If avatar upload, automatically persist avatarUrl to User record
+    if (type === "avatar") {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { avatarUrl: uploadResult.url },
+      });
+    }
+
+    // If attachment and associated with a persisted course or lesson, save to database
+    let createdAttachment = null;
+    if (type === "attachment" && (courseId || lessonId)) {
+      createdAttachment = await prisma.attachment.create({
+        data: {
+          courseId: courseId || undefined,
+          lessonId: lessonId || undefined,
+          fileName: validation.sanitizedName || file.name,
+          fileUrl: uploadResult.url,
+          fileKey: uploadResult.key,
+          fileSize: buffer.length,
+          fileType: file.type || validation.fileExt,
         },
-        { status: 400 }
-      );
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File size exceeds maximum allowed limit of 5MB." },
-        { status: 400 }
-      );
-    }
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Try saving locally to public/uploads/receipts if directory is writable
-    try {
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "receipts");
-      await fs.mkdir(uploadDir, { recursive: true });
-
-      const fileExt = file.name.split(".").pop() || "jpg";
-      const cleanFileName = `receipt-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2, 9)}.${fileExt}`;
-      const filePath = path.join(uploadDir, cleanFileName);
-
-      await fs.writeFile(filePath, buffer);
-
-      const publicUrl = `/uploads/receipts/${cleanFileName}`;
-
-      return NextResponse.json({
-        success: true,
-        url: publicUrl,
-        fileName: cleanFileName,
-      });
-    } catch (fsError) {
-      // In serverless / read-only filesystem environments, fallback to Base64 Data URL
-      console.warn(
-        "[Upload API] Local disk write failed, fallback to base64 Data URL:",
-        fsError
-      );
-      const base64Data = buffer.toString("base64");
-      const dataUrl = `data:${file.type};base64,${base64Data}`;
-
-      return NextResponse.json({
-        success: true,
-        url: dataUrl,
       });
     }
+
+    return NextResponse.json({
+      success: true,
+      message: "Tải tệp tin thành công!",
+      url: uploadResult.url,
+      key: uploadResult.key,
+      fileName: validation.sanitizedName || file.name,
+      fileSize: buffer.length,
+      fileType: file.type || validation.fileExt,
+      attachment: createdAttachment,
+    });
   } catch (error: any) {
-    console.error("[Upload API Error]:", error);
+    console.error("Upload API Error:", error);
     return NextResponse.json(
-      { error: "An error occurred while uploading file. Please try again." },
+      { error: "Lỗi trong quá trình tải tệp lên máy chủ" },
       { status: 500 }
     );
   }

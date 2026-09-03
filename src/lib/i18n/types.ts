@@ -49,6 +49,7 @@ export interface DictionaryType {
     register: string;
     logout: string;
     loggedInAs: string;
+    profile: string;
   };
   footer: {
     description: string;
@@ -148,6 +149,13 @@ export interface DictionaryType {
     completed: string;
     lessonContentTab: string;
     qaDiscussionTab: string;
+    attachmentsTab: string;
+    lessonAttachmentsTitle: string;
+    courseAttachmentsTitle: string;
+    noAttachments: string;
+    downloadAttachment: string;
+    downloading: string;
+    fileSize: string;
     contentUpdating: string;
     qaPlaceholder: string;
     sendQuestion: string;
@@ -403,6 +411,12 @@ export interface DictionaryType {
       submittingBtn: string;
       createSuccess: string;
       createError: string;
+      courseAttachmentsLabel: string;
+      courseAttachmentsDesc: string;
+      lessonAttachmentsLabel: string;
+      uploadAttachmentBtn: string;
+      noAttachmentsYet: string;
+      coverImageLabel: string;
     };
     editCourse: {
       title: string;
@@ -554,5 +568,55 @@ export interface DictionaryType {
     termsP2: string;
     termsP3: string;
   };
+  profile: {
+    pageTitle: string;
+    pageSubtitle: string;
+    tabs: {
+      details: string;
+      security: string;
+      overview: string;
+    };
+    avatar: {
+      changeAvatar: string;
+      uploadHint: string;
+      uploading: string;
+      removeAvatar: string;
+    };
+    fields: {
+      name: string;
+      namePlaceholder: string;
+      email: string;
+      emailNote: string;
+      headline: string;
+      headlinePlaceholder: string;
+      bio: string;
+      bioPlaceholder: string;
+      role: string;
+      joinedDate: string;
+      currentPassword: string;
+      newPassword: string;
+      confirmPassword: string;
+    };
+    buttons: {
+      saveChanges: string;
+      saving: string;
+      changePassword: string;
+      changingPassword: string;
+    };
+    overview: {
+      enrolledCourses: string;
+      certificates: string;
+      reviews: string;
+      accountStatus: string;
+      statusActive: string;
+      statusBlocked: string;
+    };
+    messages: {
+      updateSuccess: string;
+      passwordSuccess: string;
+      avatarSuccess: string;
+    };
+  };
 }
+
 

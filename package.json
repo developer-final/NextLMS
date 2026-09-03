@@ -29,6 +29,8 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1125.0",
+    "@aws-sdk/s3-request-presigner": "^3.1125.0",
     "@paypal/react-paypal-js": "^10.4.0",
     "@prisma/client": "^5.22.0",
     "@stripe/stripe-js": "^9.15.0",

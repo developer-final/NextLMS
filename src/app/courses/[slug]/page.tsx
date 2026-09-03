@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { safeJsonLdStringify } from "@/lib/validation";
 import { serializePrisma } from "@/lib/utils";
+import { getSecureStreamUrl } from "@/lib/s3";
 import CourseDetailClient from "./CourseDetailClient";
 
 export const revalidate = 300; // ISR: 5 minutes
@@ -30,11 +31,19 @@ const getCourseBySlug = cache(async (slug: string) => {
         },
       },
       category: true,
+      attachments: {
+        select: { id: true, fileName: true, fileSize: true, fileType: true },
+      },
       sections: {
         orderBy: { orderIndex: "asc" },
         include: {
           lessons: {
             orderBy: { orderIndex: "asc" },
+            include: {
+              attachments: {
+                select: { id: true, fileName: true, fileSize: true, fileType: true },
+              },
+            },
           },
         },
       },
@@ -199,7 +208,12 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(breadcrumbJsonLd) }}
       />
       <CourseDetailClient
-        course={serializePrisma(course)}
+        course={serializePrisma({
+          ...course,
+          introVideoUrl: course.introVideoUrl
+            ? await getSecureStreamUrl(course.introVideoUrl, 7200)
+            : null,
+        })}
         isEnrolled={isEnrolled}
         totalLessons={totalLessons}
         totalHours={totalHours}
