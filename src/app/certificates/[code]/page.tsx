@@ -26,14 +26,16 @@ export async function generateMetadata({
     },
   });
 
+  const siteName = process.env.APP_NAME || "World Trading Lab";
+
   if (!cert) {
     return {
-      title: "Certificate Not Found | World Trading Lab",
+      title: `Certificate Not Found | ${siteName}`,
     };
   }
 
   return {
-    title: `Certificate - ${cert.user.name} - ${cert.course.title} | World Trading Lab`,
+    title: `Certificate - ${cert.user.name} - ${cert.course.title} | ${siteName}`,
     description: `Official Certificate of Completion awarded to ${cert.user.name} for completing ${cert.course.title}.`,
   };
 }

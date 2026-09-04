@@ -638,10 +638,10 @@ export default function PostCreateForm({ categories }: PostCreateFormProps) {
                 </span>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1 font-sans">
                   <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                    <span>https://worldtradinglab.edu.vn/blog/{slug || "duong-dan"}</span>
+                    <span>https://your-domain.com/blog/{slug || "duong-dan"}</span>
                   </div>
                   <h3 className="text-xs font-semibold text-blue-400 hover:underline line-clamp-1">
-                    {metaTitle || title || "Tiêu đề bài viết hiển thị trên Google Search"} | World Trading Lab
+                    {metaTitle || title || "Tiêu đề bài viết hiển thị trên Google Search"} | Blog
                   </h3>
                   <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
                     {metaDescription || summary || "Mô tả bài viết sẽ xuất hiện ở đây để thu hút người đọc bấm vào từ trang kết quả tìm kiếm..."}

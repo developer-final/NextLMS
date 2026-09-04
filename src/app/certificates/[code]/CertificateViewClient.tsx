@@ -200,7 +200,7 @@ export default function CertificateViewClient({
               <div className="text-center space-y-2">
                 <div className="h-12 flex items-center justify-center">
                   <span className="font-serif italic text-lg text-amber-300/80 print:text-slate-800">
-                    World Trading Lab
+                    {siteName}
                   </span>
                 </div>
                 <div className="border-t border-slate-700 pt-1.5 print:border-slate-400">

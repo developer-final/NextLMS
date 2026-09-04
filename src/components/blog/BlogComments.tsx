@@ -173,7 +173,7 @@ export default function BlogComments({ postId, authorId }: BlogCommentsProps) {
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-white">{t.blog.loginToComment}</h4>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Tham gia trao đổi, chia sẻ quan điểm thị trường cùng cộng đồng World Trading Lab.
+              {t.blog.loginToCommentDesc}
             </p>
           </div>
           <div>

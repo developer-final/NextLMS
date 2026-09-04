@@ -9,11 +9,16 @@ import Footer from "@/components/layout/Footer";
 import DemoNicheSwitcher from "@/components/demo/DemoNicheSwitcher";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+const appName = process.env.APP_NAME || "World Trading Lab";
+const appSlogan = process.env.APP_SLOGAN || "Nền tảng Đào tạo Chuyên sâu";
+const appDescription =
+  process.env.APP_DESCRIPTION ||
+  "Học viện đào tạo trực tuyến thực chiến với hệ thống bài giảng video chất lượng cao.";
+
 export const metadata: Metadata = {
-  title: "World Trading Lab - Nền tảng Đào tạo Giao dịch & Đầu tư Chuyên sâu",
-  description:
-    "Học viện đào tạo trực tuyến thực chiến về Giao dịch Tài chính, SMC, Đầu tư Chứng khoán, Crypto và Phân tích Kỹ thuật với hệ thống bài giảng video chất lượng cao.",
-  keywords: ["e-learning", "world trading lab", "trading courses", "hoc forex", "chung khoan", "khoa hoc online", "fintech academy"],
+  title: `${appName} - ${appSlogan}`,
+  description: appDescription,
+  keywords: ["e-learning", appName.toLowerCase(), "online courses", "khoa hoc online", "lms platform"],
 };
 
 export default function RootLayout({

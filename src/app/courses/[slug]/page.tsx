@@ -72,27 +72,29 @@ export async function generateMetadata({
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
 
+  const siteName = process.env.APP_NAME || "World Trading Lab";
+
   if (!course) {
     return {
-      title: "Course Not Found | World Trading Lab",
+      title: `Course Not Found | ${siteName}`,
     };
   }
 
-  const title = `${course.title} | World Trading Lab`;
+  const title = `${course.title} | ${siteName}`;
   const description =
     course.shortDescription ||
-    `Course ${course.title} by ${course.instructor.name} at World Trading Lab.`;
+    `Course ${course.title} by ${course.instructor.name} at ${siteName}.`;
 
   return {
     title,
     description,
     keywords: [
       course.title,
-      course.category?.name || "Trading",
+      course.category?.name || "Education",
       ...(course.tags ? course.tags.map((t) => t.name) : []),
-      "World Trading Lab",
+      siteName,
       "Online Courses",
-      "Trading Education",
+      "Education Platform",
     ],
     openGraph: {
       title,
@@ -157,6 +159,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   const firstLesson = course.sections[0]?.lessons[0];
 
   // Course JSON-LD Schema for Google Search Rich Snippets
+  const siteName = process.env.APP_NAME || "World Trading Lab";
   const courseJsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",
@@ -164,8 +167,8 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     description: course.shortDescription || course.title,
     provider: {
       "@type": "Organization",
-      name: "World Trading Lab",
-      sameAs: "https://worldtradinglab.edu.vn",
+      name: siteName,
+      sameAs: process.env.NEXTAUTH_URL || "https://worldtradinglab.vercel.app",
     },
     instructor: {
       "@type": "Person",

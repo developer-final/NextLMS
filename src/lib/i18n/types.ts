@@ -395,6 +395,9 @@ export interface DictionaryType {
       posts: string;
       createPost: string;
       backToHome: string;
+      servicesTitle: string;
+      servicesDesc: string;
+      servicesLink: string;
     };
     dashboard: {
       overviewTitle: string;
@@ -907,6 +910,7 @@ export interface DictionaryType {
     submitComment: string;
     submittingComment: string;
     loginToComment: string;
+    loginToCommentDesc: string;
     commentSuccess: string;
     commentFailed: string;
     authorBadge: string;

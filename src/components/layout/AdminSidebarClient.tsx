@@ -11,6 +11,7 @@ import {
   Receipt,
   Settings,
   ShieldCheck,
+  Sparkles,
   Tag,
   Users,
 } from "lucide-react";
@@ -142,6 +143,25 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
             );
           })}
         </nav>
+      </div>
+
+      {/* Professional Service Card */}
+      <div className="p-3 my-3 rounded-xl border border-brand-500/20 bg-brand-950/20 text-slate-300 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-brand-400 font-bold text-[11px]">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>{t.admin.sidebar.servicesTitle}</span>
+        </div>
+        <p className="text-[10px] text-slate-400 leading-tight">
+          {t.admin.sidebar.servicesDesc}
+        </p>
+        <a
+          href="https://t.me/trading_world_support"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-400 hover:text-brand-300 transition-colors"
+        >
+          {t.admin.sidebar.servicesLink}
+        </a>
       </div>
 
       <div className="border-t border-slate-800 pt-4 px-2">

@@ -383,6 +383,9 @@ export const en: DictionaryType = {
       posts: "Manage Articles",
       createPost: "Write New Article",
       backToHome: "← Back to Website",
+      servicesTitle: "Professional Services",
+      servicesDesc: "Need custom deployment or tailored feature development?",
+      servicesLink: "Contact dev team →",
     },
     dashboard: {
       overviewTitle: "Activity Overview",
@@ -895,6 +898,7 @@ export const en: DictionaryType = {
     submitComment: "Post Comment",
     submittingComment: "Posting...",
     loginToComment: "Log in to join the discussion",
+    loginToCommentDesc: "Join the conversation and share your insights with the learner community.",
     commentSuccess: "Your comment has been posted successfully!",
     commentFailed: "Failed to post comment. Please try again.",
     authorBadge: "Author",

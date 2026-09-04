@@ -383,6 +383,9 @@ export const vi: DictionaryType = {
       posts: "Quản lý Bài viết",
       createPost: "Viết Bài Mới",
       backToHome: "← Về trang chủ Website",
+      servicesTitle: "Dịch Vụ & Hỗ Trợ Kỹ Thuật",
+      servicesDesc: "Cần hạ tầng chuyên dụng hoặc lập trình tính năng theo yêu cầu?",
+      servicesLink: "Liên hệ đội ngũ kỹ thuật →",
     },
     dashboard: {
       overviewTitle: "Tổng quan Hoạt động",
@@ -895,6 +898,7 @@ export const vi: DictionaryType = {
     submitComment: "Gửi bình luận",
     submittingComment: "Đang gửi...",
     loginToComment: "Đăng nhập để tham gia thảo luận",
+    loginToCommentDesc: "Tham gia trao đổi, thảo luận và chia sẻ quan điểm cùng cộng đồng học viên.",
     commentSuccess: "Bình luận của bạn đã được đăng thành công!",
     commentFailed: "Gửi bình luận thất bại. Vui lòng thử lại sau.",
     authorBadge: "Tác giả",

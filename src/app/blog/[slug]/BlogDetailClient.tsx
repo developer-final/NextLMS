@@ -182,7 +182,7 @@ export default function BlogDetailClient({
                   {post.author.name}
                 </p>
                 <p className="text-xs text-slate-400">
-                  {post.author.headline || "Giảng viên & Tác giả World Trading Lab"}
+                  {post.author.headline || "Giảng viên & Tác giả"}
                 </p>
               </div>
             </Link>
@@ -330,7 +330,7 @@ export default function BlogDetailClient({
                 <div className="space-y-1 flex-1">
                   <h4 className="text-base font-bold text-white">{post.author.name}</h4>
                   <p className="text-xs text-brand-400 font-medium">
-                    {post.author.headline || "Giảng viên tại World Trading Lab"}
+                    {post.author.headline || "Giảng viên & Chuyên gia"}
                   </p>
                   <p className="text-xs text-slate-400 leading-relaxed">
                     {post.author.bio ||
@@ -391,10 +391,10 @@ export default function BlogDetailClient({
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  World Trading Lab PRO
+                  Academy PRO
                 </h4>
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Trở thành nhà giao dịch chuyên nghiệp cùng các khóa học thực chiến chuyên sâu.
+                  Nâng cao kiến thức và kỹ năng chuyên môn cùng các khóa học thực chiến chuyên sâu.
                 </p>
                 <Link
                   href="/courses"

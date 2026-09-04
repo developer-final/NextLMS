@@ -53,26 +53,28 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getPostBySlug(slug);
 
+  const siteName = process.env.APP_NAME || "World Trading Lab";
+
   if (!post || post.status !== "PUBLISHED") {
     return {
-      title: "Bài Viết Không Tồn Tại | World Trading Lab",
+      title: `Bài Viết Không Tồn Tại | ${siteName}`,
     };
   }
 
-  const title = `${post.metaTitle || post.title} | World Trading Lab Blog`;
+  const title = `${post.metaTitle || post.title} | ${siteName} Blog`;
   const description =
     post.metaDescription ||
     post.summary ||
-    `Đọc bài viết ${post.title} bởi ${post.author.name} tại World Trading Lab.`;
+    `Đọc bài viết ${post.title} bởi ${post.author.name} tại ${siteName}.`;
 
-  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.edu.vn";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.vercel.app";
   const postUrl = `${baseUrl}/blog/${post.slug}`;
   const keywords = [
     post.title,
     ...(post.tags ? post.tags.map((t) => t.name) : []),
-    post.category?.name || "Trading",
-    "World Trading Lab",
-    "Kiến thức đầu tư",
+    post.category?.name || "Blog",
+    siteName,
+    "Knowledge",
   ];
 
   return {
@@ -201,7 +203,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
     },
     publisher: {
       "@type": "Organization",
-      name: "World Trading Lab",
+      name: process.env.APP_NAME || "World Trading Lab",
       logo: {
         "@type": "ImageObject",
         url: `${baseUrl}/favicon.ico`,

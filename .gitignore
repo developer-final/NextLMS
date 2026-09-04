@@ -69,3 +69,6 @@ Sample/
 .idea/
 backups/
 Storage/
+.agent/
+.agents/
+.env*

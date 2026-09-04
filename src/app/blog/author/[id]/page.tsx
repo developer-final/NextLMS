@@ -28,15 +28,17 @@ export async function generateMetadata({
     select: { name: true, headline: true, bio: true },
   });
 
+  const siteName = process.env.APP_NAME || "World Trading Lab";
+
   if (!author) {
-    return { title: "Tác giả không tồn tại | World Trading Lab" };
+    return { title: `Tác giả không tồn tại | ${siteName}` };
   }
 
   return {
-    title: `${author.name} - Tác giả & Giảng viên | World Trading Lab`,
+    title: `${author.name} - Tác giả & Giảng viên | ${siteName}`,
     description:
       author.bio ||
-      `Khám phá các bài viết và khóa học chuyên sâu của ${author.name} tại World Trading Lab.`,
+      `Khám phá các bài viết và khóa học chuyên sâu của ${author.name} tại ${siteName}.`,
   };
 }
 
@@ -44,6 +46,7 @@ export default async function AuthorPage({ params, searchParams }: AuthorPagePro
   const { id } = await params;
   const { page } = await searchParams;
 
+  const siteName = process.env.APP_NAME || "World Trading Lab";
   const pageSize = 9;
   const currentPage = Math.max(1, parseInt(page || "1", 10));
 
@@ -142,7 +145,7 @@ export default async function AuthorPage({ params, searchParams }: AuthorPagePro
 
               <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
                 {author.bio ||
-                  "Chuyên gia giao dịch tài chính thực chiến, chia sẻ kiến thức và phương pháp phân tích thị trường chuyên sâu tại World Trading Lab."}
+                  `Chuyên gia đào tạo thực chiến, chia sẻ kiến thức và phương pháp chuyên sâu tại ${siteName}.`}
               </p>
 
               {/* Stats */}

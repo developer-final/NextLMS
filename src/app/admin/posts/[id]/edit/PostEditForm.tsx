@@ -636,10 +636,10 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
                 </span>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1 font-sans">
                   <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                    <span>https://worldtradinglab.edu.vn/blog/{slug}</span>
+                    <span>https://your-domain.com/blog/{slug || "duong-dan"}</span>
                   </div>
                   <h3 className="text-xs font-semibold text-blue-400 hover:underline line-clamp-1">
-                    {metaTitle || title} | World Trading Lab
+                    {metaTitle || title} | Blog
                   </h3>
                   <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
                     {metaDescription || summary || "Mô tả bài viết sẽ xuất hiện ở đây trên Google Search..."}

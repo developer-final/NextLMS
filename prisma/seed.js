@@ -4,6 +4,20 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
+  const args = process.argv.slice(2);
+  const isForce = args.includes("--force");
+  const isProduction = process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+
+  const existingUsersCount = await prisma.user.count();
+  if ((existingUsersCount > 0 || isProduction) && !isForce) {
+    console.error("\n⚠️  DATABASE SAFETY GUARD:");
+    console.error(`Database currently contains ${existingUsersCount} existing user(s) or is in production mode.`);
+    console.error("Running seed will PERMANENTLY WIPE all tables (users, courses, orders, comments, etc.).");
+    console.error("If you intentionally want to reset and seed the database, run with '--force':");
+    console.error("   node prisma/seed.js --force\n");
+    process.exit(1);
+  }
+
   console.log("🌱 Starting Database Seed for World Trading Lab...");
 
   // Clean old data

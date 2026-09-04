@@ -1,8 +1,20 @@
 # 🎓 World Trading Lab — Hệ thống Đào tạo & Khóa học Trực tuyến Toàn diện
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15.0-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](./Dockerfile)
+
 **World Trading Lab** là nền tảng e-Learning đào tạo trực tuyến hiện đại, tối ưu hóa cho lĩnh vực Phân tích Tài chính, Smart Money Concepts (SMC), Đầu tư Chứng khoán, Crypto và Thuật toán Trading (nhưng có khả năng tùy biến linh hoạt cho mọi ngành nghề đào tạo khác).
 
 Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi phí (0$ Chi phí Cố định)**, tốc độ tải trang cực nhanh, giao diện Dark Theme FinTech sang trọng, tích hợp đầy đủ quy trình Đăng ký $\rightarrow$ Thanh toán VietQR $\rightarrow$ Duyệt kích hoạt 1-click $\rightarrow$ Học trực tuyến $\rightarrow$ Cấp chứng chỉ tốt nghiệp.
+
+## 🚀 Trải Nghiệm & Triển Khai Nhanh
+
+* 🔗 **Website Demo Trực Tuyến**: [https://worldtradinglab.vercel.app](https://worldtradinglab.vercel.app)
+* ⚡ **Triển Khai 1-Click Lên Vercel**:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fenzii%2FeLearning&project-name=my-elearning-platform&repository-name=my-elearning-platform)
 
 ---
 
@@ -11,12 +23,13 @@ Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi ph�
 * **Framework Fullstack**: **Next.js 15 (App Router, TypeScript, React 19/18)** — Tối ưu SEO vượt trội với Server Components và bảo mật phía Server với Server Actions / Route Handlers.
 * **Cơ sở dữ liệu & ORM**: **PostgreSQL** (hoặc SQLite cho local dev) kết hợp **Prisma ORM** — Quản lý dữ liệu quan hệ type-safe, dễ bảo trì và mở rộng.
 * **Xác thực & Phân quyền (Auth & RBAC)**: **NextAuth.js (JWT Session)** — Phân quyền chặt chẽ các vai trò `SUPER_ADMIN`, `ADMIN`, `INSTRUCTOR`, `STUDENT`.
-* **Cổng Thanh toán**: 
-  * **VietQR Động**: Tự động sinh mã QR chuẩn NAPAS kèm số tiền và mã đơn hàng `EL-XXXX`.
-  * **Duyệt Thủ công**: Học viên upload ảnh biên lai (Bill), Admin kiểm tra và kích hoạt 1 chạm.
-  * **Webhook Tự động**: Sẵn sàng tích hợp SePay / Casso để kích hoạt sau 5 giây.
-* **Media & Storage**: Hỗ trợ nhúng **YouTube (API Embed / Unlisted)**, **Video CDN / Cloudflare R2 / HTML5 Player**.
-* **Soạn thảo Nội dung**: Hỗ trợ Rich Text & Markdown (chèn biểu đồ phân tích kỹ thuật, hình ảnh, code block).
+* **Cổng Thanh toán Đa Kênh Toàn Diện**: 
+  * **VietQR Động Tự Động**: Tích hợp **PayOS** & **SePay** — Sinh mã QR NAPAS chuẩn số tiền và nội dung, tự động kích hoạt khóa học sau 5 giây qua Webhook.
+  * **Thanh Toán Quốc Tế**: Hỗ trợ **PayPal** & **Stripe** — Tự động quy đổi VND sang USD theo tỷ giá hệ thống, thanh toán thẻ tín dụng quốc tế an toàn.
+  * **Tiền Mã Hóa (Crypto USDT)**: Hỗ trợ thanh toán USDT qua mạng **BEP-20** và **TRC-20** kèm mã QR ví nhận tiền.
+  * **Duyệt Chuyển Khoản Thủ Công**: Học viên tải ảnh biên lai (Bill), Admin kiểm tra đối soát và kích hoạt 1-chạm.
+* **Media & Storage Đám Mây**: Hỗ trợ **YouTube (API Embed / Unlisted)**, **Cloudflare R2** (Miễn phí 10GB & 100% băng thông tải về), **AWS S3** hoặc Video CDN HTML5.
+* **Soạn thảo Nội dung & SEO**: Hỗ trợ Markdown & Rich Text, tự động tạo Sitemap XML, Robots.txt và thẻ Schema JSON-LD chuẩn Google Rich Snippets.
 
 ---
 
@@ -47,17 +60,32 @@ Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi ph�
    APP_NAME="World Trading Lab"
    ```
 
-3. **Khởi tạo Cơ sở dữ liệu & Nạp dữ liệu mẫu (Seed Data)**:
-   ```bash
-   npx prisma db push
-   node prisma/seed.js
-   ```
+3. **Khởi tạo Cơ sở dữ liệu & Tạo Quản trị viên (Super Admin)**:
+   * **Cách 1 (Khuyên dùng cho học viện mới — Dữ liệu sạch 100%)**:
+     ```bash
+     npx prisma db push
+     npm run create-admin
+     ```
+   * **Cách 2 (Thử nghiệm dữ liệu mẫu 4 ngách Trading/IELTS/Baking/Fitness)**:
+     ```bash
+     npx prisma db push
+     node prisma/seed.js
+     ```
 
 4. **Khởi chạy máy chủ phát triển (Dev Server)**:
    ```bash
    npm run dev
    ```
    Mở trình duyệt tại: **`http://localhost:3000`**
+
+### 🐳 Khởi chạy Nhanh Bằng Docker (Dành cho máy chủ VPS riêng):
+```bash
+# 1. Khởi chạy toàn bộ hệ thống gồm Web App + Database PostgreSQL:
+docker compose up -d
+
+# 2. Tạo tài khoản Super Admin:
+docker compose exec app node scripts/create-admin.mjs
+```
 
 5. **Kiểm tra biên dịch sản phẩm (Production Build)**:
    ```bash
@@ -155,16 +183,19 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 | Lệnh | Mục đích sử dụng |
 | :--- | :--- |
 | `npm run dev` | Khởi chạy máy chủ phát triển cục bộ tại `http://localhost:3000` |
-| `npm run build` | Biên dịch tối ưu toàn bộ dự án cho môi trường Production |
+| `npm run build` | Biên dịch tối ưu toàn bộ dự án cho môi trường Production (Standalone bundle) |
 | `npm start` | Chạy ứng dụng đã build ở chế độ Production |
+| `npm run create-admin` | CLI khởi tạo tài khoản Super Admin sạch đầu tiên cho học viện mới |
+| `npm run create-admin:prod` | Khởi tạo tài khoản Super Admin trực tiếp trên Database Production |
+| `docker compose up -d` | Khởi chạy toàn bộ hệ thống gồm Next.js App + PostgreSQL trong Docker |
 | `npm run type-check` | Kiểm tra lỗi kiểu dữ liệu TypeScript toàn dự án (`tsc --noEmit`) |
 | `npm run lint` | Soát lỗi cú pháp và tiêu chuẩn mã nguồn |
-| `npm test` | Chạy bộ kiểm thử tự động test cases với Vitest |
+| `npm test` | Chạy bộ kiểm thử tự động 270+ test cases với Vitest |
 | `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
 | `npx prisma db push` | Đẩy các thay đổi trong file `prisma/schema.prisma` vào Database |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
-| `npm run db:seed` | Nạp dữ liệu mẫu 4 ngách cho môi trường Dev (Trading, IELTS, Làm bánh, Fitness) |
-| `npm run db:seed:prod` | Nạp dữ liệu mẫu 4 ngách lên Database Production |
+| `npm run db:seed` | Nạp dữ liệu mẫu 7 ngách cho môi trường Dev (Trading, IELTS, Bánh, Gym, IT, v.v.) |
+| `npm run db:seed:prod` | Nạp dữ liệu mẫu 7 ngách lên Database Production (yêu cầu `--force`) |
 
 ---
 
@@ -176,9 +207,9 @@ Không còn nỗi lo *"chào hàng giải pháp e-Learning cho chuyên gia làm 
 
 ---
 
-### 6.1. Bảng 4 Ngách Đào Tạo Mẫu Có Sẵn (Out-of-the-Box Niches)
+### 6.1. Bảng 7 Ngách Đào Tạo Mẫu Có Sẵn (Out-of-the-Box Niches)
 
-Hệ thống được thiết kế sẵn 4 bộ nội dung & dữ liệu mẫu hoàn chỉnh:
+Hệ thống được thiết kế sẵn 7 bộ nội dung & dữ liệu mẫu hoàn chỉnh:
 
 | Mã Ngách (`niche`) | Tên Học Viện / Thương Hiệu | Giảng Viên Đại Diện | Lĩnh Vực Đào Tạo & Khóa Học Nổi Bật | Tông Màu & Phong Cách |
 | :--- | :--- | :--- | :--- | :--- |
@@ -186,6 +217,9 @@ Hệ thống được thiết kế sẵn 4 bộ nội dung & dữ liệu mẫu h
 | **`ielts`** | **IELTS Elite Academy** | Thầy **Đặng Tuấn Nam** *(8.5 IELTS)* | Luyện thi IELTS Intensive 7.5+, Phát âm Chuẩn Quốc tế Pro | Học thuật Indigo / Purple, Trí tuệ & Chuyên sâu |
 | **`baking`** | **La Crème Pastry Academy** | Chef **Mai Hương** | Nghệ thuật Bánh ngọt Pháp Cổ điển, Sourdough Men tự nhiên | Rose / Amber ấm áp, Tinh tế chuẩn Âu |
 | **`fitness`** | **IronPulse Fitness** | HLV **Trọng Dũng** | Biến đổi Hình thể Toàn diện 90 ngày, Khoa học Dinh dưỡng Gym | Orange / Slate mạnh mẽ, Tràn đầy năng lượng |
+| **`it`** | **TechZone Academy** | Kỹ sư **Minh Hoàng** | Lập trình Web Fullstack Next.js, Trí tuệ nhân tạo AI & Python | Cyan / Slate hiện đại, Phong cách Công nghệ |
+| **`electronics`** | **SmartChip Lab** | ThS. **Vũ Nam** | Thiết kế Bo mạch Vi điều khiển PCB, Phần cứng Nhúng IoT | Teal / Emerald đậm chất Kỹ thuật điện tử |
+| **`mechanical`** | **AutoMech 3D Center** | Thầy **Quang Huy** | Thiết kế Cơ khí CAD/CAM 3D, Gia công CNC Cơ điện tử | Blue / Slate công nghiệp, Chuẩn mực chính xác |
 
 ---
 
@@ -287,39 +321,47 @@ npm run db:seed:prod
 
 ---
 
-## 🔄 7. Hướng dẫn Tùy Biến Mã Nguồn Vĩnh Viễn Sang Thương Hiệu Khác (Full Rebranding)
+## 🔄 7. Chuẩn Hóa Nhãn Trắng 100% — Tùy Biến Sang Thương Hiệu Mới (Pure White-Labeling)
 
-Nền tảng được thiết kế theo kiến trúc **Generic LMS (Quản lý Học tập Đa năng)**. Toàn bộ logic nghiệp vụ (trình phát video, đo lường tiến độ, thanh toán VietQR tự động, quản lý đơn hàng, cấp chứng chỉ và phân quyền) hoàn toàn trung lập và độc lập với nội dung tài chính.
+Nền tảng được thiết kế theo kiến trúc **Pure White-Label LMS**. Mọi thành phần của hệ thống (tiêu đề website, Navbar, Footer, trang chi tiết khóa học, phôi chứng chỉ tốt nghiệp PDF, bài viết Blog và thẻ SEO Google) đều được **liên kết động 100%** với cấu hình thương hiệu. Bạn có thể chuyển đổi toàn bộ website sang học viện của riêng bạn trong **vòng 1 phút** mà **không cần chỉnh sửa một dòng code nào**!
 
-Nếu bạn muốn đóng gói và triển khai một website độc lập dành riêng cho một thương hiệu cố định (không dùng cơ chế demo động), bạn có thể chuyển đổi toàn bộ trong vòng **30 - 60 phút** theo 4 bước sau:
+### 🌟 Cách 1: Tùy Biến Trực Quan Từ Admin Dashboard (Khuyên Dùng - 0 Dòng Code)
+1. Đăng nhập với tài khoản Quản trị viên (`ADMIN` hoặc `SUPER_ADMIN`).
+2. Truy cập mục **Cài Đặt Hệ Thống** (`/admin/settings`).
+3. Tùy chỉnh trực tiếp:
+   * **Thông tin thương hiệu**: Tên học viện, Khẩu hiệu (Slogan), Mô tả học viện, Hotline, Email hỗ trợ, Link Zalo, Telegram, Facebook.
+   * **Cấu hình thanh toán**: Ngân hàng nhận VietQR (MB, Vietcombank, Techcombank...), Số tài khoản, Tên chủ tài khoản, Bật/Tắt PayOS, SePay, PayPal, Stripe, Crypto USDT.
+   * **Số liệu trang chủ**: Số lượng học viên, Tỷ lệ hài lòng, Tỷ lệ thực hành, Thời gian hỗ trợ.
+4. Bấm **"Lưu Cài Đặt"** $\rightarrow$ Hệ thống tự động làm mới bộ nhớ đệm (Cache) và cập nhật diện mạo toàn bộ website ngay lập tức!
 
-### Bước 1: Đổi Tên Thương Hiệu & Thông Tin Liên Hệ
-* Mở file [`.env`](./.env) và [`src/lib/config.ts`](./src/lib/config.ts):
-  * `APP_NAME`: Tên thương hiệu mới (VD: `CodeMaster Academy`, `IELTS Pro Lab`...).
-  * `BANK_ACCOUNT_NAME`: Tên chủ tài khoản nhận học phí.
-  * `appSlogan`, `appDescription`: Khẩu hiệu và mô tả tổng quan nền tảng.
-  * `supportEmail`, `supportHotline`, `zaloUrl`, `facebookUrl`: Kênh hỗ trợ của bạn.
+### ⚙️ Cách 2: Tùy Biến Qua Biến Môi Trường (`.env`)
+Khi triển khai trên Vercel, Docker hoặc VPS, bạn chỉ cần thiết lập các biến sau:
+```env
+# Tên thương hiệu hiển thị toàn bộ website & thẻ tiêu đề SEO Google
+APP_NAME="Học Viện Đào Tạo Của Bạn"
+APP_SLOGAN="Khẩu hiệu của bạn tại đây"
+APP_DESCRIPTION="Mô tả tóm tắt về học viện đào tạo của bạn"
 
-### Bước 2: Cập Nhật Nội Dung Giao Diện & Đa Ngôn Ngữ (i18n)
-* Mở file từ điển Tiếng Việt [`src/lib/i18n/vi.ts`](./src/lib/i18n/vi.ts) và Tiếng Anh [`src/lib/i18n/en.ts`](./src/lib/i18n/en.ts):
-  * `home.heroTitleLine1`, `home.heroTitleHighlight`, `home.heroDescription`: Tiêu đề và nội dung nổi bật của banner trang chủ.
-  * `home.feature1Title`, `feature1Desc` ...: Các ưu điểm nổi bật của học viện.
-  * `about.description`: Đoạn giới thiệu tầm nhìn, sứ mệnh của học viện mới.
-  * `policy`: Điều khoản dịch vụ và chính sách bảo mật phù hợp với ngành mới.
+# Kênh liên hệ
+SUPPORT_EMAIL="support@your-academy.com"
+SUPPORT_HOTLINE="0988.888.888"
+ZALO_URL="https://zalo.me/0988888888"
+TELEGRAM_URL="https://t.me/your_academy"
 
-### Bước 3: Thay Đổi Danh Mục & Khóa Học Mẫu (Seed Data)
-* Mở file [`prisma/seed.js`](./prisma/seed.js):
-  * Thay đổi danh mục đào tạo trong `categories` (xem bảng gợi ý bên dưới).
-  * Thay đổi tên khóa học, mô tả, ảnh thumbnail, video YouTube bài giảng demo trong `courses` & `lessons`.
-  * Thay đổi tên & tiểu sử giảng viên mẫu (`instructor`).
-* Chạy lệnh nạp lại dữ liệu sạch vào hệ thống:
-  ```bash
-  npm run db:seed
-  ```
+# Thông tin tài khoản nhận học phí VietQR
+BANK_ID="MB"
+BANK_NAME="MB Bank (Ngân hàng Quân Đội)"
+BANK_ACCOUNT_NO="0988888888"
+BANK_ACCOUNT_NAME="CONG TY GIAO DUC CUA BAN"
+```
 
-### Bước 4: Cập Nhật Logo & Tiêu Đề SEO
-* **Logo trên Navbar**: Chỉnh sửa tại [`src/components/layout/Navbar.tsx`](./src/components/layout/Navbar.tsx) (thay text logo hoặc thay bằng thẻ `<Image />` chứa logo thương hiệu).
-* **Metadata SEO & Sitemap**: Cập nhật thẻ tiêu đề và từ khóa tại [`src/app/layout.tsx`](./src/app/layout.tsx) và domain tại [`src/app/sitemap.ts`](./src/app/sitemap.ts).
+### 🖼️ Thay Đổi Logo & Bộ Màu Sắc Nhận Diện
+* **Logo Thương Hiệu**:
+  * Mặc định: Navbar tự động hiển thị tên thương hiệu `APP_NAME` cùng biểu tượng mũ học thuật sang trọng.
+  * Nếu dùng Logo ảnh: Thay thế file logo thương hiệu vào thư mục `public/logo.png` hoặc cập nhật đường dẫn ảnh trong `src/components/layout/NavbarClient.tsx`.
+* **Chủ Đề Màu Sắc (Themes)**:
+  * Hệ thống tích hợp sẵn các bảng màu: `emerald` (Xanh tài chính), `indigo` (Tím học thuật), `rose` (Ấm áp ẩm thực), `amber` (Vàng hoàng gia), `cyan` (Công nghệ hiện đại).
+  * Người dùng có thể tùy chọn theme yêu thích hoặc cố định theme mặc định theo nhận diện thương hiệu.
 
 ---
 
@@ -570,16 +612,27 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
    | `DATABASE_URL` | `postgresql://alex:...@...neon.tech/neondb?sslmode=require` | Chuỗi kết nối PostgreSQL lấy từ Neon/Supabase |
    | `NEXTAUTH_SECRET` | Chạy lệnh `openssl rand -base64 32` để tạo mã | Khóa bí mật mã hóa phiên đăng nhập JWT |
    | `NEXTAUTH_URL` | `https://ten-du-an-cua-ban.vercel.app` | Địa chỉ URL chạy chính thức của website |
-   | `APP_NAME` | `World Trading Lab` | Tên hiển thị của thương hiệu |
+   | `APP_NAME` | `Học Viện Của Bạn` | Tên hiển thị thương hiệu toàn hệ thống |
    | `BANK_ID` | `MB` | Mã ngân hàng nhận chuyển khoản VietQR |
    | `BANK_ACCOUNT_NO` | `0988888888` | Số tài khoản nhận tiền học phí |
-   | `BANK_ACCOUNT_NAME` | `WORLD TRADING LAB` | Tên chủ tài khoản ngân hàng |
+   | `BANK_ACCOUNT_NAME` | `TEN CHU TAI KHOAN` | Tên chủ tài khoản ngân hàng |
+   | `PAYOS_CLIENT_ID` | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | Tùy chọn: Client ID cổng VietQR tự động PayOS |
+   | `PAYOS_API_KEY` | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` | Tùy chọn: API Key cổng PayOS |
+   | `PAYOS_CHECKSUM_KEY` | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` | Tùy chọn: Checksum Key cổng PayOS |
+   | `PAYPAL_CLIENT_ID` | `client_id_lay_tu_paypal_developer` | Tùy chọn: Client ID cổng thanh toán PayPal |
+   | `PAYPAL_SECRET` | `secret_lay_tu_paypal_developer` | Tùy chọn: Secret Key cổng PayPal |
+   | `STRIPE_PUBLISHABLE_KEY` | `pk_live_xxxxxxxxxxxx` | Tùy chọn: Publishable Key thẻ tín dụng Stripe |
+   | `STRIPE_SECRET_KEY` | `sk_live_xxxxxxxxxxxx` | Tùy chọn: Secret Key cổng Stripe |
+   | `S3_ENDPOINT` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` | Tùy chọn: Endpoint Cloudflare R2 / S3 |
+   | `S3_ACCESS_KEY_ID` | `r2_access_key_id` | Tùy chọn: S3 Access Key ID |
+   | `S3_SECRET_ACCESS_KEY` | `r2_secret_access_key` | Tùy chọn: S3 Secret Access Key |
+   | `S3_BUCKET_NAME` | `elearning-media` | Tùy chọn: Tên S3 Bucket lưu trữ video/ảnh |
    | `SMTP_HOST` | `smtp.gmail.com` | Máy chủ SMTP gửi email (Mặc định Gmail) |
    | `SMTP_PORT` | `465` | Cổng bảo mật SSL SMTP |
    | `SMTP_SECURE` | `true` | Sử dụng giao thức bảo mật SSL |
-   | `SMTP_USER` | `oceandemy@gmail.com` | Tài khoản Gmail dùng để gửi thư |
-   | `SMTP_PASS` | `wvniqjwfpkchgwxw` | Mật khẩu ứng dụng 16 ký tự của Google |
-   | `EMAIL_FROM` | `World Trading Lab <oceandemy@gmail.com>` | Tên và địa chỉ người gửi hiển thị cho học viên |
+   | `SMTP_USER` | `your_gmail_address@gmail.com` | Tài khoản Gmail dùng để gửi thư |
+   | `SMTP_PASS` | `your_16char_app_password` | Mật khẩu ứng dụng 16 ký tự của Google |
+   | `EMAIL_FROM` | `Học Viện <your_gmail_address@gmail.com>` | Tên và địa chỉ người gửi hiển thị cho học viên |
    | `RESEND_API_KEY` | `re_xxxxxxxxxxxx` | Tùy chọn: Khóa API Resend (khi có domain riêng) |
    | `PAYMENT_WEBHOOK_API_KEY` | `khoa_bi_mat_webhook_tuy_chon` | Khóa xác thực webhook từ Casso/SePay |
    | `CRON_SECRET` | `wtl-cron-secret-key-32chars...` | Khóa bí mật bảo vệ API Cron (/api/cron/cleanup & study-reminders) |
@@ -681,6 +734,23 @@ Trên các môi trường Serverless như Vercel hay AWS Lambda, việc gọi g�
 Hệ thống đã giải quyết triệt để vấn đề này bằng module [`src/lib/async-task.ts`](./src/lib/async-task.ts) (`runInBackground`) ứng dụng hook `after()` chuẩn của **Next.js 15**:
 * **Phạm vi bảo vệ:** Gửi email xác thực khi đăng ký, gửi lại mã kích hoạt, quên mật khẩu, email hóa đơn thanh toán thành công và thông báo phản hồi hỏi đáp Q&A.
 * **Lợi ích:** Phản hồi giao diện người dùng ngay lập tức (< 50ms), đồng thời máy chủ serverless tiếp tục giữ kết nối chạy ngầm để đảm bảo email được chuyển giao trọn vẹn qua Resend REST API.
+
+---
+
+## 🛠️ Dịch Vụ Hỗ Trợ Triển Khai & Phát Triển Tính Năng Theo Yêu Cầu
+
+Nền tảng được cung cấp mã nguồn mở theo giấy phép **GNU AGPLv3** để bạn tự do nghiên cứu, kiểm thử và tự host. Nếu doanh nghiệp hoặc học viện của bạn cần triển khai chuyên nghiệp, tối ưu hóa hạ tầng hoặc phát triển tính năng đặc thù, chúng tôi cung cấp các gói dịch vụ:
+
+| Gói Dịch Vụ | Nội Dung & Hạng Mục Thực Hiện | Phù Hợp Cho |
+| :--- | :--- | :--- |
+| 🚀 **1. Cài Đặt Trọn Gói (Turnkey Setup)** | Cài đặt hoàn chỉnh lên VPS hoặc Cloud (Vercel, Supabase, Neon, Cloudflare R2), cấu hình tên miền riêng, chứng chỉ SSL HTTPS, máy chủ email SMTP và kết nối cổng thanh toán VietQR / PayPal. | Giảng viên, trung tâm muốn vận hành ngay trong 24h mà không cần lo về kỹ thuật. |
+| 🎨 **2. Tùy Biến Thương Hiệu (White-Label)** | Thay đổi 100% nhận diện thương hiệu (Logo, Favicon, Bảng màu theo nhận diện, Banner, Phôi chứng chỉ tốt nghiệp PDF độc bản, Điều khoản & Chính sách). | Các học viện đào tạo muốn hệ thống mang thương hiệu riêng biệt. |
+| ⚡ **3. Lập Trình Tính Năng Riêng (Custom Dev)** | Phát triển module chuyên sâu theo yêu cầu: Lớp học trực tuyến Zoom / Google Meet, Hệ thống thi trắc nghiệm Quiz/Exam nâng cao, Xuất hóa đơn điện tử VAT, Hệ thống hoa hồng Affiliate/CTV... | Các đơn vị đào tạo có mô hình giảng dạy hoặc kinh doanh đặc thù. |
+| 🛡️ **4. Giấy Phép Thương Mại (Commercial License)** | Giấy phép cho phép tích hợp mã nguồn đóng, phân phối nội bộ hoặc kinh doanh SaaS đa người thuê (Multi-tenant) mà không cần công khai mã nguồn. | Doanh nghiệp & tập đoàn giáo dục. |
+
+### 📞 Kênh Tiếp Nhận & Tư Vấn Kỹ Thuật:
+* 📱 **Zalo**: [+84971929521](https://zalo.me/84971929521) (0971.929.521)
+* ✈️ **Telegram**: [https://t.me/trading_world_support](https://t.me/trading_world_support)
 
 ---
 
