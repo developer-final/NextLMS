@@ -1,3 +1,36 @@
+const fs = require("fs");
+const path = require("path");
+
+// Automatically load environment files if DATABASE_URL is not yet defined in process.env
+if (!process.env.DATABASE_URL) {
+  try {
+    const envFiles = [".env.development.local", ".env.local", ".env"];
+    for (const file of envFiles) {
+      const fullPath = path.resolve(process.cwd(), file);
+      if (fs.existsSync(fullPath)) {
+        const content = fs.readFileSync(fullPath, "utf8");
+        content.split("\n").forEach((line) => {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith("#") && trimmed.includes("=")) {
+            const idx = trimmed.indexOf("=");
+            const key = trimmed.slice(0, idx).trim();
+            let val = trimmed.slice(idx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            if (!process.env[key]) {
+              process.env[key] = val;
+            }
+          }
+        });
+        if (process.env.DATABASE_URL) break;
+      }
+    }
+  } catch {
+    // Proceed if file cannot be read
+  }
+}
+
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
@@ -20,13 +53,16 @@ async function main() {
 
   console.log("🌱 Starting Database Seed for World Trading Lab...");
 
-  // Clean old data
+  // Clean old data in foreign-key safe order
   await prisma.comment.deleteMany();
   await prisma.review.deleteMany();
+  await prisma.certificate.deleteMany();
   await prisma.lessonProgress.deleteMany();
   await prisma.enrollment.deleteMany();
-  await prisma.orderItem.deleteMany();
+  await prisma.commission.deleteMany();
+  await prisma.payoutRequest.deleteMany();
   await prisma.transaction.deleteMany();
+  await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.lesson.deleteMany();
@@ -36,17 +72,20 @@ async function main() {
   await prisma.tag.deleteMany();
   await prisma.category.deleteMany();
   await prisma.coupon.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.verificationToken.deleteMany();
   await prisma.user.deleteMany();
 
   const passwordHash = await bcrypt.hash("123456", 10);
 
-  // 1. Create Users
+  // 1. Create Users with Affiliate Referral Codes
   const admin = await prisma.user.create({
     data: {
       name: "Nguyễn Văn Admin",
       email: "admin@finlearn.vn",
       passwordHash,
       role: "ADMIN",
+      referralCode: "REF-ADMIN",
       avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
       headline: "Nhà sáng lập & Quản trị Hệ thống World Trading Lab",
       bio: "Hơn 12 năm kinh nghiệm trong thị trường tài chính và phát triển hệ thống giáo dục trực tuyến.",
@@ -59,6 +98,7 @@ async function main() {
       email: "instructor@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-SMC",
       avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
       headline: "Chuyên gia Giao dịch SMC & Quản trị Quỹ Prop Firm",
       bio: "Cựu Senior Trader tại quỹ đầu tư Singapore, đã đào tạo hơn 5.000 học viên đạt chuẩn cấp vốn FTMO/MFF.",
@@ -71,6 +111,7 @@ async function main() {
       email: "ielts.teacher@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-IELTS",
       avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
       headline: "Chuyên gia Luyện thi IELTS 8.5 & Cựu Du học sinh Anh Quốc",
       bio: "Hơn 8 năm kinh nghiệm đào tạo học thuật, dẫn dắt hơn 3.200 học viên đạt band điểm 7.0 - 8.5+.",
@@ -83,6 +124,7 @@ async function main() {
       email: "baking.chef@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-BAKING",
       avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
       headline: "Bếp trưởng Bánh Âu - Tốt nghiệp Le Cordon Bleu Paris",
       bio: "Hơn 10 năm nghiên cứu men tự nhiên Sourdough và đào tạo hàng nghìn chủ tiệm bánh khởi nghiệp.",
@@ -95,6 +137,7 @@ async function main() {
       email: "fitness.coach@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-FITNESS",
       avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=256&q=80",
       headline: "Chuyên gia Huấn luyện Hình thể & Dinh dưỡng Thể hình Chuẩn Khoa học",
       bio: "Chứng chỉ quốc tế NASM, chuyên gia tư vấn siết cơ giảm mỡ cho hơn 4.000 học viên thành công.",
@@ -107,6 +150,7 @@ async function main() {
       email: "it.teacher@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-IT",
       avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80",
       headline: "Kỹ sư Trưởng & Chuyên gia Điện toán Đám mây AWS/K8s",
       bio: "Hơn 12 năm kinh nghiệm thiết kế kiến trúc phân tán chịu tải hàng triệu CCU cho các công ty công nghệ lớn.",
@@ -119,6 +163,7 @@ async function main() {
       email: "hardware.teacher@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-ELEC",
       avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&q=80",
       headline: "Trưởng nhóm R&D Phần cứng & Thiết kế Bo mạch Cao tần",
       bio: "Chuyên gia thiết kế bo mạch viễn thông, radar và thiết bị IoT công nghiệp đạt chuẩn EMI/EMC quốc tế.",
@@ -131,6 +176,7 @@ async function main() {
       email: "mechanical.teacher@finlearn.vn",
       passwordHash,
       role: "INSTRUCTOR",
+      referralCode: "REF-MECH",
       avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80",
       headline: "Kỹ sư Thiết kế Máy & Chuyên gia Mô phỏng 3D SolidWorks/CAE",
       bio: "Hơn 10 năm phụ trách R&D cơ cấu tự động hóa, robot công nghiệp và đồ gá gia công chính xác.",
@@ -143,12 +189,28 @@ async function main() {
       email: "student@finlearn.vn",
       passwordHash,
       role: "STUDENT",
+      referralCode: "REF-STUDENT",
       avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&q=80",
       headline: "Học viên khoá SMC 2026",
+      bankName: "Vietcombank",
+      bankAccountNo: "9988776655",
+      bankAccountName: "LE HOANG NAM",
     },
   });
 
-  console.log("✅ Users created: Admin, Instructors (Trading, IELTS, Baking, Fitness, IT, Electronics, Mechanical), Student");
+  const student2 = await prisma.user.create({
+    data: {
+      name: "Nguyễn Mai Anh",
+      email: "student2@finlearn.vn",
+      passwordHash,
+      role: "STUDENT",
+      referralCode: "REF-STUDENT2",
+      avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80",
+      headline: "Học viên khoá SMC & IELTS",
+    },
+  });
+
+  console.log("✅ Users created: Admin, Instructors, and 2 Students with referral codes and bank info");
 
   // 2. Create Categories
   // 2.1 Trading Categories
@@ -2084,10 +2146,172 @@ Một thiết kế 3D hoàn hảo sẽ trở nên vô nghĩa nếu bản vẽ 2D
 
   console.log("✅ Blog posts created for Trading, IELTS, Baking, Fitness, IT, Electronics, and Mechanical niches");
 
-  // 14. Initialize Default System Settings (including VietQR & Bank settings)
-  console.log("Seeding default system and payment settings...");
+  // 14. Create Sample Enrollments, Orders, and Affiliate Data
+  console.log("Creating demo enrollments, orders, and affiliate commission data...");
+
+  // 14.1 Update student enrollment in SMC Course to 100% completed
+  await prisma.enrollment.update({
+    where: {
+      userId_courseId: {
+        userId: student.id,
+        courseId: courseSMC.id,
+      },
+    },
+    data: {
+      progressPercent: 100,
+      completedAt: new Date(),
+    },
+  });
+
+  // Certificate for student
+  await prisma.certificate.create({
+    data: {
+      certificateCode: "CERT-SMC-DEMO-2026",
+      userId: student.id,
+      courseId: courseSMC.id,
+      issueDate: new Date(),
+    },
+  });
+
+  // 14.2 Student2 buys SMC Course referred by Student (Affiliate flow)
+  const smcPrice = 1490000;
+  const orderAff1 = await prisma.order.create({
+    data: {
+      orderCode: "ORD-AFF-DEMO-01",
+      userId: student2.id,
+      referrerId: student.id,
+      totalAmount: smcPrice,
+      discountAmount: 0,
+      finalAmount: smcPrice,
+      paymentMethod: "VIETQR_AUTO",
+      status: "COMPLETED",
+      adminNote: "Đơn hàng thử nghiệm qua link giới thiệu Affiliate của học viên Lê Hoàng Nam.",
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    },
+  });
+
+  await prisma.orderItem.create({
+    data: {
+      orderId: orderAff1.id,
+      courseId: courseSMC.id,
+      price: smcPrice,
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      orderId: orderAff1.id,
+      gatewayRef: "PAYOS-AFF-DEMO-TXN-01",
+      bankCode: "MB",
+      transferContent: "WTL ORDAFFDEMO01",
+      amount: smcPrice,
+    },
+  });
+
+  await prisma.enrollment.create({
+    data: {
+      userId: student2.id,
+      courseId: courseSMC.id,
+      status: "ACTIVE",
+      progressPercent: 25,
+    },
+  });
+
+  // Approved Commission for Order 1 (20% of 1,490,000 = 298,000 VND)
+  const commAmount1 = 298000;
+  const commission1 = await prisma.commission.create({
+    data: {
+      orderId: orderAff1.id,
+      affiliateId: student.id,
+      orderAmount: smcPrice,
+      commissionRate: 20,
+      commissionAmount: commAmount1,
+      status: "APPROVED",
+      availableAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // Matured 3 days ago
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Sample Payout Request for Student
+  const payoutRequest = await prisma.payoutRequest.create({
+    data: {
+      userId: student.id,
+      amount: commAmount1,
+      bankName: "Vietcombank",
+      bankAccountNo: "9988776655",
+      bankAccountName: "LE HOANG NAM",
+      status: "PENDING",
+      adminNote: "Yêu cầu rút tiền hoa hồng giới thiệu khóa học SMC Masterclass.",
+    },
+  });
+
+  await prisma.commission.update({
+    where: { id: commission1.id },
+    data: { payoutRequestId: payoutRequest.id },
+  });
+
+  // 14.3 Second Order for Student2 with PENDING Commission (Recent order)
+  const orderAff2 = await prisma.order.create({
+    data: {
+      orderCode: "ORD-AFF-DEMO-02",
+      userId: student2.id,
+      referrerId: student.id,
+      totalAmount: 1000000,
+      discountAmount: 0,
+      finalAmount: 1000000,
+      paymentMethod: "VIETQR_AUTO",
+      status: "COMPLETED",
+      adminNote: "Đơn hàng gần đây - Hoa hồng đang trong thời gian giữ 7 ngày.",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    },
+  });
+
+  await prisma.orderItem.create({
+    data: {
+      orderId: orderAff2.id,
+      courseId: courseSMC.id,
+      price: 1000000,
+    },
+  });
+
+  await prisma.commission.create({
+    data: {
+      orderId: orderAff2.id,
+      affiliateId: student.id,
+      orderAmount: 1000000,
+      commissionRate: 20,
+      commissionAmount: 200000,
+      status: "PENDING",
+      availableAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Available in 5 days
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log("✅ Demo enrollments, orders, commissions, and payout requests created!");
+
+  // 15. Initialize Default System Settings (including VietQR, Affiliate & Bank settings)
+  console.log("Seeding default system, payment, and affiliate settings...");
   const defaultSettings = [
+    // Affiliate Settings
+    { key: "affiliateEnabled", value: "true", group: "AFFILIATE", description: "Bật/Tắt hệ thống tiếp thị liên kết" },
+    { key: "affiliateCommissionPercent", value: "20", group: "AFFILIATE", description: "Tỷ lệ hoa hồng mặc định (%)" },
+    { key: "affiliateCookieDays", value: "30", group: "AFFILIATE", description: "Thời hạn lưu cookie giới thiệu (ngày)" },
+    { key: "affiliateHoldDays", value: "7", group: "AFFILIATE", description: "Thời gian giữ hoa hồng bảo lưu đối soát (ngày)" },
+    { key: "affiliateMinPayout", value: "200000", group: "AFFILIATE", description: "Hạn mức yêu cầu rút tiền tối thiểu (VND)" },
+
+    // General Settings
     { key: "appName", value: "World Trading Lab", group: "GENERAL" },
+    { key: "appSlogan", value: "Nền tảng Học viện & Đào tạo Giao dịch Thực chiến", group: "GENERAL" },
+    { key: "appDescription", value: "World Trading Lab là học viện đào tạo giao dịch tài chính, ngoại hối và tiền mã hóa chuyên nghiệp.", group: "GENERAL" },
+
+    // Contact Settings
+    { key: "supportEmail", value: "support@worldtradinglab.com", group: "CONTACT" },
+    { key: "supportHotline", value: "0988.888.888", group: "CONTACT" },
+    { key: "zaloUrl", value: "https://zalo.me/0988888888", group: "CONTACT" },
+    { key: "telegramUrl", value: "https://t.me/trading_world_support", group: "CONTACT" },
+    { key: "facebookUrl", value: "https://facebook.com/worldtradinglab", group: "CONTACT" },
+
+    // Payment Settings
     { key: "bankId", value: "ICB", group: "PAYMENT", description: "VietinBank (ICB)" },
     { key: "bankName", value: "VietinBank", group: "PAYMENT", description: "Ngân hàng TMCP Công thương Việt Nam" },
     { key: "bankAccountNo", value: "1088888888", group: "PAYMENT", description: "Số tài khoản ngân hàng nhận tiền" },
@@ -2096,7 +2320,21 @@ Một thiết kế 3D hoàn hảo sẽ trở nên vô nghĩa nếu bản vẽ 2D
     { key: "paymentManualEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt chuyển khoản thủ công" },
     { key: "paymentVietqrAutoEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt VietQR tự động" },
     { key: "paymentVietqrProvider", value: "PAYOS", group: "PAYMENT", description: "Nhà cung cấp VietQR tự động (PAYOS/SEPAY)" },
+    { key: "paymentPaypalEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt thanh toán PayPal" },
+    { key: "paypalMode", value: "sandbox", group: "PAYMENT", description: "Môi trường PayPal (sandbox/live)" },
+    { key: "paymentStripeEnabled", value: "false", group: "PAYMENT", description: "Bật/Tắt thanh toán thẻ Stripe" },
+    { key: "paymentCryptoEnabled", value: "true", group: "PAYMENT", description: "Bật/Tắt thanh toán USDT Crypto" },
     { key: "usdExchangeRate", value: "25400", group: "PAYMENT", description: "Tỷ giá quy đổi USD/VND" },
+
+    // Policy Settings
+    { key: "refundDays", value: "7", group: "POLICY", description: "Thời hạn cam kết hoàn tiền (ngày)" },
+    { key: "refundMaxProgress", value: "30", group: "POLICY", description: "Tiến độ học tối đa được phép yêu cầu hoàn tiền (%)" },
+
+    // Hero Stats
+    { key: "statsStudentCount", value: "5,000+", group: "HERO" },
+    { key: "statsSatisfactionRate", value: "98.6%", group: "HERO" },
+    { key: "statsPracticalRate", value: "100%", group: "HERO" },
+    { key: "statsSupportHours", value: "24/7", group: "HERO" },
   ];
 
   for (const s of defaultSettings) {
@@ -2107,7 +2345,7 @@ Một thiết kế 3D hoàn hảo sẽ trở nên vô nghĩa nếu bản vẽ 2D
     });
   }
 
-  console.log("🚀 Database Seed completed successfully with realistic SMC course, Blog, and Bank Settings data!");
+  console.log("🚀 Database Seed completed successfully with realistic SMC course, Blog, Affiliate, and System Settings data!");
 }
 
 main()

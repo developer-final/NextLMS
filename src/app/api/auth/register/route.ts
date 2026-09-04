@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: `Bạn đã gửi quá nhiều yêu cầu đăng ký. Vui lòng thử lại sau ${waitSeconds} giây.`,
+          error: `Too many registration requests. Please try again in ${waitSeconds} seconds.`,
         },
         {
           status: 429,

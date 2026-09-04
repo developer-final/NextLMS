@@ -33,21 +33,21 @@ export function validateCoupon(
   if (!coupon || !coupon.isActive) {
     return {
       isValid: false,
-      error: "Mã giảm giá không tồn tại hoặc đã hết hiệu lực",
+      error: "Coupon does not exist or has been deactivated",
     };
   }
 
   if (coupon.startsAt && new Date(coupon.startsAt) > now) {
     return {
       isValid: false,
-      error: "Mã giảm giá chưa đến thời gian áp dụng",
+      error: "Coupon has not started yet",
     };
   }
 
   if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
     return {
       isValid: false,
-      error: "Mã giảm giá đã hết hạn sử dụng",
+      error: "Coupon has expired",
     };
   }
 
@@ -58,7 +58,7 @@ export function validateCoupon(
   ) {
     return {
       isValid: false,
-      error: "Mã giảm giá đã đạt giới hạn số lượt sử dụng",
+      error: "Coupon has reached its maximum usage limit",
     };
   }
 
@@ -68,7 +68,7 @@ export function validateCoupon(
   ) {
     return {
       isValid: false,
-      error: `Đơn hàng tối thiểu để áp dụng mã là ${coupon.minOrderValue.toLocaleString("vi-VN")}đ`,
+      error: `Minimum order value to apply this coupon is ${coupon.minOrderValue.toLocaleString()} VND`,
     };
   }
 

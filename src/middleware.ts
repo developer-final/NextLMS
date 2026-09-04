@@ -57,7 +57,17 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Non-admin authenticated API routes: block BLOCKED users
+    // Non-admin authenticated API routes
+    if (isProtectedApiRoute && !isAdminRoute) {
+      if (!token) {
+        return NextResponse.json(
+          { error: "Unauthorized: Please log in" },
+          { status: 401 }
+        );
+      }
+    }
+
+    // Block BLOCKED users from all protected routes
     if (token && token.status === "BLOCKED") {
       return NextResponse.json(
         { error: "Your account has been suspended. Please contact support." },

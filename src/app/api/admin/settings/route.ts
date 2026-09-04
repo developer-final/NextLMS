@@ -19,7 +19,27 @@ export async function GET() {
     }
 
     const settings = await getSystemSettings();
-    return NextResponse.json({ success: true, settings });
+
+    // Mask sensitive secret fields before returning to frontend
+    const SENSITIVE_KEYS: (keyof typeof settings)[] = [
+      "paypalSecret",
+      "stripeSecretKey",
+      "stripeWebhookSecret",
+      "payosApiKey",
+      "payosChecksumKey",
+      "sepayApiKey",
+    ];
+
+    const maskedSettings = { ...settings };
+    for (const key of SENSITIVE_KEYS) {
+      const val = maskedSettings[key];
+      if (typeof val === "string" && val.length > 0) {
+        (maskedSettings as any)[key] =
+          val.length <= 4 ? "••••" : "••••" + val.slice(-4);
+      }
+    }
+
+    return NextResponse.json({ success: true, settings: maskedSettings });
   } catch (error: any) {
     console.error("Admin Settings GET Error:", error);
     return NextResponse.json({ error: "Error loading settings" }, { status: 500 });
@@ -101,6 +121,11 @@ export async function POST(req: Request) {
       statsSupportHours: "HERO",
       refundDays: "POLICY",
       refundMaxProgress: "POLICY",
+      affiliateEnabled: "AFFILIATE",
+      affiliateCommissionPercent: "AFFILIATE",
+      affiliateCookieDays: "AFFILIATE",
+      affiliateHoldDays: "AFFILIATE",
+      affiliateMinPayout: "AFFILIATE",
     };
 
     // Upsert each setting with sanitization

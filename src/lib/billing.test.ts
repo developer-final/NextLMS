@@ -29,7 +29,7 @@ describe("Billing & Coupon Logic (TC-PAY-02)", () => {
       const inactive = { ...baseCoupon, isActive: false };
       const result = validateCoupon(inactive, 1000000);
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("hết hiệu lực");
+      expect(result.error).toContain("deactivated");
     });
 
     it("should reject an expired coupon", () => {
@@ -37,7 +37,7 @@ describe("Billing & Coupon Logic (TC-PAY-02)", () => {
       const expired = { ...baseCoupon, expiresAt: pastDate };
       const result = validateCoupon(expired, 1000000);
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("hết hạn");
+      expect(result.error).toContain("expired");
     });
 
     it("should reject a coupon that has not started yet", () => {
@@ -45,20 +45,20 @@ describe("Billing & Coupon Logic (TC-PAY-02)", () => {
       const futureCoupon = { ...baseCoupon, startsAt: futureDate };
       const result = validateCoupon(futureCoupon, 1000000);
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("chưa đến thời gian");
+      expect(result.error).toContain("not started yet");
     });
 
     it("should reject a coupon that reached max usage limit", () => {
       const maxedOut = { ...baseCoupon, maxUsage: 10, usedCount: 10 };
       const result = validateCoupon(maxedOut, 1000000);
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("giới hạn số lượt");
+      expect(result.error).toContain("maximum usage limit");
     });
 
     it("should reject if order value is less than minOrderValue", () => {
       const result = validateCoupon(baseCoupon, 300000);
       expect(result.isValid).toBe(false);
-      expect(result.error).toContain("Đơn hàng tối thiểu");
+      expect(result.error).toContain("Minimum order value");
     });
 
     it("should accept if order value exactly equals minOrderValue", () => {

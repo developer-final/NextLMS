@@ -268,8 +268,9 @@ Hệ thống tích hợp sẵn mạng lưới **Tiếp thị liên kết tự đ
 | `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
 | `npx prisma db push` | Đẩy các thay đổi trong file `prisma/schema.prisma` vào Database |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
-| `npm run db:seed` | Nạp dữ liệu mẫu 7 ngách cho môi trường Dev (Trading, IELTS, Bánh, Gym, IT, v.v.) |
-| `npm run db:seed:prod` | Nạp dữ liệu mẫu 7 ngách lên Database Production (yêu cầu `--force`) |
+| `npm run db:seed` | Nạp dữ liệu mẫu 7 ngách cho môi trường Dev (Trading, IELTS, Bánh, Gym, IT, demo Affiliate) |
+| `npm run db:seed:prod` | Seed an toàn cho Production (`prisma/seed-prod.js`): Không xóa dữ liệu, upsert Settings (Affiliate, VietQR), Categories chuẩn & cấp `referralCode` cho User |
+| `npm run db:seed:prod:safe` | Chạy trực tiếp script seed an toàn Production không qua dotenv (dành cho Docker / CI/CD / Vercel Build) |
 
 ---
 
@@ -364,21 +365,37 @@ Trên mọi trang giao diện công khai, ở góc dưới màn hình luôn có 
 
 ---
 
-### 6.5. Nạp Dữ Liệu Mẫu Đa Ngách Vào Database (Seed Data)
+### 6.5. Quản Trị Dữ Liệu Seed Giữa Môi Trường Dev & Production
 
-Tập lệnh `prisma/seed.js` đã được tích hợp sẵn toàn bộ dữ liệu mẫu đa dạng cho 7 ngách:
-* **7 Giảng viên chuyên ngành** với ảnh đại diện, chức danh và tiểu sử riêng biệt.
-* **15 Danh mục khóa học** phân theo từng ngành nghề.
-* **42 Khóa học thực tế**: Mỗi ngách gồm đúng 6 khóa học đa dạng từ cơ bản, miễn phí đến chuyên sâu nâng cao (lấp đầy hoàn hảo lưới hiển thị 6 khóa học trên Landing Page).
-* **7 Bài viết Blog chất lượng cao** chia sẻ kiến thức đặc thù của từng ngách.
+Hệ thống phân định nghiêm ngặt giữa hai kịch bản Seed để bảo vệ an toàn dữ liệu trên Production:
 
-Thực hiện nạp dữ liệu:
+#### 1. Môi trường Phát triển (Development Seed — `prisma/seed.js`):
+* **Mục đích**: Dựng nhanh môi trường thử nghiệm với đầy đủ dữ liệu mẫu cho 7 ngách:
+  * **7 Giảng viên chuyên ngành** với ảnh đại diện, chức danh và tiểu sử riêng biệt.
+  * **15 Danh mục khóa học** phân theo từng ngành nghề.
+  * **42 Khóa học thực tế** đa dạng từ cơ bản, miễn phí đến chuyên sâu.
+  * **7 Bài viết Blog chất lượng cao**.
+  * **Dữ liệu mẫu Tiếp thị liên kết (Affiliate)**: Tài khoản đối tác có sẵn mã `referralCode`, đơn hàng được giới thiệu, hoa hồng chờ duyệt (`PENDING`), hoa hồng khả dụng (`APPROVED`) và lệnh rút tiền (`PayoutRequest`).
+* **Cơ chế**: Tự động dọn dẹp sạch sẽ các bảng (Wipe & Rebuild) theo đúng thứ tự ràng buộc khóa ngoại (Foreign Key).
+
 ```bash
-# Nạp dữ liệu vào Database môi trường phát triển (Dev Local / Supabase Dev)
+# Nạp / làm mới toàn bộ dữ liệu mẫu trong môi trường Dev (Dev Local / Supabase Dev)
 npm run db:seed
+```
 
-# Nạp dữ liệu vào Database môi trường chạy thực tế (Production Cloud)
+#### 2. Môi trường Production Thực tế (Production Safe Seed — `prisma/seed-prod.js`):
+* **Mục đích**: Khởi tạo và đồng bộ các cấu hình hệ thống trên cơ sở dữ liệu thực tế mà **TUYỆT ĐỐI KHÔNG XÓA DỮ LIỆU HIỆN CÓ** (100% Non-destructive & Idempotent):
+  * **Upsert Cài đặt hệ thống (`Setting`)**: Khởi tạo các thông số Affiliate (bật hệ thống, hoa hồng mặc định 20%, cookie 30 ngày, bảo lưu 7 ngày, hạn mức rút 200.000 VNĐ), cấu hình VietQR, PayPal, Stripe, Crypto và chính sách hoàn tiền. Các cấu hình Admin đã chỉnh sửa trước đó được bảo toàn nguyên vẹn.
+  * **Upsert Danh mục chuẩn (`Category`)**: Đảm bảo các danh mục cốt lõi tồn tại theo `slug` mà không làm thay đổi hay xóa khóa học của học viện.
+  * **Backfill mã giới thiệu (`referralCode`)**: Tự động rà soát toàn bộ người dùng trong DB, sinh và gán mã giới thiệu duy nhất cho các tài khoản cũ chưa có mã.
+  * **Đảm bảo tài khoản Quản trị (`Super Admin Assurance`)**: Kiểm tra và bảo đảm luôn có tài khoản Admin điều hành hệ thống.
+
+```bash
+# Seed an toàn trên môi trường Production (kết nối qua .env.production.local)
 npm run db:seed:prod
+
+# Hoặc chạy trực tiếp độc lập (dành cho Docker Container / CI/CD Pipeline / Vercel Build)
+npm run db:seed:prod:safe
 ```
 
 ---
