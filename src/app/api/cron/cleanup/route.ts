@@ -113,16 +113,47 @@ async function handleCleanupCron(req: Request) {
       },
     });
 
-    // 6. Auto-approve cleared affiliate commissions (Holding period finished)
-    const approvedCommissionsResult = await prisma.commission.updateMany({
+    // 6. Auto-approve cleared affiliate commissions (Holding period finished & order COMPLETED)
+    const maturedPendingCommissions = await prisma.commission.findMany({
       where: {
         status: "PENDING",
         availableAt: { lte: now },
       },
-      data: {
-        status: "APPROVED",
+      select: {
+        id: true,
+        order: {
+          select: { status: true },
+        },
       },
+      take: 100,
     });
+
+    const commIdsToApprove: string[] = [];
+    const commIdsToReject: string[] = [];
+
+    for (const c of maturedPendingCommissions) {
+      if (c.order?.status === "COMPLETED") {
+        commIdsToApprove.push(c.id);
+      } else {
+        commIdsToReject.push(c.id);
+      }
+    }
+
+    let approvedCommissionsCount = 0;
+    if (commIdsToApprove.length > 0) {
+      const approvedResult = await prisma.commission.updateMany({
+        where: { id: { in: commIdsToApprove } },
+        data: { status: "APPROVED" },
+      });
+      approvedCommissionsCount = approvedResult.count;
+    }
+
+    if (commIdsToReject.length > 0) {
+      await prisma.commission.updateMany({
+        where: { id: { in: commIdsToReject } },
+        data: { status: "REJECTED" },
+      });
+    }
 
     const durationMs = Date.now() - startTime;
 
@@ -136,9 +167,9 @@ async function handleCleanupCron(req: Request) {
         cleanedAttachments: cleanedAttachmentsCount,
         purgedSoftDeletedPosts: purgedPostsResult.count,
         purgedUnverifiedStudents: purgedUnverifiedUsersResult.count,
-        approvedCommissions: approvedCommissionsResult.count,
+        approvedCommissions: approvedCommissionsCount,
       },
-      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, approved ${approvedCommissionsResult.count} matured commissions.`,
+      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, approved ${approvedCommissionsCount} matured commissions.`,
     });
   } catch (error: any) {
     const durationMs = Date.now() - startTime;

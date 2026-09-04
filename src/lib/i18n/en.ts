@@ -976,6 +976,9 @@ export const en: DictionaryType = {
     step2Desc: "When a student clicks your link and purchases any course within 30 days, commission is automatically attributed to you.",
     step3Title: "3. Cash Out to Bank",
     step3Desc: "After a 7-day safety clearance period, your earnings become available to withdraw directly to your bank account.",
+    withdrawAllNotice: "Withdraw all cleared available balance to your bank account.",
+    processingPayoutNotice: "Funds currently being verified and processed for bank disbursement.",
+    processingBalance: "In Payout Review",
   },
   adminAffiliate: {
     title: "Affiliate & Commission Hub",
@@ -1005,6 +1008,12 @@ export const en: DictionaryType = {
     adminNotePlaceholder: "Admin note / Bank reference code...",
     proofUrlPlaceholder: "Receipt image URL (optional)...",
     allStatuses: "All Statuses",
+    approveCommission: "Approve Early",
+    rejectCommission: "Reject",
+    confirmApproveCommission: "Are you sure you want to approve this commission early before the holding period ends?",
+    confirmRejectCommission: "Are you sure you want to reject/void this commission?",
+    commissionApproved: "Commission approved successfully!",
+    commissionRejected: "Commission rejected.",
   },
 };
 

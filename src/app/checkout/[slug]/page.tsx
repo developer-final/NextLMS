@@ -271,6 +271,14 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           : "PAYOS"
         : selectedPaymentMethod;
 
+      const refFromStorage = typeof window !== "undefined" ? localStorage.getItem("wtl_ref") : null;
+      const refFromUrl =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("ref") ||
+            new URLSearchParams(window.location.search).get("aff")
+          : null;
+      const activeRefCode = refFromUrl || refFromStorage || undefined;
+
       const res = await fetch("/api/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -278,6 +286,7 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           courseId: course.id,
           couponCode: appliedCoupon?.code,
           paymentMethod: targetMethod,
+          referralCode: activeRefCode,
         }),
       });
 

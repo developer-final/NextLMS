@@ -976,6 +976,9 @@ export const vi: DictionaryType = {
     step2Desc: "Khi học viên bấm vào link và thanh toán bất kỳ khóa học nào trong vòng 30 ngày, hệ thống tự động ghi nhận hoa hồng cho bạn.",
     step3Title: "3. Nhận Tiền Về Ngân Hàng",
     step3Desc: "Sau 7 ngày đối soát an toàn, hoa hồng sẵn sàng để bạn tạo lệnh rút thẳng về tài khoản ngân hàng cá nhân.",
+    withdrawAllNotice: "Rút toàn bộ số dư khả dụng đủ điều kiện đối soát về tài khoản ngân hàng.",
+    processingPayoutNotice: "Khoản tiền đang được Admin đối soát và chuẩn bị giải ngân.",
+    processingBalance: "Đang Chờ Giải Ngân",
   },
   adminAffiliate: {
     title: "Quản Lý Tiếp Thị Liên Kết (Affiliate Management)",
@@ -1005,6 +1008,12 @@ export const vi: DictionaryType = {
     adminNotePlaceholder: "Ghi chú admin / Mã giao dịch ngân hàng...",
     proofUrlPlaceholder: "Đường dẫn ảnh biên lai chuyển tiền (nếu có)...",
     allStatuses: "Tất cả trạng thái",
+    approveCommission: "Duyệt Sớm",
+    rejectCommission: "Từ Chối",
+    confirmApproveCommission: "Bạn có chắc chắn muốn duyệt sớm khoản hoa hồng này trước thời hạn đối soát?",
+    confirmRejectCommission: "Bạn có chắc chắn muốn hủy/từ chối khoản hoa hồng này?",
+    commissionApproved: "Đã duyệt hoa hồng thành công!",
+    commissionRejected: "Đã từ chối khoản hoa hồng.",
   },
 };
 

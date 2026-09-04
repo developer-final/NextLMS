@@ -21,6 +21,10 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       deleteMany: vi.fn(),
     },
+    commission: {
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
+    },
   },
 }));
 
@@ -41,6 +45,10 @@ describe("Cron Cleanup Route (/api/cron/cleanup)", () => {
     vi.mocked(prisma.attachment.delete).mockResolvedValue({} as any);
     vi.mocked(prisma.blogPost.deleteMany).mockResolvedValue({ count: 1 });
     vi.mocked(prisma.user.deleteMany).mockResolvedValue({ count: 2 });
+    vi.mocked(prisma.commission.findMany).mockResolvedValue([
+      { id: "comm-1", order: { status: "COMPLETED" } },
+    ] as any);
+    vi.mocked(prisma.commission.updateMany).mockResolvedValue({ count: 1 });
     vi.mocked(s3Module.deleteFileFromStorage).mockResolvedValue(true);
   });
 
@@ -121,6 +129,7 @@ describe("Cron Cleanup Route (/api/cron/cleanup)", () => {
       expect(json.summary.cleanedAttachments).toBe(1);
       expect(json.summary.purgedSoftDeletedPosts).toBe(1);
       expect(json.summary.purgedUnverifiedStudents).toBe(2);
+      expect(json.summary.approvedCommissions).toBe(1);
 
       // Verify Prisma order query
       expect(prisma.order.updateMany).toHaveBeenCalledWith(

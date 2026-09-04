@@ -130,6 +130,18 @@ export async function POST(req: Request) {
                 },
               });
             }
+
+            // Invalidate any unpaid affiliate commission associated with this cancelled order
+            await tx.commission.updateMany({
+              where: {
+                orderId: order.id,
+                status: { in: ["PENDING", "APPROVED"] },
+              },
+              data: {
+                status: "REJECTED",
+                payoutRequestId: null,
+              },
+            });
           }
         });
 
@@ -210,6 +222,18 @@ export async function POST(req: Request) {
                   },
                 });
               }
+
+              // Invalidate any unpaid affiliate commission associated with this cancelled order
+              await tx.commission.updateMany({
+                where: {
+                  orderId: order.id,
+                  status: { in: ["PENDING", "APPROVED"] },
+                },
+                data: {
+                  status: "REJECTED",
+                  payoutRequestId: null,
+                },
+              });
             }
           });
           processedCount++;

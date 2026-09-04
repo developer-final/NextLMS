@@ -66,6 +66,7 @@ export async function GET() {
     let availableBalance = 0;
     let pendingBalance = 0;
     let paidBalance = 0;
+    let processingPayoutBalance = 0;
 
     for (const comm of allCommissions) {
       const amount = Number(comm.commissionAmount);
@@ -73,8 +74,12 @@ export async function GET() {
         lifetimeEarnings += amount;
       }
 
-      if (comm.status === "APPROVED" && !comm.payoutRequestId) {
-        availableBalance += amount;
+      if (comm.status === "APPROVED") {
+        if (!comm.payoutRequestId) {
+          availableBalance += amount;
+        } else {
+          processingPayoutBalance += amount;
+        }
       } else if (comm.status === "PENDING") {
         pendingBalance += amount;
       } else if (comm.status === "PAID") {
@@ -106,6 +111,7 @@ export async function GET() {
         availableBalance,
         pendingBalance,
         paidBalance,
+        processingPayoutBalance,
       },
       commissions: allCommissions.slice(0, 30),
       payoutRequests,

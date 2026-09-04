@@ -178,6 +178,38 @@ export default function AdminAffiliateClient() {
     }
   };
 
+  // Handle Process Commission (Approve early or Reject)
+  const handleProcessCommission = async (commissionId: string, action: "APPROVE" | "REJECT") => {
+    const confirmMessage =
+      action === "APPROVE"
+        ? t.adminAffiliate.confirmApproveCommission
+        : t.adminAffiliate.confirmRejectCommission;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const res = await fetch("/api/admin/affiliates/commissions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commissionId, action }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(
+          action === "APPROVE"
+            ? t.adminAffiliate.commissionApproved
+            : t.adminAffiliate.commissionRejected
+        );
+        loadCommissions();
+      } else {
+        toast.error(json.error || t.common.somethingWentWrong);
+      }
+    } catch {
+      toast.error(t.common.connectionError);
+    }
+  };
+
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -448,18 +480,19 @@ export default function AdminAffiliateClient() {
                     <th className="py-3.5 px-4">Hoa Hồng</th>
                     <th className="py-3.5 px-4">Trạng Thái</th>
                     <th className="py-3.5 px-4">Ngày Tạo</th>
+                    <th className="py-3.5 px-4">{t.adminAffiliate.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium">
                   {loadingCommissions ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                      <td colSpan={8} className="py-8 text-center text-slate-400">
                         {t.common.loading}
                       </td>
                     </tr>
                   ) : commissions.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                      <td colSpan={8} className="py-8 text-center text-slate-400">
                         Không tìm thấy khoản hoa hồng nào
                       </td>
                     </tr>
@@ -488,6 +521,26 @@ export default function AdminAffiliateClient() {
                         <td className="py-3.5 px-4 text-slate-400">
                           {new Date(c.createdAt).toLocaleDateString(
                             language === "vi" ? "vi-VN" : "en-US"
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          {c.status === "PENDING" ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleProcessCommission(c.id, "APPROVE")}
+                                className="rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-bold text-emerald-400 transition-colors"
+                              >
+                                {t.adminAffiliate.approveCommission}
+                              </button>
+                              <button
+                                onClick={() => handleProcessCommission(c.id, "REJECT")}
+                                className="rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 px-2.5 py-1 text-[11px] font-bold text-rose-400 transition-colors"
+                              >
+                                {t.adminAffiliate.rejectCommission}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 font-mono">—</span>
                           )}
                         </td>
                       </tr>

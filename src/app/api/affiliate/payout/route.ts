@@ -15,16 +15,22 @@ export async function POST(req: Request) {
     }
 
     const userId = session.user.id;
-    const body = await req.json();
-    const { amount, bankName, bankAccountNo, bankAccountName } = body;
 
-    const withdrawAmount = Number(amount);
-    if (!withdrawAmount || isNaN(withdrawAmount) || withdrawAmount <= 0) {
+    // 1. Verify user status (prevent BLOCKED users from requesting payouts)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, status: true },
+    });
+
+    if (!user || user.status === "BLOCKED") {
       return NextResponse.json(
-        { error: "Invalid withdrawal amount" },
-        { status: 400 }
+        { error: "Your account has been suspended. Please contact support." },
+        { status: 403 }
       );
     }
+
+    const body = await req.json();
+    const { bankName, bankAccountNo, bankAccountName } = body;
 
     if (!bankName?.trim() || !bankAccountNo?.trim() || !bankAccountName?.trim()) {
       return NextResponse.json(
@@ -35,15 +41,6 @@ export async function POST(req: Request) {
 
     const settings = await getSystemSettings();
     const minPayout = Number(settings.affiliateMinPayout || 200000);
-
-    if (withdrawAmount < minPayout) {
-      return NextResponse.json(
-        {
-          error: `Minimum payout amount is ${minPayout.toLocaleString("vi-VN")} VND`,
-        },
-        { status: 400 }
-      );
-    }
 
     // Check if user has an existing PENDING payout request to prevent double submissions
     const pendingRequest = await prisma.payoutRequest.findFirst({
@@ -77,25 +74,18 @@ export async function POST(req: Request) {
       0
     );
 
-    if (withdrawAmount > totalAvailable) {
+    if (totalAvailable < minPayout) {
       return NextResponse.json(
         {
-          error: `Insufficient available balance. You currently have ${totalAvailable.toLocaleString("vi-VN")} VND available for withdrawal.`,
+          error: `Minimum payout amount is ${minPayout.toLocaleString("vi-VN")} VND. Your available balance is ${totalAvailable.toLocaleString("vi-VN")} VND.`,
         },
         { status: 400 }
       );
     }
 
-    // Select enough commissions to cover or equal the requested payout
-    let accumulated = 0;
-    const commissionsToLock: string[] = [];
-    for (const comm of availableCommissions) {
-      commissionsToLock.push(comm.id);
-      accumulated += Number(comm.commissionAmount);
-      if (accumulated >= withdrawAmount) {
-        break;
-      }
-    }
+    // Payout clears the full available approved balance to guarantee 1-to-1 commission matching
+    const withdrawAmount = totalAvailable;
+    const commissionsToLock = availableCommissions.map((c) => c.id);
 
     // Atomic transaction: create PayoutRequest and link chosen commissions
     const result = await prisma.$transaction(async (tx) => {

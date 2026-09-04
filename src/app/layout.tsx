@@ -31,7 +31,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('wti_theme_pref')||document.cookie.match(/wti_theme=([^;]+)/)?.[1]||'emerald';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('wti_theme_pref')||document.cookie.match(/wti_theme=([^;]+)/)?.[1]||'emerald';document.documentElement.setAttribute('data-theme',t);var p=new URLSearchParams(window.location.search);var r=p.get('ref')||p.get('aff');if(r){var c=r.trim().toUpperCase();if(/^[A-Z0-9_-]{3,32}$/.test(c)){localStorage.setItem('wtl_ref',c);document.cookie='wtl_ref='+encodeURIComponent(c)+';path=/;max-age=2592000;SameSite=Lax';}}}catch(e){}})()`,
           }}
         />
       </head>

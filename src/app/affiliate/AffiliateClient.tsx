@@ -122,10 +122,10 @@ export default function AffiliateClient({ courses }: AffiliateClientProps) {
 
   const handleSubmitPayout = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amountNum = parseFloat(payoutAmount);
+    const available = data?.stats?.availableBalance || 0;
     const minPayout = data?.settings?.minPayout || 200000;
 
-    if (!amountNum || isNaN(amountNum) || amountNum < minPayout) {
+    if (!available || available < minPayout) {
       toast.error(`${t.affiliate.minPayoutNotice}: ${formatVND(minPayout)}`);
       return;
     }
@@ -141,7 +141,6 @@ export default function AffiliateClient({ courses }: AffiliateClientProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: amountNum,
           bankName,
           bankAccountNo,
           bankAccountName,
@@ -351,6 +350,11 @@ export default function AffiliateClient({ courses }: AffiliateClientProps) {
                 {formatVND(data?.stats?.availableBalance || 0)}
               </p>
               <p className="text-[11px] text-slate-400 mt-1">Đủ điều kiện rút về ngân hàng</p>
+              {Boolean(data?.stats?.processingPayoutBalance) && data!.stats!.processingPayoutBalance > 0 && (
+                <p className="text-[11px] text-cyan-400 font-semibold mt-1">
+                  • {formatVND(data!.stats!.processingPayoutBalance)} {t.affiliate.processingBalance.toLowerCase()}
+                </p>
+              )}
             </div>
             <button
               onClick={handleOpenPayoutModal}
@@ -627,16 +631,13 @@ export default function AffiliateClient({ courses }: AffiliateClientProps) {
                   {t.affiliate.payoutAmountLabel}
                 </label>
                 <input
-                  type="number"
-                  min={data?.settings?.minPayout || 200000}
-                  max={data?.stats?.availableBalance || 0}
-                  value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(e.target.value)}
-                  required
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-brand-400 font-bold outline-none focus:border-brand-500"
+                  type="text"
+                  readOnly
+                  value={formatVND(data?.stats?.availableBalance || 0)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-brand-400 font-bold outline-none cursor-default"
                 />
                 <p className="text-[11px] text-slate-400">
-                  Số dư khả dụng: <span className="text-emerald-400 font-bold">{formatVND(data?.stats?.availableBalance || 0)}</span> • {t.affiliate.minPayoutNotice}: {formatVND(data?.settings?.minPayout || 200000)}
+                  {t.affiliate.withdrawAllNotice} • {t.affiliate.minPayoutNotice}: {formatVND(data?.settings?.minPayout || 200000)}
                 </p>
               </div>
 

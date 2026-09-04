@@ -988,6 +988,9 @@ export interface DictionaryType {
     step2Desc: string;
     step3Title: string;
     step3Desc: string;
+    withdrawAllNotice: string;
+    processingPayoutNotice: string;
+    processingBalance: string;
   };
   adminAffiliate: {
     title: string;
@@ -1017,6 +1020,12 @@ export interface DictionaryType {
     adminNotePlaceholder: string;
     proofUrlPlaceholder: string;
     allStatuses: string;
+    approveCommission: string;
+    rejectCommission: string;
+    confirmApproveCommission: string;
+    confirmRejectCommission: string;
+    commissionApproved: string;
+    commissionRejected: string;
   };
 }
 
