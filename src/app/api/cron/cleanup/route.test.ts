@@ -18,6 +18,9 @@ vi.mock("@/lib/prisma", () => ({
     blogPost: {
       deleteMany: vi.fn(),
     },
+    user: {
+      deleteMany: vi.fn(),
+    },
   },
 }));
 
@@ -37,6 +40,7 @@ describe("Cron Cleanup Route (/api/cron/cleanup)", () => {
     vi.mocked(prisma.attachment.findMany).mockResolvedValue([]);
     vi.mocked(prisma.attachment.delete).mockResolvedValue({} as any);
     vi.mocked(prisma.blogPost.deleteMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.user.deleteMany).mockResolvedValue({ count: 2 });
     vi.mocked(s3Module.deleteFileFromStorage).mockResolvedValue(true);
   });
 
@@ -116,6 +120,7 @@ describe("Cron Cleanup Route (/api/cron/cleanup)", () => {
       expect(json.summary.deletedTokens).toBe(5);
       expect(json.summary.cleanedAttachments).toBe(1);
       expect(json.summary.purgedSoftDeletedPosts).toBe(1);
+      expect(json.summary.purgedUnverifiedStudents).toBe(2);
 
       // Verify Prisma order query
       expect(prisma.order.updateMany).toHaveBeenCalledWith(
@@ -131,6 +136,16 @@ describe("Cron Cleanup Route (/api/cron/cleanup)", () => {
 
       // Verify verification token deletion
       expect(prisma.verificationToken.deleteMany).toHaveBeenCalled();
+
+      // Verify unverified student accounts deletion
+      expect(prisma.user.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            role: "STUDENT",
+            emailVerified: null,
+          }),
+        })
+      );
 
       // Verify file deletion in storage
       expect(s3Module.deleteFileFromStorage).toHaveBeenCalledWith(
