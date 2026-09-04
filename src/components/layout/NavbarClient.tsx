@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
+import ThemeSwitcher from "@/components/layout/ThemeSwitcher";
 
 interface NavbarClientProps {
   brandName?: string;
@@ -101,6 +102,9 @@ export default function NavbarClient({
 
         {/* Right CTA / User Area */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Theme Switcher */}
+          <ThemeSwitcher variant="navbar" />
+
           {/* Language Switcher */}
           <LanguageSwitcher variant="navbar" />
 
@@ -220,6 +224,7 @@ export default function NavbarClient({
 
         {/* Mobile menu button */}
         <div className="flex items-center gap-2 md:hidden">
+          <ThemeSwitcher variant="navbar" />
           <LanguageSwitcher variant="navbar" />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -314,6 +319,7 @@ export default function NavbarClient({
           )}
 
           <LanguageSwitcher variant="mobile" />
+          <ThemeSwitcher variant="mobile" />
         </div>
       )}
     </header>

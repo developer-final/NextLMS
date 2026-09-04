@@ -80,6 +80,7 @@ export const authOptions: NextAuthOptions = {
           status: user.status,
           avatarUrl: user.avatarUrl,
           emailVerified: user.emailVerified,
+          theme: user.theme || "emerald",
         };
       },
     }),
@@ -157,6 +158,7 @@ export const authOptions: NextAuthOptions = {
         (user as any).status = dbUser.status;
         (user as any).avatarUrl = dbUser.avatarUrl;
         (user as any).emailVerified = dbUser.emailVerified;
+        (user as any).theme = dbUser.theme || "emerald";
 
         return true;
       }
@@ -170,11 +172,15 @@ export const authOptions: NextAuthOptions = {
         token.status = (user as any).status || "ACTIVE";
         token.avatarUrl = (user as any).avatarUrl;
         token.emailVerified = (user as any).emailVerified;
+        token.theme = (user as any).theme || "emerald";
         token.lastRefreshed = Date.now();
       }
       if (trigger === "update" && session) {
         token.name = session.name || token.name;
         token.avatarUrl = session.avatarUrl || token.avatarUrl;
+        if (session.theme) {
+          token.theme = session.theme;
+        }
       }
 
       // Periodically refresh role and status from DB (every 5 minutes)
@@ -184,11 +190,14 @@ export const authOptions: NextAuthOptions = {
         try {
           const freshUser = await prisma.user.findUnique({
             where: { id: token.id as string },
-            select: { role: true, status: true },
+            select: { role: true, status: true, theme: true },
           });
           if (freshUser) {
             token.role = freshUser.role;
             token.status = freshUser.status;
+            if (freshUser.theme) {
+              token.theme = freshUser.theme;
+            }
           }
           token.lastRefreshed = Date.now();
         } catch {
@@ -205,6 +214,7 @@ export const authOptions: NextAuthOptions = {
         session.user.status = token.status || "ACTIVE";
         session.user.avatarUrl = token.avatarUrl;
         session.user.emailVerified = token.emailVerified;
+        session.user.theme = token.theme || "emerald";
       }
       return session;
     },

@@ -11,8 +11,11 @@ import {
   Building2,
   User,
   SlidersHorizontal,
+  Palette,
 } from "lucide-react";
 import { NicheType, COOKIE_NICHE_KEY, COOKIE_BRAND_KEY, COOKIE_TEACHER_KEY } from "@/lib/niches";
+import { useTheme } from "@/components/providers/ThemeProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface NicheOption {
   id: NicheType;
@@ -72,6 +75,8 @@ function eraseCookie(name: string) {
 
 export default function DemoNicheSwitcher() {
   const router = useRouter();
+  const { theme, setTheme, themes } = useTheme();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [currentNiche, setCurrentNiche] = useState<NicheType>("trading");
   const [customBrand, setCustomBrand] = useState("");
@@ -208,6 +213,38 @@ export default function DemoNicheSwitcher() {
                       <span className="truncate">{opt.label}</span>
                     </span>
                     {isSelected && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Select Theme */}
+          <div className="mt-3 pt-3 border-t border-slate-800/80">
+            <label className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5 mb-2">
+              <Palette className="h-3 w-3 text-brand-400" />
+              {t.theme.selectTheme}:
+            </label>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {themes.map((item) => {
+                const isSelected = theme === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTheme(item.id)}
+                    title={t.theme[item.nameKey]}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                      isSelected
+                        ? "bg-brand-500 text-slate-950 shadow-glow scale-105"
+                        : "bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/50"
+                    }`}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.primaryHex }}
+                    />
+                    <span>{t.theme[item.nameKey]}</span>
                   </button>
                 );
               })}

@@ -90,6 +90,20 @@ export interface DictionaryType {
     builtWithLove: string;
     language: string;
   };
+  theme: {
+    selectTheme: string;
+    themeLabel: string;
+    emerald: string;
+    emeraldDesc: string;
+    ocean: string;
+    oceanDesc: string;
+    amber: string;
+    amberDesc: string;
+    crimson: string;
+    crimsonDesc: string;
+    purple: string;
+    purpleDesc: string;
+  };
   home: {
     badge: string;
     heroTitleLine1: string;

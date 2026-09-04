@@ -10,6 +10,7 @@ declare module "next-auth" {
       status?: string;
       avatarUrl?: string | null;
       emailVerified?: Date | null;
+      theme?: string | null;
     };
   }
   interface User {
@@ -20,6 +21,7 @@ declare module "next-auth" {
     status?: string;
     avatarUrl?: string | null;
     emailVerified?: Date | null;
+    theme?: string | null;
   }
 }
 
@@ -30,6 +32,7 @@ declare module "next-auth/jwt" {
     status?: string;
     avatarUrl?: string | null;
     emailVerified?: Date | null;
+    theme?: string | null;
   }
 }
 

@@ -85,6 +85,7 @@ model User {
   status       UserStatus @default(ACTIVE)
   bio          String?
   headline     String?
+  theme        String?    @default("emerald")
   deletedAt    DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
