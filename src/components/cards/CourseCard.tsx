@@ -70,7 +70,10 @@ export default function CourseCard({ course }: CourseCardProps) {
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/60 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-500/40 hover:shadow-glow">
       {/* Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-slate-800">
+      <Link
+        href={`/courses/${course.slug}`}
+        className="relative aspect-video w-full overflow-hidden bg-slate-800 block cursor-pointer"
+      >
         <img
           src={
             course.thumbnailUrl ||
@@ -109,7 +112,7 @@ export default function CourseCard({ course }: CourseCardProps) {
             <Clock className="h-3 w-3 text-brand-400" /> ~{totalHours} {t.courseCard.approxHours}
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-5">

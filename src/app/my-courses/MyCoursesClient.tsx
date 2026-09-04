@@ -49,17 +49,24 @@ export default function MyCoursesClient({ enrollments }: MyCoursesClientProps) {
                 className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between hover:border-brand-500/40 transition-all"
               >
                 <div>
-                  <img
-                    src={
-                      enr.course.thumbnailUrl ||
-                      "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80"
-                    }
-                    alt={enr.course.title}
-                    className="aspect-video w-full rounded-xl object-cover border border-slate-800 mb-4"
-                  />
+                  <Link href={`/courses/${enr.course.slug}`} className="block group cursor-pointer">
+                    <img
+                      src={
+                        enr.course.thumbnailUrl ||
+                        "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=600&q=80"
+                      }
+                      alt={enr.course.title}
+                      className="aspect-video w-full rounded-xl object-cover border border-slate-800 mb-4 transition-transform duration-300 group-hover:scale-[1.02]"
+                    />
+                  </Link>
 
                   <h3 className="text-base font-bold text-white line-clamp-2">
-                    {enr.course.title}
+                    <Link
+                      href={`/courses/${enr.course.slug}`}
+                      className="hover:text-brand-400 transition-colors"
+                    >
+                      {enr.course.title}
+                    </Link>
                   </h3>
 
                   <p className="text-xs text-slate-400 mt-1">

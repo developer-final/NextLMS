@@ -452,25 +452,34 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           {/* Course Details Card */}
           <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4">
             <div className="flex gap-4 items-center">
-              <div className="h-16 w-24 rounded-2xl bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-700/50">
+              <Link
+                href={`/courses/${course.slug}`}
+                className="h-16 w-24 rounded-2xl bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-700/50 block group cursor-pointer"
+                title={course.title}
+              >
                 {course.thumbnailUrl ? (
                   <img
                     src={course.thumbnailUrl}
                     alt={course.title}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-slate-600">
                     <GraduationCap className="h-8 w-8" />
                   </div>
                 )}
-              </div>
+              </Link>
               <div className="flex-1 min-w-0">
                 <span className="inline-block rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[10px] font-bold text-brand-400 uppercase tracking-wider mb-1">
                   {course.category?.name || "Trading Pro"}
                 </span>
                 <h2 className="text-base font-bold text-white truncate">
-                  {course.title}
+                  <Link
+                    href={`/courses/${course.slug}`}
+                    className="hover:text-brand-400 transition-colors"
+                  >
+                    {course.title}
+                  </Link>
                 </h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs font-bold text-brand-400">

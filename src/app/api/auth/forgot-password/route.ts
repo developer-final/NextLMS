@@ -1,4 +1,4 @@
-import { NextResponse, after } from "next/server";
+import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, forgotPasswordRateLimiter } from "@/lib/rate-limit";
@@ -53,17 +53,22 @@ export async function POST(req: Request) {
         },
       });
 
-      after(async () => {
-        try {
-          await sendPasswordResetEmail({
-            to: cleanEmail,
-            name: user.name,
-            token,
-          });
-        } catch (err) {
-          console.error("[ForgotPassword] Failed to send reset email:", err);
-        }
+      const emailResult = await sendPasswordResetEmail({
+        to: cleanEmail,
+        name: user.name,
+        token,
       });
+
+      if (!emailResult.success) {
+        console.error(
+          "[ForgotPassword] Failed to dispatch reset email:",
+          emailResult.error
+        );
+      } else {
+        console.log(
+          `[ForgotPassword] Reset email successfully dispatched to ${cleanEmail} (messageId: ${emailResult.messageId || "simulated"})`
+        );
+      }
     }
 
     // Generic response to prevent user enumeration
