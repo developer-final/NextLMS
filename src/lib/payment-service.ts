@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { PaymentMethod } from "@prisma/client";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { runInBackground } from "@/lib/async-task";
+import { getSystemSettings } from "@/lib/config";
 
 export interface ProcessPaymentParams {
   orderCode: string;
@@ -46,6 +47,7 @@ export async function completeOrderAndEnroll({
       },
       user: true,
       coupon: true,
+      referrer: true,
     },
   });
 
@@ -64,6 +66,7 @@ export async function completeOrderAndEnroll({
         },
         user: true,
         coupon: true,
+        referrer: true,
       },
     });
 
@@ -183,6 +186,40 @@ export async function completeOrderAndEnroll({
           usedCount: { increment: 1 },
         },
       });
+    }
+
+    // 5. Create Affiliate Commission record if order has a valid referrer and affiliate is enabled
+    const settings = await getSystemSettings();
+    if (order.referrerId && settings.affiliateEnabled && order.referrerId !== order.userId) {
+      const affiliate = order.referrer;
+      const commissionRate = affiliate?.customCommissionRate
+        ? Number(affiliate.customCommissionRate)
+        : Number(settings.affiliateCommissionPercent || 20);
+
+      const finalAmountNum = Number(order.finalAmount);
+      const commissionAmount = Math.max(
+        0,
+        Math.round((finalAmountNum * commissionRate) / 100)
+      );
+
+      if (commissionAmount > 0) {
+        const holdDays = settings.affiliateHoldDays || 7;
+        const availableAt = new Date(Date.now() + holdDays * 24 * 60 * 60 * 1000);
+
+        await tx.commission.upsert({
+          where: { orderId: order.id },
+          update: {},
+          create: {
+            orderId: order.id,
+            affiliateId: order.referrerId,
+            orderAmount: finalAmountNum,
+            commissionRate,
+            commissionAmount,
+            status: "PENDING",
+            availableAt,
+          },
+        });
+      }
     }
 
     return true;

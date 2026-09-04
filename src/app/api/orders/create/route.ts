@@ -37,6 +37,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { courseId, couponCode, paymentMethod } = body;
 
+    // Resolve Affiliate Referral Code from Cookie or Body
+    const cookieHeader = req.headers.get("cookie") || "";
+    const refMatch = cookieHeader.match(/(?:^|;\s*)wtl_ref=([^;]+)/);
+    const cookieRefCode = refMatch ? decodeURIComponent(refMatch[1]).trim().toUpperCase() : null;
+    const bodyRefCode = typeof body.referralCode === "string" ? body.referralCode.trim().toUpperCase() : null;
+    const targetRefCode = bodyRefCode || cookieRefCode;
+
+    let validReferrerId: string | null = null;
+    if (targetRefCode) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: targetRefCode },
+        select: { id: true, status: true },
+      });
+      // Anti-self-referral check: user cannot refer themselves, and referrer must be active
+      if (referrer && referrer.id !== userId && referrer.status === "ACTIVE") {
+        validReferrerId = referrer.id;
+      }
+    }
+
     if (!courseId) {
       return NextResponse.json(
         { error: "Missing required courseId" },
@@ -153,6 +172,7 @@ export async function POST(req: Request) {
           data: {
             paymentMethod: paymentMethod || existingPendingOrder.paymentMethod,
             couponId: validCouponId,
+            referrerId: validReferrerId || existingPendingOrder.referrerId,
             discountAmount,
           },
         });
@@ -196,6 +216,7 @@ export async function POST(req: Request) {
           orderCode,
           userId,
           couponId: validCouponId,
+          referrerId: validReferrerId,
           totalAmount: originalPrice,
           discountAmount,
           finalAmount,

@@ -52,6 +52,13 @@ export interface SystemConfig {
   // Policy
   refundDays: number;
   refundMaxProgress: number;
+
+  // Affiliate / Referral System
+  affiliateEnabled: boolean;
+  affiliateCommissionPercent: number;
+  affiliateCookieDays: number;
+  affiliateHoldDays: number;
+  affiliateMinPayout: number;
 }
 
 export const DEFAULT_CONFIG: SystemConfig = {
@@ -102,6 +109,13 @@ export const DEFAULT_CONFIG: SystemConfig = {
 
   refundDays: 7,
   refundMaxProgress: 30,
+
+  // Affiliate defaults
+  affiliateEnabled: true,
+  affiliateCommissionPercent: 20,
+  affiliateCookieDays: 30,
+  affiliateHoldDays: 7,
+  affiliateMinPayout: 200000,
 };
 
 let cachedSettings: SystemConfig | null = null;
@@ -178,6 +192,20 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       refundMaxProgress: configMap["refundMaxProgress"]
         ? parseInt(configMap["refundMaxProgress"], 10)
         : DEFAULT_CONFIG.refundMaxProgress,
+
+      affiliateEnabled: parseBool(configMap["affiliateEnabled"], DEFAULT_CONFIG.affiliateEnabled),
+      affiliateCommissionPercent: configMap["affiliateCommissionPercent"]
+        ? parseFloat(configMap["affiliateCommissionPercent"])
+        : DEFAULT_CONFIG.affiliateCommissionPercent,
+      affiliateCookieDays: configMap["affiliateCookieDays"]
+        ? parseInt(configMap["affiliateCookieDays"], 10)
+        : DEFAULT_CONFIG.affiliateCookieDays,
+      affiliateHoldDays: configMap["affiliateHoldDays"]
+        ? parseInt(configMap["affiliateHoldDays"], 10)
+        : DEFAULT_CONFIG.affiliateHoldDays,
+      affiliateMinPayout: configMap["affiliateMinPayout"]
+        ? parseFloat(configMap["affiliateMinPayout"])
+        : DEFAULT_CONFIG.affiliateMinPayout,
     };
 
     cachedSettings = result;

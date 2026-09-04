@@ -30,6 +30,7 @@ export async function middleware(req: NextRequest) {
     "/api/user",
     "/api/coupons",
     "/api/attachments",
+    "/api/affiliate",
   ].some((prefix) => pathname.startsWith(prefix));
 
   if (isAdminRoute || isProtectedApiRoute) {
@@ -178,6 +179,21 @@ export async function middleware(req: NextRequest) {
     res.headers.set("x-detected-country", country || "UNKNOWN");
     res.headers.set("x-detected-locale", detectedLocale);
     res.headers.set("x-geo-source", source);
+  }
+
+  // Affiliate / Referral tracking: check ?ref=CODE or ?aff=CODE
+  const refParam = req.nextUrl.searchParams.get("ref") || req.nextUrl.searchParams.get("aff");
+  if (refParam) {
+    const cleanRef = refParam.trim().toUpperCase();
+    if (cleanRef.length >= 3 && cleanRef.length <= 32 && /^[A-Z0-9_-]+$/.test(cleanRef)) {
+      res.cookies.set({
+        name: "wtl_ref",
+        value: cleanRef,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 days attribution window
+        sameSite: "lax",
+      });
+    }
   }
 
   return res;

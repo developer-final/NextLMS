@@ -13,6 +13,7 @@ import {
   Menu, 
   User as UserIcon, 
   X, 
+  Share2,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import LanguageSwitcher from "@/components/layout/LanguageSwitcher";
@@ -159,6 +160,15 @@ export default function NavbarClient({
                       {t.nav.myCourses}
                     </Link>
 
+                    <Link
+                      href="/affiliate"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 hover:text-amber-400 transition-colors"
+                    >
+                      <Share2 className="h-4 w-4 text-amber-400" />
+                      <span>{t.affiliate.title}</span>
+                    </Link>
+
                     {isInstructor && (
                       <>
                         <Link
@@ -282,6 +292,13 @@ export default function NavbarClient({
                 className="block px-3 py-2 rounded-md text-base font-medium text-brand-400 hover:bg-slate-800"
               >
                 {t.nav.myCourses}
+              </Link>
+              <Link
+                href="/affiliate"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-amber-400 hover:bg-slate-800"
+              >
+                {t.affiliate.title}
               </Link>
               {isAdmin && (
                 <Link

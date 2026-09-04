@@ -19,6 +19,43 @@ Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rig
 
 ---
 
+## 📑 Mục Lục Điều Hướng Nhanh (Table of Contents)
+
+* [🚀 1. Công nghệ & Kiến trúc Hệ thống (Tech Stack)](#-1-công-nghệ--kiến-trúc-hệ-thống-tech-stack)
+* [📦 2. Cài đặt & Khởi chạy Nhanh (Quick Start)](#-2-cài-đặt--khởi-chạy-nhanh-quick-start)
+* [🔑 3. Tài khoản Mẫu để Thử nghiệm (Sample Accounts)](#-3-tài-khoản-mẫu-để-thử-nghiệm-sample-accounts)
+* [📋 4. Hướng dẫn Thao tác Nghiệp vụ Chi tiết](#-4-hướng-dẫn-thao-tác-nghiệp-vụ-chi-tiết)
+  * [4.1. Nghiệp vụ Quản trị Khóa học & Bài giảng](#41-nghiệp-vụ-quản-trị-khóa-học--bài-giảng-dành-cho-admin--giảng-viên)
+  * [4.2. Nghiệp vụ Đăng ký, Thanh toán & Kích hoạt Khóa học](#42-nghiệp-vụ-đăng-ký-thanh-toán--kích-hoạt-khóa-học)
+  * [4.3. Nghiệp vụ Cấp quyền Học viên Thủ công (Manual Enrollment)](#43-nghiệp-vụ-cấp-quyền-học-viên-thủ-công-manual-enrollment)
+  * [4.4. Nghiệp vụ Học tập & Cấp Chứng chỉ Tốt nghiệp](#44-nghiệp-vụ-học-tập--cấp-chứng-chỉ-tốt-nghiệp-học-viên)
+  * [4.5. Nghiệp vụ Tiếp thị Liên kết & Rút Hoa Hồng (Affiliate & Partner Hub)](#45-nghiệp-vụ-tiếp-thị-liên-kết--rút-hoa-hồng-affiliate--partner-hub)
+* [💻 5. Tổng hợp Các Lệnh Thông Dụng (CLI Commands)](#-5-tổng-hợp-các-lệnh-thông-dụng-cli-commands)
+* [🎯 6. Động Cơ Demo Đa Ngách Động (Dynamic Multi-Niche Demo Engine)](#-6-động-cơ-demo-đa-ngách-động-dynamic-multi-niche-demo-engine)
+  * [6.1. Bảng 7 Ngách Đào Tạo Mẫu Có Sẵn](#61-bảng-7-ngách-đào-tạo-mẫu-có-sẵn-out-of-the-box-niches)
+  * [6.2. Cú Pháp Đường Dẫn & Cá Nhân Hóa Khách Hàng](#62-cú-pháp-đường-dẫn--cá-nhân-hóa-khách-hàng-personalized-demo-links)
+  * [6.3. Cơ Chế Lưu Cookie Tự Động & Trải Nghiệm Mượt Mà](#63-cơ-chế-lưu-cookie-tự-động--trải-nghiệm-mượt-mà)
+  * [6.4. Tiện Ích Trực Quan "Demo Niche Studio"](#64-tiện-ích-trực-quan-demo-niche-studio)
+  * [6.5. Nạp Dữ Liệu Mẫu Đa Ngách Vào Database (Seed Data)](#65-nạp-dữ-liệu-mẫu-đa-ngách-vào-database-seed-data)
+  * [6.6. Hướng Dẫn Mở Rộng Thêm Ngách Mới (Tùy Chọn)](#66-hướng-dẫn-mở-rộng-thêm-ngách-mới-tùy-chọn)
+* [🔄 7. Chuẩn Hóa Nhãn Trắng 100% — Tùy Biến Sang Thương Hiệu Mới (Pure White-Labeling)](#-7-chuẩn-hóa-nhãn-trắng-100--tùy-biến-sang-thương-hiệu-mới-pure-white-labeling)
+* [📂 8. Cấu trúc Thư mục Dự án](#-8-cấu-trúc-thư-mục-dự-án)
+* [📧 9. Hướng Dẫn Cấu Hình Hệ Thống Gửi Email (Gmail SMTP & Resend API)](#-9-hướng-dẫn-cấu-hình-hệ-thống-gửi-email-gmail-smtp--resend-api)
+  * [9.1. Giải Pháp 1: Gửi Qua Gmail SMTP](#91-giải-pháp-1-gửi-qua-gmail-smtp-khuyên-dùng-khi-dùng-subdomain-vercel-hoặc-chưa-có-tên-miền-riêng)
+  * [9.2. Giải Pháp 2: Gửi Qua Resend REST API](#92-giải-pháp-2-gửi-qua-resend-rest-api-dành-cho-khi-đã-có-tên-miền-riêng)
+  * [9.3. Các Tính Năng Tự Động Gửi Email Trong Hệ Thống](#93-các-tính-năng-tự-động-gửi-email-trong-hệ-thống)
+* [🌐 10. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)](#-10-hướng-dẫn-triển-khai-hạ-tầng--cicd-vercel--neonsupabase--github-actions)
+  * [10.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)](#101-tổng-quan-kiến-trúc-hạ-tầng-cloud-serverless)
+  * [10.2. Hướng Dẫn Đưa Dự Án Lên GitHub](#102-hướng-dẫn-đưa-dự-án-lên-github)
+  * [10.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)](#103-khởi-tạo-cơ-sở-dữ-liệu-cloud-postgresql-miễn-phí-với-neon-hoặc-supabase)
+  * [10.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)](#104-triển-khai-lên-vercel-khuyên-dùng---zero-devops)
+  * [10.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)](#105-triển-khai-lên-cloudflare-pages-tùy-chọn)
+  * [10.6. Quy Trình CI/CD Tự Động Với GitHub Actions](#106-quy-trình-cicd-tự-động-với-github-actions)
+  * [10.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động](#107-hướng-dẫn-triển-khai-tác-vụ-chạy-nền--cron-jobs-tự-động-background-tasks--maintenance)
+* [🛠️ Dịch Vụ Hỗ Trợ Triển Khai & Phát Triển Tính Năng Theo Yêu Cầu](#️-dịch-vụ-hỗ-trợ-triển-khai--phát-triển-tính-năng-theo-yêu-cầu)
+
+---
+
 ## 🚀 1. Công nghệ & Kiến trúc Hệ thống (Tech Stack)
 
 * **Framework Fullstack**: **Next.js 15 (App Router, TypeScript, React 19/18)** — Tối ưu SEO vượt trội với Server Components và bảo mật phía Server với Server Actions / Route Handlers.
@@ -176,6 +213,42 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 * Học viên có thể đặt câu hỏi tại tab **"Hỏi đáp & Thảo luận"** dưới video.
 * Sau khi học xong, bấm **"Đánh dấu Hoàn thành"** $\rightarrow$ Thanh tiến độ tăng `%` và tự động nhảy sang bài tiếp theo.
 * Khi hoàn thành **100%** bài học $\rightarrow$ Hệ thống tự động bật Modal vinh danh và cấp mã chứng chỉ độc bản `CERT-WTL-PRO` để tải file PDF.
+
+### 4.5. Nghiệp vụ Tiếp thị Liên kết & Rút Hoa Hồng (Affiliate & Partner Hub)
+
+Hệ thống tích hợp sẵn mạng lưới **Tiếp thị liên kết tự động (Referral Marketing)** giúp biến mọi học viên và đối tác thành cộng tác viên phân phối khóa học:
+
+1. **Dành cho Đối tác / Học viên Tiếp thị (`/affiliate`)**:
+   * **Lấy link & mã giới thiệu**: Truy cập menu **Tiếp thị liên kết** trên thanh điều hướng hoặc đường dẫn `/affiliate`. Hệ thống tự động cấp mã ref độc quyền (ví dụ: `REF-A83F1`). Đối tác có thể sao chép đường link tiếp thị dạng:
+     `https://ten-mien-cua-ban.com/?ref=REF-A83F1` (hoặc `?aff=REF-A83F1`).
+   * **Theo dõi hiệu quả chiến dịch thời gian thực**:
+     * **Số lượt nhấp (Clicks)**: Đo lường mức độ quan tâm của người dùng nhấp vào link.
+     * **Số đơn giới thiệu (Referrals)**: Số lượng học viên đã mua khóa học qua mã ref.
+     * **Số dư hoa hồng đa tầng**: Phân tách rõ ràng giữa *Chờ duyệt (Pending)*, *Khả dụng (Approved)*, và *Đã thanh toán (Paid)*.
+   * **Cập nhật tài khoản ngân hàng thụ hưởng**:
+     * Điền thông tin: *Tên ngân hàng (Vietcombank, MB, Techcombank,...), Số tài khoản, Tên chủ tài khoản*.
+     * Bấm **"Cập nhật thông tin nhận tiền"** để lưu an toàn vào hệ thống.
+   * **Tạo yêu cầu rút tiền (Payout Request)**:
+     * Khi số dư khả dụng đạt tối thiểu **200.000 ₫**, nhập số tiền muốn rút và bấm **"Gửi yêu cầu rút tiền"**.
+     * Hệ thống ghi nhận yêu cầu và đối tác có thể theo dõi tiến độ duyệt trực tiếp trong lịch sử giao dịch.
+
+2. **Dành cho Quản trị viên (Admin Partner Hub - `/admin/affiliates`)**:
+   * **Bảng điều khiển KPI toàn diện**: Theo dõi tổng doanh thu do đối tác mang lại, tổng hoa hồng đã phát sinh, hoa hồng đang chờ thanh toán và số lượng đối tác tích cực.
+   * **Quản lý danh sách Đối tác (Affiliates)**:
+     * Xem chi tiết từng đối tác: Tên, Email, Mã ref, Doanh số mang về, Số lượt mua thành công.
+     * **Tùy chỉnh tỷ lệ hoa hồng riêng (`customCommissionRate`)**: Bấm biểu tượng ✏️ Chỉnh sửa để gán mức hoa hồng đặc biệt cho từng đối tác (ví dụ: 30% cho học viên VIP, 40% cho KOLs/KOCs). Nếu để trống hoặc `0`, hệ thống tự động áp dụng tỷ lệ chuẩn sàn (mặc định 20%).
+   * **Tra cứu lịch sử hoa hồng (Commissions Log)**:
+     * Kiểm tra từng khoản hoa hồng phát sinh gắn với Mã đơn hàng, Tên khóa học, Học viên mua, Doanh thu đơn hàng, Tỷ lệ hoa hồng và Trạng thái (`PENDING` $\rightarrow$ `APPROVED` $\rightarrow$ `PAID`).
+   * **Xét duyệt yêu cầu rút tiền (Payout Requests)**:
+     * Xem danh sách các lệnh rút tiền đang chờ xử lý kèm đầy đủ số tài khoản và ngân hàng thụ hưởng của đối tác.
+     * Sau khi chuyển khoản ngân hàng thành công, Admin bấm **"✓ Duyệt thanh toán"** $\rightarrow$ Hệ thống tự động chuyển trạng thái lệnh sang `APPROVED` và cập nhật các khoản hoa hồng liên quan sang `PAID`.
+     * Nếu có sai lệch, Admin có thể bấm **"✕ Từ chối"** kèm lý do $\rightarrow$ Số tiền sẽ được hoàn lại số dư khả dụng của đối tác.
+
+3. **Cơ chế Bảo vệ & Tự động hóa Vận hành**:
+   * **Last-click Cookie Tracking (30 ngày)**: Cookie `wtl_ref` được lưu an toàn tại trình duyệt người mua trong 30 ngày. Khách hàng duyệt nhiều trang hoặc quay lại mua sau vài tuần vẫn ghi nhận hoa hồng chính xác cho đối tác cuối cùng giới thiệu.
+   * **Ngăn chặn tự giới thiệu (Anti-Self-Referral Guard)**: Hệ thống tự động chặn tuyệt đối trường hợp học viên tự dùng mã ref của chính mình để mua khóa học nhằm trục lợi chiết khấu.
+   * **Chu kỳ tạm giữ 7 ngày an toàn (Holding Period)**: Hoa hồng mới phát sinh được đưa vào trạng thái `PENDING` trong 7 ngày để phòng ngừa rủi ro hoàn tiền hoặc tranh chấp đơn hàng.
+   * **Tự động kích hoạt hoa hồng khả dụng**: Tác vụ nền hàng ngày (`/api/cron/cleanup`) sẽ tự động quét và chuyển các khoản hoa hồng đã vượt qua thời hạn tạm giữ 7 ngày sang trạng thái `APPROVED` để đối tác có thể rút tiền.
 
 ---
 

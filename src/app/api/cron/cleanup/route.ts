@@ -113,6 +113,17 @@ async function handleCleanupCron(req: Request) {
       },
     });
 
+    // 6. Auto-approve cleared affiliate commissions (Holding period finished)
+    const approvedCommissionsResult = await prisma.commission.updateMany({
+      where: {
+        status: "PENDING",
+        availableAt: { lte: now },
+      },
+      data: {
+        status: "APPROVED",
+      },
+    });
+
     const durationMs = Date.now() - startTime;
 
     return NextResponse.json({
@@ -125,8 +136,9 @@ async function handleCleanupCron(req: Request) {
         cleanedAttachments: cleanedAttachmentsCount,
         purgedSoftDeletedPosts: purgedPostsResult.count,
         purgedUnverifiedStudents: purgedUnverifiedUsersResult.count,
+        approvedCommissions: approvedCommissionsResult.count,
       },
-      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, removed ${purgedUnverifiedUsersResult.count} stale unverified bot accounts.`,
+      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, approved ${approvedCommissionsResult.count} matured commissions.`,
     });
   } catch (error: any) {
     const durationMs = Date.now() - startTime;

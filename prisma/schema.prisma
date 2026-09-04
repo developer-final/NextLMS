@@ -74,6 +74,20 @@ enum TokenType {
   PASSWORD_RESET
 }
 
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
 model User {
   id           String     @id @default(cuid())
   name         String
@@ -86,6 +100,11 @@ model User {
   bio          String?
   headline     String?
   theme        String?    @default("emerald")
+  referralCode String?    @unique
+  customCommissionRate Decimal? @db.Decimal(5, 2)
+  bankName     String?
+  bankAccountNo String?
+  bankAccountName String?
   deletedAt    DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -94,11 +113,14 @@ model User {
   coursesAuthored Course[]         @relation("InstructorCourses")
   enrollments     Enrollment[]
   orders          Order[]
+  referredOrders  Order[]          @relation("ReferredOrders")
   progresses      LessonProgress[]
   reviews         Review[]
   comments        Comment[]
   certificates    Certificate[]
   postsAuthored   BlogPost[]       @relation("AuthorPosts")
+  commissions     Commission[]
+  payoutRequests  PayoutRequest[]
 
   @@map("users")
 }
@@ -312,6 +334,7 @@ model Order {
   orderCode      String        @unique
   userId         String
   couponId       String?
+  referrerId     String?
   totalAmount    Decimal       @db.Decimal(12, 2)
   discountAmount Decimal       @default(0) @db.Decimal(12, 2)
   finalAmount    Decimal       @db.Decimal(12, 2)
@@ -324,11 +347,14 @@ model Order {
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   coupon       Coupon?       @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  referrer     User?         @relation("ReferredOrders", fields: [referrerId], references: [id], onDelete: SetNull)
   orderItems   OrderItem[]
   transactions Transaction[]
+  commission   Commission?
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+  @@index([referrerId])
   @@map("orders")
 }
 
@@ -482,3 +508,49 @@ model VerificationToken {
   @@index([token])
   @@map("verification_tokens")
 }
+
+model Commission {
+  id               String           @id @default(cuid())
+  orderId          String           @unique
+  affiliateId      String
+  orderAmount      Decimal          @db.Decimal(12, 2)
+  commissionRate   Decimal          @db.Decimal(5, 2)
+  commissionAmount Decimal          @db.Decimal(12, 2)
+  status           CommissionStatus @default(PENDING)
+  availableAt      DateTime
+  payoutRequestId  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  order            Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  affiliate        User             @relation(fields: [affiliateId], references: [id], onDelete: Cascade)
+  payoutRequest    PayoutRequest?   @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
+
+  @@index([affiliateId])
+  @@index([status])
+  @@index([payoutRequestId])
+  @@map("commissions")
+}
+
+model PayoutRequest {
+  id              String       @id @default(cuid())
+  userId          String
+  amount          Decimal      @db.Decimal(12, 2)
+  bankName        String
+  bankAccountNo   String
+  bankAccountName String
+  status          PayoutStatus @default(PENDING)
+  adminNote       String?
+  proofImageUrl   String?
+  processedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commissions     Commission[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("payout_requests")
+}
+

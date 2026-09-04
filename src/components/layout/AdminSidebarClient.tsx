@@ -14,6 +14,7 @@ import {
   Sparkles,
   Tag,
   Users,
+  Share2,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
@@ -82,6 +83,12 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
       label: t.admin.sidebar.students,
       icon: Users,
       color: "text-purple-400",
+    },
+    {
+      href: "/admin/affiliates",
+      label: t.adminAffiliate.tabsPartners || "Tiếp thị liên kết",
+      icon: Share2,
+      color: "text-amber-400",
     },
     {
       href: "/admin/settings",

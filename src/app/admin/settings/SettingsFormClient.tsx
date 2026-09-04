@@ -15,6 +15,7 @@ import {
   Key,
   Coins,
   AlertTriangle,
+  Share2,
 } from "lucide-react";
 import { SystemConfig } from "@/lib/config";
 import { generateVietQRUrl } from "@/lib/vietqr";
@@ -34,7 +35,7 @@ interface SettingsFormClientProps {
 export default function SettingsFormClient({ initialSettings }: SettingsFormClientProps) {
   const { t, language } = useLanguage();
   const [formData, setFormData] = useState<SystemConfig>(initialSettings);
-  const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy">("payment");
+  const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy" | "affiliate">("payment");
   const [saving, setSaving] = useState(false);
 
   const handleChange = (field: keyof SystemConfig, value: any) => {
@@ -159,6 +160,18 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
           }`}
         >
           <ShieldCheck className="h-4 w-4" /> 4. Policy & Guarantee
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("affiliate")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            activeTab === "affiliate"
+              ? "bg-brand-500 text-slate-950 shadow-glow"
+              : "bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700"
+          }`}
+        >
+          <Share2 className="h-4 w-4" /> 5. Tiếp thị liên kết (Affiliate)
         </button>
       </div>
 
@@ -899,6 +912,107 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
                 onChange={(e) => handleChange("refundMaxProgress", e.target.value)}
                 className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. AFFILIATE & REFERRAL TAB */}
+      {activeTab === "affiliate" && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-amber-400" />
+                <h3 className="text-base font-bold text-white">
+                  Cấu Hình Hệ Thống Tiếp Thị Liên Kết (Affiliate & Referral)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Thiết lập tỷ lệ hoa hồng mặc định, chu kỳ giữ đối soát an toàn và hạn mức rút tiền cho học viên.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(formData.affiliateEnabled)}
+                onChange={(e) => handleChange("affiliateEnabled", e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+              <span className="ml-3 text-xs font-bold text-slate-300">
+                {formData.affiliateEnabled ? "Đang BẬT" : "Đang TẮT"}
+              </span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Tỷ lệ hoa hồng mặc định toàn sàn (%)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={formData.affiliateCommissionPercent}
+                onChange={(e) => handleChange("affiliateCommissionPercent", e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Mức % hoa hồng nhận được trên mỗi đơn hàng thành công (Admin có thể tùy chỉnh mức riêng cho từng đối tác VIP).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Hạn mức rút tiền tối thiểu (VND)
+              </label>
+              <input
+                type="number"
+                min={50000}
+                step={50000}
+                value={formData.affiliateMinPayout}
+                onChange={(e) => handleChange("affiliateMinPayout", e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Số dư tối thiểu học viên cần có để tạo yêu cầu rút tiền về ngân hàng (VD: 200,000 VND).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Thời gian giữ hoa hồng an toàn (Ngày)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={60}
+                value={formData.affiliateHoldDays}
+                onChange={(e) => handleChange("affiliateHoldDays", e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Hoa hồng ở trạng thái chờ giữ (Holding) tránh trường hợp hoàn tiền. Hết thời gian này sẽ chuyển thành khả dụng rút.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Thời hạn lưu Cookie giới thiệu (Ngày)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={180}
+                value={formData.affiliateCookieDays}
+                onChange={(e) => handleChange("affiliateCookieDays", e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Cơ chế Last-Click Cookie. Đơn hàng phát sinh trong số ngày này kể từ lần click gần nhất sẽ được tính hoa hồng (VD: 30 ngày).
+              </p>
             </div>
           </div>
         </div>
