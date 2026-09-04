@@ -200,6 +200,12 @@ Bạn có thể gửi trực tiếp các đường link đã gắn tham số cho
   `https://ten-mien-cua-ban.com/?niche=ielts`
 * 🏋️ **Lĩnh vực Gym / Thể hình / Sức khỏe**:  
   `https://ten-mien-cua-ban.com/?niche=fitness`
+* 💻 **Lĩnh vực Công nghệ thông tin / Lập trình**:  
+  `https://ten-mien-cua-ban.com/?niche=it`
+* ⚡ **Lĩnh vực Thiết kế Phần cứng Điện tử & Bo mạch PCB**:  
+  `https://ten-mien-cua-ban.com/?niche=electronics`
+* ⚙️ **Lĩnh vực Thiết kế Cơ khí & Cơ điện tử 3D**:  
+  `https://ten-mien-cua-ban.com/?niche=mechanical`
 * 📈 **Lĩnh vực Tài chính / Trading**:  
   `https://ten-mien-cua-ban.com/?niche=trading` *(hoặc truy cập trang chủ không kèm tham số)*
 
@@ -214,8 +220,12 @@ Tăng gấp nhiều lần tỷ lệ chốt hợp đồng bằng cách đưa chí
     `https://ten-mien-cua-ban.com/?niche=baking&brand=Tiệm+Bánh+Bếp+Mẹ+Hoa&teacher=Chef+Mai+Hoa`
   * Chào hàng cho Trung tâm Anh ngữ *Ms. Lan IELTS*:  
     `https://ten-mien-cua-ban.com/?niche=ielts&brand=Ms.+Lan+IELTS+Academy&teacher=Cô+Lan+IELTS+8.5`
-  * Chào hàng cho Huấn luyện viên *Hùng Cường Fitness*:  
-    `https://ten-mien-cua-ban.com/?niche=fitness&brand=Cường+Fitness+Club&teacher=HLV+Hùng+Cường`
+  * Chào hàng cho Học viện CNTT *TechZone Academy*:  
+    `https://ten-mien-cua-ban.com/?niche=it&brand=TechZone+Academy&teacher=Kỹ+sư+Minh+Hoàng`
+  * Chào hàng cho Viện Nghiên Cứu Phần Cứng *SmartChip Lab*:  
+    `https://ten-mien-cua-ban.com/?niche=electronics&brand=SmartChip+Lab&teacher=ThS.+Vũ+Nam`
+  * Chào hàng cho Trung tâm CAD/CAM *AutoMech 3D*:  
+    `https://ten-mien-cua-ban.com/?niche=mechanical&brand=AutoMech+3D+Center&teacher=Thầy+Quang+Huy`
 
 > [!TIP]
 > Bạn có thể gõ tiếng Việt có dấu trực tiếp trên thanh địa chỉ trình duyệt, hoặc dùng nút **"Sao chép link Demo"** trong tiện ích Studio để hệ thống tự động mã hóa ký tự UTF-8 chuẩn xác.
@@ -239,20 +249,20 @@ Hệ thống được thiết kế với cơ chế đồng bộ cấp độ ki�
 
 Trên mọi trang giao diện công khai, ở góc dưới màn hình luôn có sẵn widget nổi **Demo Niche Studio** (có thể thu nhỏ hoặc mở rộng):
 
-* 🔘 **Chọn nhanh 4 ngách**: Chuyển đổi tức thì chỉ với 1 click chuột.
+* 🔘 **Chọn nhanh 7 ngách đào tạo**: Chuyển đổi tức thì giữa Tài chính & Trading, IELTS, Làm bánh, Thể hình, CNTT & Lập trình, Phần cứng điện tử và Thiết kế cơ khí.
 * ✏️ **Nhập trực tiếp Thương hiệu & Giảng viên**: Thử nghiệm ngay diện mạo mới của website mà không cần chỉnh sửa thanh địa chỉ URL.
 * 📋 **Nút "Sao chép link Demo"**: Tự động tạo link rút gọn kèm tham số để gửi ngay cho đối tác qua Zalo/Telegram.
-* 🔄 **Nút "Mặc định"**: Xóa toàn bộ cookie tùy biến và đưa giao diện về trạng thái World Trading Lab nguyên bản.
+* 🔄 **Nút "Reset"**: Xóa toàn bộ cookie tùy biến và đưa giao diện về trạng thái World Trading Lab nguyên bản.
 
 ---
 
 ### 6.5. Nạp Dữ Liệu Mẫu Đa Ngách Vào Database (Seed Data)
 
-Tập lệnh `prisma/seed.js` đã được tích hợp sẵn toàn bộ dữ liệu mẫu đa dạng cho 4 ngách:
-* **4 Giảng viên chuyên ngành** với ảnh đại diện, chức danh và tiểu sử riêng biệt.
-* **9 Danh mục khóa học** phân theo từng ngành nghề.
-* **8 Khóa học thực tế**: Mỗi ngách gồm 1 khóa học chuyên sâu trả phí + 1 khóa học thử miễn phí (0đ).
-* **4 Bài viết Blog chất lượng cao** chia sẻ kiến thức đặc thù của từng ngách.
+Tập lệnh `prisma/seed.js` đã được tích hợp sẵn toàn bộ dữ liệu mẫu đa dạng cho 7 ngách:
+* **7 Giảng viên chuyên ngành** với ảnh đại diện, chức danh và tiểu sử riêng biệt.
+* **15 Danh mục khóa học** phân theo từng ngành nghề.
+* **42 Khóa học thực tế**: Mỗi ngách gồm đúng 6 khóa học đa dạng từ cơ bản, miễn phí đến chuyên sâu nâng cao (lấp đầy hoàn hảo lưới hiển thị 6 khóa học trên Landing Page).
+* **7 Bài viết Blog chất lượng cao** chia sẻ kiến thức đặc thù của từng ngách.
 
 Thực hiện nạp dữ liệu:
 ```bash
@@ -356,7 +366,7 @@ eLearning/
 │   │   ├── auth.ts          # NextAuth Options & Session config
 │   │   ├── config.ts        # Cấu hình thương hiệu gốc & settings hệ thống
 │   │   ├── i18n/            # Hệ thống từ điển đa ngôn ngữ (vi.ts, en.ts)
-│   │   ├── niches.ts        # Cấu hình dữ liệu 4 ngách đào tạo (Trading, IELTS, Baking, Fitness)
+│   │   ├── niches.ts        # Cấu hình dữ liệu 7 ngách đào tạo (Trading, IELTS, Baking, Fitness, IT, Electronics, Mechanical)
 │   │   ├── prisma.ts        # Prisma Client singleton
 │   │   ├── server-niche.ts  # Bộ giải mã ngách & thương hiệu an toàn phía Server
 │   │   ├── utils.ts         # Tiện ích format VND, thời gian, slugify, YouTube embed

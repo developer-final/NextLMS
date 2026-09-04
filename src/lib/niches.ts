@@ -1,4 +1,11 @@
-export type NicheType = "trading" | "ielts" | "baking" | "fitness";
+export type NicheType =
+  | "trading"
+  | "ielts"
+  | "baking"
+  | "fitness"
+  | "it"
+  | "electronics"
+  | "mechanical";
 
 export const COOKIE_NICHE_KEY = "demo_niche";
 export const COOKIE_BRAND_KEY = "demo_brand";
@@ -359,6 +366,231 @@ export const NICHES: Record<NicheType, NicheConfig> = {
       ctaTitle: "Sẵn sàng thay đổi hình thể và sức khỏe của bạn?",
       ctaDesc: "Bắt đầu ngay hôm nay với giáo án thử thách 7 ngày hoàn toàn miễn phí.",
       ctaButton: "Bắt Đầu Tập Luyện Ngay",
+    },
+  },
+
+  it: {
+    id: "it",
+    name: "Công nghệ thông tin & Lập trình",
+    brandName: "DevCraft Tech Academy",
+    slogan: "Học viện Đào tạo Kỹ sư Phần mềm & Điện toán Đám mây",
+    description:
+      "Nền tảng đào tạo lập trình thực chiến từ Kiến trúc phần mềm, Cloud-Native, Fullstack Web hiện đại đến Trí tuệ nhân tạo và Kỹ thuật dữ liệu.",
+    heroBadge: "LỘ TRÌNH KỸ SƯ PHẦN MỀM & CLOUD CHUYÊN SÂU",
+    heroTitleLine1: "Làm Chủ Mã Nguồn &",
+    heroTitleHighlight: "Kiến Trúc Phần Mềm",
+    heroTitleLine2: "Chuẩn Quốc Tế",
+    heroDescription:
+      "Học trực tiếp cùng Tech Lead: Lập trình Fullstack Next.js, Golang, Microservices, CI/CD và triển khai thực tế trên hạ tầng AWS/Kubernetes.",
+    exploreBtnText: "Khám Phá Khóa Lập Trình",
+    freeTrialBtnText: "Học Thử Miễn Phí",
+    categoryHeading: "Lộ Trình Đào Tạo Theo Chuyên Ngành IT",
+    categorySubheading: "Được thiết kế thực chiến bám sát tiêu chuẩn tuyển dụng của các tập đoàn công nghệ.",
+    featuredHeading: "Các Khóa Học Lập Trình Được Đăng Ký Nhiều Nhất",
+    whyChooseHeading: "Vì Sao Kỹ Sư Phần Mềm Chọn DevCraft?",
+    whyChooseSubheading: "Học qua dự án thực tế Production, chuẩn hóa Clean Architecture và tối ưu tải lớn.",
+    stats: {
+      studentCount: "14,500+",
+      studentLabel: "Học viên theo học",
+      satisfactionRate: "99.2%",
+      satisfactionLabel: "Đánh giá 5 sao từ lập trình viên",
+      practicalRate: "100%",
+      practicalLabel: "Dự án thực tế Production",
+      supportHours: "24/7",
+      supportLabel: "Code Review cùng Tech Lead",
+    },
+    features: [
+      {
+        title: "Dự Án Thật Triển Khai Production",
+        description: "Học viên được cấp cụm Server Cloud thật để thực hành CI/CD và deploy dự án.",
+      },
+      {
+        title: "Code Review 1 - 1 Từng Dòng Lệnh",
+        description: "Đội ngũ Senior Engineer chấm bài, tối ưu cấu trúc mã nguồn và kiểm soát bảo mật.",
+      },
+      {
+        title: "Hỗ Trợ Phỏng Vấn & Định Hướng CV",
+        description: "Mô phỏng phỏng vấn System Design & Coding Interview chuẩn quy trình Big Tech.",
+      },
+    ],
+    categorySlugs: ["lap-trinh-fullstack-cloud", "ai-machine-learning-data"],
+    categoryPageTitle: "Chuyên Mục Đào Tạo Công Nghệ Thông Tin",
+    categoryPageSubtitle: "Từ Lập trình Fullstack hiện đại, Microservices đến Ứng dụng Trí tuệ nhân tạo GenAI vào sản phẩm.",
+    blogPageTitle: "Blog Kỹ Thuật Phần Mềm & Kiến Trúc Hệ Thống",
+    blogPageSubtitle: "Chia sẻ kinh nghiệm thiết kế hệ thống chịu tải cao, tối ưu Database và cập nhật xu hướng công nghệ mới.",
+    about: {
+      badge: "Về DevCraft Tech Academy",
+      titleLine1: "Sứ Mệnh Đào Tạo Thế Hệ",
+      titleHighlight: "Kỹ Sư Phần Mềm Đẳng Cấp Quốc Tế",
+      description:
+        "DevCraft Tech Academy được sáng lập bởi các Kỹ sư Trưởng và Solution Architect giàu kinh nghiệm, với sứ mệnh xóa bỏ khoảng cách giữa giảng đường và thực tế ngành công nghệ phần mềm tại các công ty công nghệ hàng đầu.",
+      values: [
+        {
+          title: "100% Dự Án Thực Tế",
+          description: "Không dạy 'Hello World', mọi bài giảng đều giải quyết các bài toán kỹ thuật thực tế như Caching, Message Queue và High Availability.",
+        },
+        {
+          title: "Chuẩn Mực Mã Nguồn Quốc Tế",
+          description: "Rèn luyện tư duy Clean Code, Design Patterns, TDD và chuẩn bảo mật OWASP ngay từ ngày đầu tiên.",
+        },
+        {
+          title: "Đồng Hành Cùng Tech Mentor",
+          description: "Kênh thảo luận kỹ thuật nội bộ luôn có mentor túc trực giải đáp thắc mắc và chữa lỗi trực tiếp.",
+        },
+      ],
+      ctaTitle: "Sẵn sàng bứt phá sự nghiệp lập trình của bạn?",
+      ctaDesc: "Tham gia cộng đồng hơn 14.500 kỹ sư và bắt đầu xây dựng sản phẩm đầu tiên ngay hôm nay.",
+      ctaButton: "Khám Phá Khóa Lập Trình Ngay",
+    },
+  },
+
+  electronics: {
+    id: "electronics",
+    name: "Thiết kế Phần cứng Điện tử & Hệ thống Nhúng",
+    brandName: "CircuitMaster Hardware Lab",
+    slogan: "Học viện Thiết kế Bo mạch PCB Tốc độ cao & Vi điều khiển",
+    description:
+      "Chương trình đào tạo chuyên sâu về thiết kế Schematic, Layout bo mạch PCB đa lớp tốc độ cao, kiểm soát EMI/EMC và lập trình vi điều khiển ARM/ESP32.",
+    heroBadge: "ĐÀO TẠO THIẾT KẾ PHẦN CỨNG CHUẨN IPC",
+    heroTitleLine1: "Làm Chủ Thiết Kế Bo Mạch &",
+    heroTitleHighlight: "Phần Cứng Điện Tử",
+    heroTitleLine2: "Thực Chiến",
+    heroDescription:
+      "Từ nguyên lý mạch điện tử cơ bản đến thiết kế layout PCB 4-8 lớp, xử lý tín hiệu cao tần (DDR, PCIe) trên Altium Designer và lập trình firmware nhúng.",
+    exploreBtnText: "Xem Khóa Học Phần Cứng",
+    freeTrialBtnText: "Học Thử Miễn Phí",
+    categoryHeading: "Các Khóa Học Thiết Kế Điện Tử Theo Chuyên Đề",
+    categorySubheading: "Được xây dựng từ tiêu chuẩn công nghiệp IPC và quy trình sản xuất thực tế tại nhà máy.",
+    featuredHeading: "Các Khóa Đào Tạo Phần Cứng Được Đăng Ký Nhiều Nhất",
+    whyChooseHeading: "Tại Sao Kỹ Sư Phần Cứng Chọn CircuitMaster?",
+    whyChooseSubheading: "Giáo trình bám sát tiêu chuẩn nhà máy SMT, tính toán trở kháng và kiểm soát nhiễu thực tế.",
+    stats: {
+      studentCount: "6,800+",
+      studentLabel: "Kỹ sư phần cứng tốt nghiệp",
+      satisfactionRate: "99.5%",
+      satisfactionLabel: "Tự tay làm bo mạch thành công",
+      practicalRate: "100%",
+      practicalLabel: "Dự án mạch thật gửi sản xuất",
+      supportHours: "24/7",
+      supportLabel: "Hỗ trợ review Layout bo mạch",
+    },
+    features: [
+      {
+        title: "Thực Hành Layout Bo Mạch Thật",
+        description: "Học viên được hướng dẫn gửi file Gerber gia công tại JLCPCB/PCBWay và hàn mạch thực tế.",
+      },
+      {
+        title: "Kiểm Soát Trở Kháng & Tương Thích EMC",
+        description: "Phương pháp Stackup nhiều lớp, kiểm soát suy hao tín hiệu vi sai và khử nhiễu điện từ.",
+      },
+      {
+        title: "Thư Viện Linh Kiện Chuẩn Công Nghiệp",
+        description: "Cung cấp trọn bộ Footprint và mô hình 3D linh kiện đã kiểm chứng thực tế tại xưởng.",
+      },
+    ],
+    categorySlugs: ["thiet-ke-mach-in-pcb", "lap-trinh-nhung-iot"],
+    categoryPageTitle: "Chuyên Mục Thiết Kế Bo Mạch & Hệ Thống Nhúng",
+    categoryPageSubtitle: "Nắm vững kỹ năng thiết kế phần cứng từ Schematic, PCB Routing đến lập trình Firmware IoT.",
+    blogPageTitle: "Cẩm Nang Kỹ Thuật Phần Cứng & Thiết Kế Điện Tử",
+    blogPageSubtitle: "Chia sẻ kinh nghiệm thiết kế Layout chống nhiễu, mẹo chọn linh kiện và phân tích lỗi phần cứng thực tế.",
+    about: {
+      badge: "Về CircuitMaster Hardware Lab",
+      titleLine1: "Đào Tạo Chuyên Sâu Ngành",
+      titleHighlight: "Thiết Kế Phần Cứng & Vi Mạch Điện Tử",
+      description:
+        "CircuitMaster Hardware Lab được thành lập bởi nhóm kỹ sư R&D phần cứng với hơn 15 năm kinh nghiệm thiết kế các thiết bị viễn thông, ô tô và IoT tiêu chuẩn quốc tế, giúp kỹ sư Việt Nam tự tin thiết kế các bo mạch phức tạp.",
+      values: [
+        {
+          title: "Chuẩn Công Nghiệp IPC",
+          description: "Mọi quy tắc đi dây, chọn khoảng cách cách điện (Clearance/Creepage) đều tuân thủ nghiêm ngặt tiêu chuẩn IPC-2221.",
+        },
+        {
+          title: "Sản Phẩm Mạch Chạy Thật",
+          description: "Học viên không chỉ vẽ mạch trên máy tính mà còn trực tiếp đo kiểm tín hiệu bằng máy hiện sóng oscilloscope.",
+        },
+        {
+          title: "Tư Duy Tối Ưu Chi Phí DFM/DFA",
+          description: "Dạy kỹ năng thiết kế bo mạch tối ưu cho dây chuyền dán linh kiện tự động SMT giúp tiết kiệm chi phí sản xuất hàng loạt.",
+        },
+      ],
+      ctaTitle: "Sẵn sàng chế tạo sản phẩm phần cứng đầu tiên của bạn?",
+      ctaDesc: "Tham gia cùng hơn 6.800 kỹ sư phần cứng và đưa thiết kế của bạn vào sản xuất thực tế.",
+      ctaButton: "Bắt Đầu Học Thiết Kế Bo Mạch",
+    },
+  },
+
+  mechanical: {
+    id: "mechanical",
+    name: "Thiết kế Cơ khí & Cơ điện tử",
+    brandName: "MechDesign Pro Academy",
+    slogan: "Học viện Thiết kế Máy 3D CAD/CAM & Mô phỏng Cơ học CAE",
+    description:
+      "Chương trình đào tạo toàn diện về thiết kế mô hình 3D SolidWorks, xuất bản vẽ kỹ thuật gia công GD&T, mô phỏng lực tĩnh/động học và lập trình gia công CNC.",
+    heroBadge: "THIẾT KẾ CƠ KHÍ & MÔ PHỎNG MÁY CHUYÊN NGHIỆP",
+    heroTitleLine1: "Hiện Thực Hóa Ý Tưởng Máy &",
+    heroTitleHighlight: "Thiết Kế Cơ Khí 3D",
+    heroTitleLine2: "Chuẩn Công Nghiệp",
+    heroDescription:
+      "Làm chủ phần mềm SolidWorks, Inventor và ANSYS: Từ tính toán dung sai lắp ghép, thiết kế cơ cấu máy tự động hóa đến mô phỏng độ bền chi tiết.",
+    exploreBtnText: "Xem Khóa Học Cơ Khí",
+    freeTrialBtnText: "Học Thử Bản Vẽ 3D",
+    categoryHeading: "Lộ Trình Đào Tạo Cơ Khí Chuyên Sâu",
+    categorySubheading: "Được thiết kế từ bài toán gia công cơ khí thực tế tại xưởng chế tạo máy và dây chuyền tự động.",
+    featuredHeading: "Các Khóa Học Thiết Kế Cơ Khí Hàng Đầu",
+    whyChooseHeading: "Vì Sao Kỹ Sư Cơ Khí Lựa Chọn MechDesign?",
+    whyChooseSubheading: "Giáo trình chú trọng tư duy chế tạo thực tế, tính toán dung sai chuẩn xưởng gia công.",
+    stats: {
+      studentCount: "9,200+",
+      studentLabel: "Học viên kỹ thuật cơ khí",
+      satisfactionRate: "99.4%",
+      satisfactionLabel: "Đánh giá xuất sắc từ doanh nghiệp",
+      practicalRate: "100%",
+      practicalLabel: "Mô hình máy thực tế chế tạo",
+      supportHours: "24/7",
+      supportLabel: "Chữa bài vẽ & hướng dẫn đồ án",
+    },
+    features: [
+      {
+        title: "Bản Vẽ Chuẩn Dung Sai GD&T",
+        description: "Học cách xuất bản vẽ gia công 2D chuẩn quốc tế, giúp thợ tiện phay CNC hiểu và gia công chính xác.",
+      },
+      {
+        title: "Mô Phỏng Ứng Suất & Động Học",
+        description: "Kiểm tra độ võng, biến dạng và va chạm cơ cấu máy trước khi đưa vào sản xuất phôi thật.",
+      },
+      {
+        title: "Thư Viện Cụm Cơ Cấu Tiêu Chuẩn",
+        description: "Cung cấp kho 3D động cơ servo, xylanh khí nén, ray trượt bi MISUMI sẵn sàng lắp ráp.",
+      },
+    ],
+    categorySlugs: ["thiet-ke-cad-solidworks", "mo-phong-co-hoc-cae"],
+    categoryPageTitle: "Chuyên Mục Đào Tạo Thiết Kế Máy & Mô Phỏng Cơ Học",
+    categoryPageSubtitle: "Học thiết kế cơ cấu máy tự động hóa, đồ gá JIG và mô phỏng cơ học ứng suất chuyên sâu.",
+    blogPageTitle: "Cẩm Nang Thiết Kế Cơ Khí & Cơ Điện Tử Tự Động Hóa",
+    blogPageSubtitle: "Chia sẻ kinh nghiệm thiết kế cơ cấu máy, tính chọn động cơ, tính toán dung sai và bí quyết gia công cơ khí chính xác.",
+    about: {
+      badge: "Về MechDesign Pro Academy",
+      titleLine1: "Đào Tạo Kỹ Sư Thiết Kế Máy",
+      titleHighlight: "Vững Tư Duy & Giỏi Thực Hành",
+      description:
+        "MechDesign Pro Academy được sáng lập bởi đội ngũ kỹ sư trưởng thiết kế máy và chế tạo tự động hóa, nhằm đào tạo nguồn nhân lực kỹ thuật cơ khí chất lượng cao, nắm vững cả lý thuyết tính toán lẫn kinh nghiệm xưởng gia công thực tế.",
+      values: [
+        {
+          title: "Tư Duy Thiết Kế Gắn Liền Gia Công",
+          description: "Không dựng hình 'ảo', mọi chi tiết được thiết kế đều phải gia công được trên máy CNC, cắt dây hoặc in 3D với chi phí hợp lý.",
+        },
+        {
+          title: "Chuẩn Hóa Dung Sai Lắp Ghép",
+          description: "Dạy sâu về chuỗi dung sai hình học GD&T (ISO/ASME), chọn đúng độ nhám bề mặt và phương pháp nhiệt luyện thép.",
+        },
+        {
+          title: "Đồng Hành Cùng Dự Án Máy Thực Tế",
+          description: "Học viên được hướng dẫn trực tiếp qua các dự án thiết kế máy đóng gói, băng tải tự động và cánh tay robot công nghiệp.",
+        },
+      ],
+      ctaTitle: "Sẵn sàng làm chủ kỹ năng thiết kế máy 3D chuyên nghiệp?",
+      ctaDesc: "Gia nhập cùng hơn 9.200 kỹ sư và sinh viên cơ khí nâng tầm tay nghề thiết kế ngay hôm nay.",
+      ctaButton: "Khám Phá Khóa Học Cơ Khí",
     },
   },
 };

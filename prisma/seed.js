@@ -87,6 +87,42 @@ async function main() {
     },
   });
 
+  const instructorIT = await prisma.user.create({
+    data: {
+      name: "Kỹ sư Hoàng Minh (Principal Architect)",
+      email: "it.teacher@finlearn.vn",
+      passwordHash,
+      role: "INSTRUCTOR",
+      avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80",
+      headline: "Kỹ sư Trưởng & Chuyên gia Điện toán Đám mây AWS/K8s",
+      bio: "Hơn 12 năm kinh nghiệm thiết kế kiến trúc phân tán chịu tải hàng triệu CCU cho các công ty công nghệ lớn.",
+    },
+  });
+
+  const instructorElectronics = await prisma.user.create({
+    data: {
+      name: "ThS. Vũ Thành Nam (Hardware Lead Engineer)",
+      email: "hardware.teacher@finlearn.vn",
+      passwordHash,
+      role: "INSTRUCTOR",
+      avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&q=80",
+      headline: "Trưởng nhóm R&D Phần cứng & Thiết kế Bo mạch Cao tần",
+      bio: "Chuyên gia thiết kế bo mạch viễn thông, radar và thiết bị IoT công nghiệp đạt chuẩn EMI/EMC quốc tế.",
+    },
+  });
+
+  const instructorMechanical = await prisma.user.create({
+    data: {
+      name: "Kỹ sư Đỗ Quang Huy (Senior Mechanical Specialist)",
+      email: "mechanical.teacher@finlearn.vn",
+      passwordHash,
+      role: "INSTRUCTOR",
+      avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80",
+      headline: "Kỹ sư Thiết kế Máy & Chuyên gia Mô phỏng 3D SolidWorks/CAE",
+      bio: "Hơn 10 năm phụ trách R&D cơ cấu tự động hóa, robot công nghiệp và đồ gá gia công chính xác.",
+    },
+  });
+
   const student = await prisma.user.create({
     data: {
       name: "Lê Hoàng Nam",
@@ -98,7 +134,7 @@ async function main() {
     },
   });
 
-  console.log("✅ Users created: Admin, Instructors (Trading, IELTS, Baking, Fitness), Student");
+  console.log("✅ Users created: Admin, Instructors (Trading, IELTS, Baking, Fitness, IT, Electronics, Mechanical), Student");
 
   // 2. Create Categories
   // 2.1 Trading Categories
@@ -195,7 +231,135 @@ async function main() {
     },
   });
 
-  console.log("✅ Categories created for Trading, IELTS, Baking, Fitness");
+  // 2.5 IT Categories
+  const catITFullstack = await prisma.category.create({
+    data: {
+      name: "Lập trình Fullstack & Cloud-Native",
+      slug: "lap-trinh-fullstack-cloud",
+      description: "Làm chủ kiến trúc Microservices, Next.js, Golang, Docker và triển khai thực tế trên hạ tầng Kubernetes/AWS.",
+      icon: "Code",
+      orderIndex: 10,
+    },
+  });
+
+  const catITAI = await prisma.category.create({
+    data: {
+      name: "Trí tuệ Nhân tạo AI & Kỹ thuật Dữ liệu",
+      slug: "ai-machine-learning-data",
+      description: "Ứng dụng Machine Learning, Deep Learning, PyTorch và tích hợp mô hình ngôn ngữ lớn LLM vào sản phẩm.",
+      icon: "Cpu",
+      orderIndex: 11,
+    },
+  });
+
+  // 2.6 Electronics Categories
+  const catElecPCB = await prisma.category.create({
+    data: {
+      name: "Thiết kế Bo mạch In PCB Đa lớp & Chống Nhiễu",
+      slug: "thiet-ke-mach-in-pcb",
+      description: "Quy chuẩn thiết kế mạch in tốc độ cao (High-speed PCB), kiểm soát trở kháng đường truyền và chống nhiễu EMC trên Altium.",
+      icon: "Layers",
+      orderIndex: 12,
+    },
+  });
+
+  const catElecEmbedded = await prisma.category.create({
+    data: {
+      name: "Lập trình Hệ thống Nhúng & Thiết bị IoT",
+      slug: "lap-trinh-nhung-iot",
+      description: "Lập trình Firmware C/C++ trên vi điều khiển ARM Cortex-M, ESP32 và các giao thức truyền thông công nghiệp CAN, Modbus, MQTT.",
+      icon: "Radio",
+      orderIndex: 13,
+    },
+  });
+
+  // 2.7 Mechanical Categories
+  const catMechCAD = await prisma.category.create({
+    data: {
+      name: "Thiết kế Chi tiết Máy 3D & Cụm Lắp Ráp SolidWorks",
+      slug: "thiet-ke-cad-solidworks",
+      description: "Tư duy dựng hình 3D tham số hóa (Parametric Design), lắp ráp cụm máy tự động hóa và xuất bản vẽ kỹ thuật dung sai GD&T.",
+      icon: "Box",
+      orderIndex: 14,
+    },
+  });
+
+  const catMechCAE = await prisma.category.create({
+    data: {
+      name: "Mô phỏng Ứng suất Động lực học & Gia công CNC/CAM",
+      slug: "mo-phong-co-hoc-cae",
+      description: "Phân tích độ bền kết cấu phần tử hữu hạn (FEA/CAE) trên ANSYS và lập trình đường chạy dao phay CNC Mastercam.",
+      icon: "Settings",
+      orderIndex: 15,
+    },
+  });
+
+  console.log("✅ Categories created for Trading, IELTS, Baking, Fitness, IT, Electronics, Mechanical");
+
+  // Helper to create concise demo courses with 1 section and 1 preview lesson
+  async function createDemoCourse({
+    instructorId,
+    categoryId,
+    title,
+    slug,
+    shortDescription,
+    description,
+    thumbnailUrl,
+    price = 0,
+    salePrice = 0,
+    level = "BEGINNER",
+    isFeatured = false,
+    isFree = false,
+    sectionTitle,
+    lessonTitle,
+    lessonSlug,
+    lessonDuration = 900,
+    contentBody,
+  }) {
+    const c = await prisma.course.create({
+      data: {
+        instructorId,
+        categoryId,
+        title,
+        slug,
+        shortDescription,
+        description,
+        thumbnailUrl,
+        introVideoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        price,
+        salePrice,
+        level,
+        status: "PUBLISHED",
+        isFeatured,
+        isFree,
+        certificateEnabled: true,
+      },
+    });
+
+    const s = await prisma.section.create({
+      data: {
+        courseId: c.id,
+        title: sectionTitle,
+        orderIndex: 1,
+      },
+    });
+
+    await prisma.lesson.create({
+      data: {
+        sectionId: s.id,
+        title: lessonTitle,
+        slug: lessonSlug,
+        contentType: "VIDEO_YOUTUBE",
+        videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+        videoDuration: lessonDuration,
+        isPreview: true,
+        orderIndex: 1,
+        contentBody,
+      },
+    });
+
+    return c;
+  }
 
   // 3. Create Course 1: SMC Master
   const courseSMC = await prisma.course.create({
@@ -693,7 +857,804 @@ Chương trình huấn luyện toàn diện dành cho nam và nữ muốn chuy�
     },
   });
 
-  console.log("✅ Courses created for IELTS, Baking, and Fitness niches");
+  // 4E. IT Courses
+  const courseITPaid = await prisma.course.create({
+    data: {
+      instructorId: instructorIT.id,
+      categoryId: catITFullstack.id,
+      title: "Masterclass Kiến Trúc Phần Mềm & Lập Trình Fullstack Cloud-Native Chuyên Sâu",
+      slug: "kien-truc-phan-mem-fullstack-cloud-native",
+      shortDescription: "Làm chủ kiến trúc Microservices chịu tải cao với Next.js 15, Golang, PostgreSQL, Docker, CI/CD và Kubernetes trên AWS.",
+      description: `
+## Khóa Học Kiến Trúc Phần Mềm & Fullstack Cloud-Native Thực Chiến
+Được hướng dẫn trực tiếp bởi Principal Architect Hoàng Minh. Chương trình tập trung vào việc giải quyết bài toán chịu tải hàng triệu CCU, tối ưu độ trễ và vận hành hệ thống tự động hóa.
+
+### 🚀 Bạn sẽ làm chủ:
+* **Kiến trúc hệ thống phân tán:** Tách nhỏ Monolith sang Microservices theo Domain-Driven Design (DDD).
+* **High Performance Backend:** Xây dựng API hiệu năng cao với Golang, xử lý đồng thời (Concurrency) và Non-blocking I/O.
+* **Modern Frontend:** Ứng dụng Next.js 15 App Router, Server Components và tối ưu hóa Web Vitals.
+* **Cloud & DevOps:** Container hóa với Docker, điều phối cụm Kubernetes (K8s), thiết lập CI/CD pipeline tự động với GitHub Actions.
+      `,
+      thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      price: 2400000,
+      salePrice: 1290000,
+      level: "INTERMEDIATE",
+      status: "PUBLISHED",
+      isFeatured: true,
+      isFree: false,
+      certificateEnabled: true,
+    },
+  });
+
+  const sIT1 = await prisma.section.create({
+    data: {
+      courseId: courseITPaid.id,
+      title: "Chương 1: Thiết Kế Kiến Trúc Microservices & Clean Architecture",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sIT1.id,
+      title: "Bài 1: Nguyên Tắc Tách Service, Domain-Driven Design & Database Per Service",
+      slug: "bai-1-nguyen-tac-tach-service-ddd",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 1350,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Cách xác định Bounded Context và chiến lược phân chia database tránh tình trạng Distributed Monolith.",
+    },
+  });
+
+  const courseITFree = await prisma.course.create({
+    data: {
+      instructorId: instructorIT.id,
+      categoryId: catITFullstack.id,
+      title: "Nhập Môn Lập Trình TypeScript & Xây Dựng Ứng Dụng Thực Tế Từ Con Số 0",
+      slug: "nhap-mon-lap-trinh-typescript-free",
+      shortDescription: "Nắm vững cú pháp TypeScript hiện đại, Generic types, Utility types và kết nối API chuẩn type-safe cho người mới bắt đầu.",
+      description: "Khóa học miễn phí giúp lập trình viên JavaScript chuyển đổi tư duy sang Type-Safe, hạn chế lỗi Runtime và tự tin làm việc trên các codebase lớn.",
+      thumbnailUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      price: 0,
+      salePrice: 0,
+      level: "BEGINNER",
+      status: "PUBLISHED",
+      isFeatured: false,
+      isFree: true,
+      certificateEnabled: true,
+    },
+  });
+
+  const sITFree1 = await prisma.section.create({
+    data: {
+      courseId: courseITFree.id,
+      title: "Chương 1: Nền Tảng TypeScript Hiện Đại",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sITFree1.id,
+      title: "Bài 1: Cài Đặt Môi Trường & Các Kiểu Dữ Liệu Nguyên Bản",
+      slug: "bai-1-cai-dat-moi-truong-typescript",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 780,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Cấu hình tsconfig.json tối ưu, phân biệt Type và Interface, cách sử dụng Union types và Narrowing.",
+    },
+  });
+
+  // 4F. Electronics Courses
+  const courseElectronicsPaid = await prisma.course.create({
+    data: {
+      instructorId: instructorElectronics.id,
+      categoryId: catElecPCB.id,
+      title: "Chuyên Gia Thiết Kế Bo Mạch Tốc Độ Cao PCB (High-Speed Design) với Altium Designer",
+      slug: "thiet-ke-pcb-high-speed-altium-designer",
+      shortDescription: "Thực chiến thiết kế Layout bo mạch 4 - 8 lớp, kiểm soát trở kháng đường truyền (Impedance matching), chống nhiễu xuyên âm và tương thích điện từ EMC.",
+      description: `
+## Khóa Học Thiết Kế Bo Mạch Điện Tử Tốc Độ Cao Đẳng Cấp
+Học trực tiếp cùng ThS. Vũ Thành Nam - Kỹ sư R&D phần cứng hơn 15 năm kinh nghiệm. Khóa học đưa bạn từ lý thuyết mạch đến năng lực tự tin layout các bo mạch phức tạp chuẩn công nghiệp.
+
+### ⚡ Bạn sẽ làm chủ:
+* **Stackup bo mạch nhiều lớp:** Tính toán độ dày điện môi, kiểm soát trở kháng vi sai (Differential Impedance 90Ω, 100Ω).
+* **Kỹ thuật Length Tuning:** Cân bằng chiều dài đường bus dữ liệu DDR3/DDR4, HDMI và USB 3.0.
+* **Tiêu chuẩn chống nhiễu EMI/EMC:** Thiết kế mặt phẳng Ground (Reference Plane), khử vòng lặp dòng điện (Ground Loops).
+* **Xuất file sản xuất DFM/DFA:** Tạo file Gerber X2, ODB++, pick-and-place và BOM chuẩn cho nhà máy SMT.
+      `,
+      thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      price: 2200000,
+      salePrice: 1190000,
+      level: "ADVANCED",
+      status: "PUBLISHED",
+      isFeatured: true,
+      isFree: false,
+      certificateEnabled: true,
+    },
+  });
+
+  const sElec1 = await prisma.section.create({
+    data: {
+      courseId: courseElectronicsPaid.id,
+      title: "Chương 1: Thiết Lập Stackup 4-8 Lớp & Kiểm Soát Trở Kháng",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sElec1.id,
+      title: "Bài 1: Công Thức Tính Trở Kháng Vi Sai & Đường Truyền Microstrip/Stripline",
+      slug: "bai-1-tinh-toan-tro-khang-vi-sai",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 1420,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Sử dụng Layer Stack Manager trên Altium Designer và công cụ Simbeor để tính toán bề rộng đường mạch chính xác đến từng mil.",
+    },
+  });
+
+  const courseElectronicsFree = await prisma.course.create({
+    data: {
+      instructorId: instructorElectronics.id,
+      categoryId: catElecPCB.id,
+      title: "Nhập Môn Điện Tử Cơ Bản & Kỹ Năng Đo Kiểm Mạch Sống Thực Tế",
+      slug: "nhap-mon-dien-tu-va-do-kiem-mach-free",
+      shortDescription: "Làm quen với linh kiện R-L-C, Diode, Transistor, cách đọc datasheet và sử dụng đồng hồ VOM, máy hiện sóng oscilloscope an toàn.",
+      description: "Khóa học nền tảng miễn phí giúp sinh viên và kỹ sư mới ra trường nắm vững thao tác đo kiểm điện áp, dòng điện và nhận diện lỗi mạch linh kiện.",
+      thumbnailUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      price: 0,
+      salePrice: 0,
+      level: "BEGINNER",
+      status: "PUBLISHED",
+      isFeatured: false,
+      isFree: true,
+      certificateEnabled: true,
+    },
+  });
+
+  const sElecFree1 = await prisma.section.create({
+    data: {
+      courseId: courseElectronicsFree.id,
+      title: "Chương 1: Kỹ Năng Đo Kiểm Thiết Bị Phòng Lab",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sElecFree1.id,
+      title: "Bài 1: Sử Dụng Đồng Hồ VOM & Máy Hiện Sóng Đo Dạng Sóng Chuẩn Xác",
+      slug: "bai-1-su-dung-dong-ho-vom-va-oscilloscope",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 810,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Kỹ thuật chỉnh Timebase, Voltage scale và Trigger trên máy hiện sóng để bắt tín hiệu dao động xung clock.",
+    },
+  });
+
+  // 4G. Mechanical Courses
+  const courseMechanicalPaid = await prisma.course.create({
+    data: {
+      instructorId: instructorMechanical.id,
+      categoryId: catMechCAD.id,
+      title: "Thực Chiến Thiết Kế Máy & Cơ Cấu Tự Động Hóa 3D Chuyên Nghiệp với SolidWorks",
+      slug: "thiet-ke-may-co-cau-tu-dong-hoa-solidworks",
+      shortDescription: "Từ ý tưởng cơ cấu máy đến mô hình 3D hoàn chỉnh: Tính toán công suất động cơ, dung sai lắp ghép GD&T, thiết kế đồ gá JIG và xuất bản vẽ gia công CNC.",
+      description: `
+## Khóa Học Thiết Kế Máy & Cơ Điện Tử Tự Động Hóa Thực Chiến
+Được hướng dẫn bởi Kỹ sư Đỗ Quang Huy - Chuyên gia R&D máy công nghiệp với hơn 10 năm kinh nghiệm thiết kế các dây chuyền tự động hóa.
+
+### ⚙️ Bạn sẽ làm chủ:
+* **Dựng hình 3D tham số:** Thiết kế chi tiết dạng tấm kim loại (Sheet Metal), khung hàn (Weldments) và cụm lắp ráp phức tạp (Large Assemblies).
+* **Tính chọn thiết bị công nghiệp:** Tính toán công suất động cơ Servo/Step, trục vít me bi, ray trượt tuyến tính MISUMI và xylanh SMC.
+* **Chuẩn dung sai GD&T:** Kiểm soát dung sai hình học độ đảo, độ vuông góc, độ phẳng đảm bảo lắp ráp chính xác tại xưởng cơ khí.
+* **Mô phỏng động học & FEA:** Kiểm tra va chạm cơ cấu (Interference Detection) và phân tích ứng suất tĩnh trên SolidWorks Simulation.
+      `,
+      thumbnailUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      price: 1990000,
+      salePrice: 1050000,
+      level: "INTERMEDIATE",
+      status: "PUBLISHED",
+      isFeatured: true,
+      isFree: false,
+      certificateEnabled: true,
+    },
+  });
+
+  const sMech1 = await prisma.section.create({
+    data: {
+      courseId: courseMechanicalPaid.id,
+      title: "Chương 1: Thiết Kế Khung Vỏ & Cơ Cấu Chấp Hành Khí Nén",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sMech1.id,
+      title: "Bài 1: Tính Chọn Xylanh Khí Nén & Van Điện Từ Cho Cơ Cấu Đẩy Phôi",
+      slug: "bai-1-tinh-chon-xylanh-khi-nen",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 1280,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Công thức tính lực đẩy của xylanh dựa trên áp suất khí nén cấp vào và hệ số an toàn khi chịu tải động.",
+    },
+  });
+
+  const courseMechanicalFree = await prisma.course.create({
+    data: {
+      instructorId: instructorMechanical.id,
+      categoryId: catMechCAD.id,
+      title: "Nhập Môn Bản Vẽ Kỹ Thuật Cơ Khí & Dựng Khối 3D Chuẩn Công Nghiệp",
+      slug: "nhap-mon-ban-ve-ky-thuat-co-khi-free",
+      shortDescription: "Học cách đọc hình chiếu vuông góc, mặt cắt, hình trích và thực hành dựng các chi tiết máy đơn giản trên phần mềm SolidWorks.",
+      description: "Khóa học miễn phí trang bị cho sinh viên và kỹ sư cơ khí phương pháp tư duy không gian 3D và chuẩn hóa quy cách xuất bản vẽ gia công 2D.",
+      thumbnailUrl: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
+      introVideoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      price: 0,
+      salePrice: 0,
+      level: "BEGINNER",
+      status: "PUBLISHED",
+      isFeatured: false,
+      isFree: true,
+      certificateEnabled: true,
+    },
+  });
+
+  const sMechFree1 = await prisma.section.create({
+    data: {
+      courseId: courseMechanicalFree.id,
+      title: "Chương 1: Đọc Bản Vẽ Kỹ Thuật & Dựng Khối Cơ Bản",
+      orderIndex: 1,
+    },
+  });
+
+  await prisma.lesson.create({
+    data: {
+      sectionId: sMechFree1.id,
+      title: "Bài 1: Nguyên Tắc Ba Hình Chiếu Vuông Góc & Phác Thảo Sketch Chuẩn",
+      slug: "bai-1-nguyen-tac-ba-hinh-chieu",
+      contentType: "VIDEO_YOUTUBE",
+      videoUrl: "https://www.youtube.com/watch?v=kNNbVf94gqw",
+      videoDuration: 750,
+      isPreview: true,
+      orderIndex: 1,
+      contentBody: "Kỹ năng ràng buộc hình học (Fully Defined Sketch) giúp bản vẽ thiết kế không bị biến dạng khi thay đổi kích thước.",
+    },
+  });
+
+  // --------------------------------------------------------------------------
+  // 4H. ADDITIONAL COURSES (4 MORE PER NICHE -> TOTAL 6 COURSES PER NICHE)
+  // --------------------------------------------------------------------------
+
+  // 1. Additional Trading Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructor.id,
+    categoryId: catSMC.id,
+    title: "Price Action Nâng Cao: Nghệ Thuật Đọc Nến & Bẫy Thanh Khoản Quét Stoploss",
+    slug: "price-action-nang-cao-bay-thanh-khoan",
+    shortDescription: "Nhận diện vùng thanh khoản kép (Double Top/Bottom Liquidity) và cách thiết lập lệnh săn râu nến (Liquidity Sweep) chuẩn xác.",
+    description: "Khóa học thực chiến giúp trader phân biệt các đợt quét thanh khoản giả và thời điểm dòng tiền thông minh thực sự kích hoạt lệnh lớn.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80",
+    price: 1800000,
+    salePrice: 990000,
+    level: "ADVANCED",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Kỹ Thuật Đọc Sóng Thanh Khoản",
+    lessonTitle: "Bài 1: Nhận Diện Bẫy Giá Induced Liquidity Trước Tin Tức",
+    lessonSlug: "bai-1-nhan-dien-bay-gia-induced-liquidity",
+    contentBody: "Phương pháp đọc bẫy giá phiên Á và phiên Âu để tìm điểm bùng nổ trong phiên Mỹ.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructor.id,
+    categoryId: catStock.id,
+    title: "Đầu Tư Chứng Khoán Việt Nam Thực Chiến: Phân Tích Dòng Tiền Lớn VSA",
+    slug: "dau-tu-chung-khoan-viet-nam-vsa",
+    shortDescription: "Nhận diện dấu chân Big Boys, các pha Gom hàng (Accumulation), Đẩy giá (Markup) và Phân phối (Distribution) trên thị trường VN-Index.",
+    description: "Giáo trình phân tích khối lượng và hành vi giá VSA chuyên sâu, giúp bạn lọc cổ phiếu dẫn dắt và tránh đu đỉnh ngắn hạn.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1200&q=80",
+    price: 2100000,
+    salePrice: 1150000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Các Pha Của Chu Kỳ Cổ Phiếu VSA",
+    lessonTitle: "Bài 1: Dấu Hiệu Nhận Biết Cổ Phiếu Vào Pha Tích Lũy Cạn Cung",
+    lessonSlug: "bai-1-dau-hieu-nhan-biet-tich-luy-can-cung",
+    contentBody: "Cách đọc các phiên No Demand Bar và Test Bar trước khi cổ phiếu bước vào pha bứt phá.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructor.id,
+    categoryId: catStock.id,
+    title: "Đọc Hiểu Báo Cáo Tài Chính & Định Giá Cổ Phiếu Cho Nhà Đầu Tư Mới",
+    slug: "doc-hieu-bao-cao-tai-chinh-dinh-gia-f0",
+    shortDescription: "Giải mã các chỉ số P/E, P/B, ROE, nợ vay và dòng tiền kinh doanh giúp chọn lọc doanh nghiệp tăng trưởng bền vững.",
+    description: "Khóa học miễn phí giúp nhà đầu tư nắm bắt các bẫy kế toán thường gặp và đánh giá sức khỏe tài chính thực sự của doanh nghiệp.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Ba Bảng Báo Cáo Tài Chính Trọng Yếu",
+    lessonTitle: "Bài 1: Phân Tích Bảng Cân Đối Kế Toán & Cơ Cấu Nợ Vay",
+    lessonSlug: "bai-1-bang-can-doi-ke-toan-no-vay",
+    contentBody: "Phương pháp kiểm tra tính thanh khoản và các khoản phải thu bất thường của ban lãnh đạo.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructor.id,
+    categoryId: catAlgo.id,
+    title: "Lập Trình Bot Giao Dịch Tự Động MT5 (MQL5) & Thuật Toán Quản Lý Vốn",
+    slug: "lap-trinh-bot-giao-dich-mt5-mql5",
+    shortDescription: "Tự động hóa 100% chiến lược giao dịch: Viết Expert Advisor (EA), backtest dữ liệu 10 năm và triển khai vận hành VPS 24/7.",
+    description: "Xây dựng hệ thống giao dịch tự động không cảm xúc, tích hợp quản lý rủi ro Martingale có kiểm soát và Trailing Stoploss thông minh.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
+    price: 2800000,
+    salePrice: 1590000,
+    level: "ADVANCED",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Nền Tảng Ngôn Ngữ MQL5",
+    lessonTitle: "Bài 1: Cấu Trúc Của Một Expert Advisor & Vòng Đời Lệnh Giao Dịch",
+    lessonSlug: "bai-1-cau-truc-expert-advisor-mql5",
+    contentBody: "Viết mã nguồn mở lệnh, đóng lệnh và hàm kiểm tra rủi ro theo tỷ lệ phần trăm tài khoản.",
+  });
+
+  // 2. Additional IELTS Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorIELTS.id,
+    categoryId: catIELTSSpeaking.id,
+    title: "Chiến Lược Đột Phá IELTS Writing Task 2: Tư Duy Nghị Luận & Cấu Trúc 8.0+",
+    slug: "chien-luoc-ielts-writing-task-2-8-0",
+    shortDescription: "Khai mở tư duy lập luận phản biện, kỹ thuật triển khai ý tưởng P-E-E-L và bộ từ vựng Academic C1/C2 nâng band điểm thần tốc.",
+    description: "Chuyên sâu vào các dạng bài khó nhất của Writing Task 2: Two-part Questions, Discuss both views và To what extent do you agree.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
+    price: 1650000,
+    salePrice: 890000,
+    level: "ADVANCED",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Kỹ Thuật Viết Đoạn Thân Bài Sắc Bén",
+    lessonTitle: "Bài 1: Cách Phát Triển Luận Cứ Không Bị Trùng Lặp Ý",
+    lessonSlug: "bai-1-phat-trien-luan-cu-writing-task-2",
+    contentBody: "Phân tích bài mẫu 8.5 từ cựu giám khảo Cambridge và cách sử dụng liên từ nối tự nhiên.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIELTS.id,
+    categoryId: catIELTSSpeaking.id,
+    title: "Bí Quyết Phản Xạ IELTS Speaking 7.5+: Chiến Thuật Xử Lý Part 1, 2, 3 Tự Nhiên",
+    slug: "phan-xa-ielts-speaking-7-5-tu-nhien",
+    shortDescription: "Làm chủ ngữ điệu bản xứ, kỹ thuật kéo dài câu trả lời (Fluency & Coherence) và cách xử lý khi gặp chủ đề lạ trong phòng thi.",
+    description: "Bộ đề dự đoán Speaking cập nhật mới nhất kèm câu trả lời mẫu đạt chuẩn band điểm 8.0+ cho từng topic thời sự.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80",
+    price: 1500000,
+    salePrice: 790000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Chiến Thuật Mở Rộng Câu Trả Lời Part 1",
+    lessonTitle: "Bài 1: Công Thức A-R-E-A (Answer - Reason - Example - Alternative)",
+    lessonSlug: "bai-1-cong-thuc-area-speaking",
+    contentBody: "Rèn luyện phản xạ bật ngay câu trả lời trong 1 giây mà không cần dịch từ tiếng Việt sang tiếng Anh.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIELTS.id,
+    categoryId: catIELTSMastery.id,
+    title: "Giải Mã 1.000 Từ Vựng Học Thuật IELTS Band 7.5+ Theo Chủ Đề Hot",
+    slug: "1000-tu-vung-hoc-thuat-ielts-theo-chu-de",
+    shortDescription: "Ghi nhớ từ vựng qua phương pháp Spaced Repetition (Lặp lại ngắt quãng) theo các cụm chủ đề Môi trường, Công nghệ, Giáo dục.",
+    description: "Khóa học miễn phí giúp bạn mở rộng vốn từ vựng học thuật C1/C2 dùng cho cả 4 kỹ năng trong kỳ thi IELTS.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "ALL_LEVELS",
+    isFree: true,
+    sectionTitle: "Chương 1: Chủ Đề Môi Trường & Phát Triển Bền Vững",
+    lessonTitle: "Bài 1: 30 Collocations C1 Về Biến Đổi Khí Hậu & Năng Lượng Xanh",
+    lessonSlug: "bai-1-collocations-moi-truong-c1",
+    contentBody: "Ứng dụng từ vựng ngay vào các câu mở đoạn Writing và luận điểm Speaking Part 3.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIELTS.id,
+    categoryId: catIELTSMastery.id,
+    title: "Luyện Đề Chuyên Sâu IELTS Listening & Reading: Kỹ Thuật Bẫy Paraphrase",
+    slug: "luyen-de-ielts-listening-reading-paraphrase",
+    shortDescription: "Phương pháp xử lý đề Cambridge 15-19: Nhận diện từ đồng nghĩa, phân tích câu hỏi Multiple Choice và Heading Matching chuẩn xác.",
+    description: "Chiến thuật bứt phá điểm số tối đa ở hai kỹ năng thụ động, tiết kiệm thời gian làm bài và nâng cao độ tập trung khi nghe audio.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1200&q=80",
+    price: 1350000,
+    salePrice: 690000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Kỹ Thuật Định Vị Thông Tin Reading",
+    lessonTitle: "Bài 1: Xử Lý Dạng Bài True / False / Not Given Chuẩn Xác 100%",
+    lessonSlug: "bai-1-xu-ly-true-false-not-given",
+    contentBody: "Quy tắc phân biệt rõ ràng giữa False (mâu thuẫn thông tin) và Not Given (không đủ căn cứ kết luận).",
+  });
+
+  // 3. Additional Baking Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorBaking.id,
+    categoryId: catSourdough.id,
+    title: "Nghệ Thuật Bánh Mì Hoa Cúc & Croissant Ngàn Lớp Chuẩn Hương Vị Pháp",
+    slug: "nghe-thuat-banh-mi-hoa-cuc-va-croissant",
+    shortDescription: "Bí quyết cán bơ lạnh tạo ngàn lớp giòn xốp (Lamination), kỹ thuật tết sam bánh hoa cúc thớ dai mềm thơm béo bơ động vật.",
+    description: "Nắm vững kỹ thuật khống chế nhiệt độ phòng khi cán bơ, quy trình ủ bột chậm trong tủ mát để tạo cấu trúc tổ ong hoàn mỹ.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=1200&q=80",
+    price: 1550000,
+    salePrice: 850000,
+    level: "INTERMEDIATE",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Kỹ Thuật Cán Bơ Ngàn Lớp",
+    lessonTitle: "Bài 1: Công Thức Gấp Bột Tour Simple & Tour Double Cho Croissant",
+    lessonSlug: "bai-1-cong-thuc-gap-bot-croissant",
+    contentBody: "Cách bảo quản khối bơ ở 14-16°C để không bị gãy bơ hoặc chảy bơ trong khi cán.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorBaking.id,
+    categoryId: catButtercream.id,
+    title: "Chuyên Đề Bắt Hoa Kem Bơ Hàn Quốc & Phối Màu Pastel Nghệ Thuật",
+    slug: "bat-hoa-kem-bo-han-quoc-pastel",
+    shortDescription: "Kỹ thuật bắt hoa hồng, hoa mao lương, cẩm tú cầu bằng kem bơ trong suốt Glossy Buttercream chuẩn phong cách Hàn Quốc thời thượng.",
+    description: "Hướng dẫn phối bảng màu pastel thanh lịch, kỹ thuật nghiêng đui bắt hoa và bố cục trang trí bánh cưới sang trọng.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=1200&q=80",
+    price: 1400000,
+    salePrice: 790000,
+    level: "ALL_LEVELS",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Nấu Kem Bơ Bóng Trong Suốt",
+    lessonTitle: "Bài 1: Công Thức Kem Bơ Lòng Trắng Trứng Italian Meringue Bất Bại",
+    lessonSlug: "bai-1-kem-bo-italian-meringue",
+    contentBody: "Kiểm soát nhiệt kế siro đường ở 118°C để kem bơ đạt độ mịn mượt và không bị tách nước.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorBaking.id,
+    categoryId: catButtercream.id,
+    title: "Bí Quyết Chà Láng Sắc Cạnh Bánh Kem Sinh Nhật Kinh Doanh",
+    slug: "bi-quyet-cha-lang-sac-canh-banh-kem",
+    shortDescription: "Thao tác tay chuẩn xác với bàn xoay và miếng vét mica, xử lý góc cạnh bánh vuông vức không bị rỗ kem chỉ trong 5 phút.",
+    description: "Khóa học thực hành miễn phí giúp thợ bánh mới vào nghề tự tin chà láng mặt phẳng và sắc cạnh cho cốt bánh gato mềm.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Kỹ Năng Đánh Kem & Chà Láng",
+    lessonTitle: "Bài 1: Cách Cầm Dao Chà Láng & Góc Nghiêng 45 Độ Chuẩn Tiệm Bánh",
+    lessonSlug: "bai-1-cach-cam-dao-cha-lang",
+    contentBody: "Bí quyết khắc phục hiện tượng kem bị đánh quá tay rỗ tổ ong bằng nước ấm.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorBaking.id,
+    categoryId: catButtercream.id,
+    title: "Masterclass Bánh Lạnh Châu Âu: Mousse, Tiramisu & Entremet Tráng Gương",
+    slug: "masterclass-banh-lanh-entremet-trang-guong",
+    shortDescription: "Làm chủ kỹ thuật nấu lớp nhân Curd, thạch Jelly, cốt bánh dacquoise giòn hạt và lớp sốt tráng gương (Mirror Glaze) bóng loáng chuẩn 5 sao.",
+    description: "Bộ công thức các dòng bánh lạnh cao cấp mang lại tỷ suất lợi nhuận cao cho các mô hình tiệm bánh cà phê hiện đại.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=1200&q=80",
+    price: 1750000,
+    salePrice: 950000,
+    level: "ADVANCED",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Kỹ Thuật Đổ Lớp Tráng Gương",
+    lessonTitle: "Bài 1: Công Thức Sốt Tráng Gương Sôcôla Trắng Nhiệt Độ Đổ 32°C",
+    lessonSlug: "bai-1-sot-trang-guong-mirror-glaze",
+    contentBody: "Kỹ thuật dùng máy xay cầm tay khử hoàn toàn bọt khí trên bề mặt bánh tráng gương.",
+  });
+
+  // 4. Additional Fitness Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorFitness.id,
+    categoryId: catFatLoss.id,
+    title: "Giáo Án Tăng Cơ Hypertrophy: Xây Dựng Khối Cơ Bắp Chuẩn Khối & Lực",
+    slug: "giao-an-tang-co-hypertrophy-chuyen-sau",
+    shortDescription: "Phương pháp tập luyện lũy tiến tải trọng (Progressive Overload), kỹ thuật Reps in Reserve (RIR) và cách kích hoạt tối đa sợi cơ type II.",
+    description: "Lịch tập chi tiết 4-5 buổi/tuần dành cho người muốn tối ưu hóa kích thước cơ bắp và sức mạnh bền bỉ.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80",
+    price: 1250000,
+    salePrice: 690000,
+    level: "INTERMEDIATE",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Nguyên Lý Phát Triển Cơ Bắp",
+    lessonTitle: "Bài 1: Kiểm Soát Thời Gian Chịu Áp Lực (Time Under Tension - TUT)",
+    lessonSlug: "bai-1-kiem-soat-time-under-tension",
+    contentBody: "Kỹ thuật hạ tạ chậm 3 giây (Eccentric Phase) kích thích vi tổn thương cơ bắp có lợi.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorFitness.id,
+    categoryId: catFatLoss.id,
+    title: "Dinh Dưỡng Thể Hình Thực Chiến: Thiết Kế Thực Đơn Macro Chuẩn Từng Giai Đoạn",
+    slug: "dinh-duong-the-hinh-thiet-ke-macro",
+    shortDescription: "Tự tính toán khẩu phần đạm - tinh bột - chất béo, cách chọn nguồn thực phẩm tự nhiên và chiến lược Refeed Day chống đình trệ giảm mỡ.",
+    description: "Giáo trình dinh dưỡng thực tế ứng dụng nguyên liệu Việt Nam, không cần dùng thực phẩm bổ sung đắt đỏ.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=1200&q=80",
+    price: 890000,
+    salePrice: 490000,
+    level: "ALL_LEVELS",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Phân Bổ Năng Lượng Trong Ngày",
+    lessonTitle: "Bài 1: Thời Điểm Vàng Bổ Sung Protein Trước & Sau Buổi Tập",
+    lessonSlug: "bai-1-thoi-diem-bo-sung-protein",
+    contentBody: "Cách hấp thụ tối đa 30-40g protein mỗi bữa ăn để chống dị hóa cơ bắp.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorFitness.id,
+    categoryId: catFatLoss.id,
+    title: "Kỹ Thuật Hít Thở & Khởi Động Động Học Chống Chấn Thương Khớp",
+    slug: "hit-tho-khoi-dong-chong-chan-thuong",
+    shortDescription: "Chuỗi bài tập Dynamic Warm-up 10 phút kích hoạt cơ mông, làm ấm ổ khớp vai và kỹ thuật thở gồng bụng bảo vệ cột sống.",
+    description: "Khóa học nền tảng miễn phí giúp người tập gym loại bỏ các cơn đau nhức cổ tay, khớp gối và đau lưng dưới khi gánh tạ.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Khởi Động Khớp Toàn Diện",
+    lessonTitle: "Bài 1: Kích Hoạt Ổ Khớp Vai Với Dây Kháng Lực Band Pull-apart",
+    lessonSlug: "bai-1-kich-hoat-o-khop-vai",
+    contentBody: "Cách mở rộng biên độ chuyển động của bả vai trước bài đẩy ngực Bench Press.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorFitness.id,
+    categoryId: catYoga.id,
+    title: "Yoga Chữa Lành Trầm Cảm, Giải Tỏa Stress & Cải Thiện Giấc Ngủ Sâu",
+    slug: "yoga-chua-lanh-stress-cai-thien-giac-ngu",
+    shortDescription: "Các chuỗi động tác Yoga Yin nhẹ nhàng, thở Pranayama và thiền định buông thư giúp xoa dịu hệ thần kinh giao cảm.",
+    description: "Khóa tập trị liệu tại nhà dành cho người bận rộn bị mất ngủ, căng thẳng kéo dài và đau mỏi vai gáy do làm việc quá sức.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80",
+    price: 950000,
+    salePrice: 550000,
+    level: "ALL_LEVELS",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Chuỗi Bài Tập Buổi Tối",
+    lessonTitle: "Bài 1: Tư Thế Chân Đặt Lên Tường (Viparita Karani) Tăng Tuần Hoàn Não",
+    lessonSlug: "bai-1-tu-the-viparita-karani",
+    contentBody: "Thực hành 15 phút trước khi đi ngủ giúp hạ nhịp tim và vào giấc ngủ tự nhiên nhanh chóng.",
+  });
+
+  // 5. Additional IT Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorIT.id,
+    categoryId: catITFullstack.id,
+    title: "Xây Dựng Hệ Thống Microservices Với Golang, gRPC & Apache Kafka",
+    slug: "xay-dung-microservices-golang-grpc-kafka",
+    shortDescription: "Thực chiến thiết kế dịch vụ phân tán hiệu năng cao với Golang: Xử lý giao tiếp gRPC nhị phân siêu tốc, Message Queue Kafka chịu tải triệu message/s.",
+    description: "Khóa học chuyên sâu đưa bạn vào thế giới backend quy mô lớn: Triển khai Service Discovery, Circuit Breaker với Consul và gRPC middleware.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+    price: 2150000,
+    salePrice: 1190000,
+    level: "ADVANCED",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Kiến Trúc Hướng Sự Kiện (Event-Driven Architecture)",
+    lessonTitle: "Bài 1: Thiết Lập Kafka Consumer Group & Cơ Chế Exactly-Once Delivery",
+    lessonSlug: "bai-1-kafka-consumer-group-exactly-once",
+    contentBody: "Xử lý idempotency và tránh duplicate dữ liệu khi hàng đợi Kafka phát lại tin nhắn.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIT.id,
+    categoryId: catITAI.id,
+    title: "Lập Trình Trí Tuệ Nhân Tạo: Xây Dựng Ứng Dụng AI GenAI & LLM với LangChain/RAG",
+    slug: "lap-trinh-ai-genai-llm-langchain-rag",
+    shortDescription: "Tích hợp mô hình ngôn ngữ lớn (OpenAI, Claude, LLaMA), xây dựng hệ thống hỏi đáp dữ liệu doanh nghiệp RAG với Vector Database Milvus/Pinecone.",
+    description: "Nắm vững kỹ thuật Prompt Engineering nâng cao, Fine-tuning mô hình mã nguồn mở và xây dựng AI Agent tự động hóa quy trình nghiệp vụ.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80",
+    price: 2600000,
+    salePrice: 1450000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Kiến Trúc RAG (Retrieval-Augmented Generation)",
+    lessonTitle: "Bài 1: Phân Đoạn Tài Liệu (Chunking) & Tạo Embedding Vectors",
+    lessonSlug: "bai-1-chunking-document-embeddings",
+    contentBody: "Tối ưu hóa độ chính xác của ngữ cảnh tìm kiếm ngữ nghĩa với Semantic Search.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIT.id,
+    categoryId: catITFullstack.id,
+    title: "DevOps Toàn Diện: Làm Chủ Docker, Kubernetes, CI/CD Pipeline & Giám Sát Cloud",
+    slug: "devops-docker-kubernetes-cicd-cloud",
+    shortDescription: "Tự động hóa hoàn toàn quy trình bàn giao phần mềm: Viết Dockerfile đa tầng, triển khai cụm K8s Helm Charts, dựng pipeline GitHub Actions.",
+    description: "Giám sát hệ thống thời gian thực với Prometheus & Grafana, thu thập log tập trung với Loki và thiết lập cảnh báo sự cố tự động qua Telegram.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&w=1200&q=80",
+    price: 2300000,
+    salePrice: 1250000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Quản Trị Cụm Kubernetes Production",
+    lessonTitle: "Bài 1: Cấu Hình Ingress NGINX, Cert-Manager Cấp SSL Tự Động",
+    lessonSlug: "bai-1-ingress-nginx-cert-manager",
+    contentBody: "Triển khai dịch vụ Zero-Downtime Deployment với chiến lược Rolling Update.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorIT.id,
+    categoryId: catITAI.id,
+    title: "Nhập Môn Python & Xử Lý Dữ Liệu Thực Tế Cho Người Mới Bắt Đầu",
+    slug: "nhap-mon-python-xu-ly-du-lieu-free",
+    shortDescription: "Cú pháp lập trình Python tinh gọn, làm quen với thư viện NumPy, Pandas và trực quan hóa dữ liệu biểu đồ với Matplotlib.",
+    description: "Khóa học miễn phí giúp bạn bước chân vào ngành Khoa học dữ liệu (Data Science) và Lập trình tự động hóa với các dự án mini thú vị.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Làm Quen Với Python & Thư Viện Pandas",
+    lessonTitle: "Bài 1: Đọc File Excel/CSV & Thao Tác Lọc Dữ Liệu Nhanh",
+    lessonSlug: "bai-1-doc-file-excel-pandas",
+    contentBody: "Sử dụng hàm lọc điều kiện DataFrame để xuất báo cáo phân tích kinh doanh trong 3 dòng code.",
+  });
+
+  // 6. Additional Electronics Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorElectronics.id,
+    categoryId: catElecEmbedded.id,
+    title: "Lập Trình Hệ Thống Nhúng Vi Điều Khiển ARM Cortex-M với FreeRTOS",
+    slug: "lap-trinh-nhung-arm-cortex-m-freertos",
+    shortDescription: "Lập trình đa nhiệm Real-Time OS trên STM32: Quản lý Tasks, Queues, Semaphores, Mutex và tối ưu hóa bộ nhớ RAM/Flash cho sản phẩm thương mại.",
+    description: "Khóa học chuyên sâu từ thanh ghi (Bare-metal) đến kiến trúc phần mềm nhúng chuyên nghiệp, xử lý ngắt phần cứng an toàn tuyệt đối.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=1200&q=80",
+    price: 1950000,
+    salePrice: 1050000,
+    level: "ADVANCED",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Cơ Chế Định Thời & Chuyển Ngữ Cảnh FreeRTOS",
+    lessonTitle: "Bài 1: Phân Biệt Binary Semaphore và Counting Semaphore",
+    lessonSlug: "bai-1-binary-va-counting-semaphore",
+    contentBody: "Giải quyết vấn đề tranh chấp tài nguyên (Resource Contention) và nghịch đảo độ ưu tiên (Priority Inversion).",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorElectronics.id,
+    categoryId: catElecEmbedded.id,
+    title: "Thiết Kế Thiết Bị IoT Công Nghiệp Kết Nối Không Dây LoRa, BLE & WiFi",
+    slug: "thiet-ke-thiet-bi-iot-lora-ble-wifi",
+    shortDescription: "Xây dựng trạm cảm biến quan trắc môi trường truyền xa qua LoRaWAN, giao tiếp Bluetooth Low Energy tiết kiệm pin và đồng bộ Cloud MQTT.",
+    description: "Thực hành thiết kế phần cứng đo đạc công nghiệp đạt chuẩn bảo vệ IP67, quản lý năng lượng chế độ Deep Sleep tiêu thụ dưới 15uA.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+    price: 1850000,
+    salePrice: 990000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Thiết Kế Nút Cảm Biến LoRaWAN",
+    lessonTitle: "Bài 1: Tính Toán Công Suất Phát RF & Tối Ưu Ăng-ten Mạch PCB",
+    lessonSlug: "bai-1-tinh-toan-cong-suat-rf-ang-ten",
+    contentBody: "Kỹ thuật phối hợp trở kháng 50 Ohm cho đường dẫn sóng cao tần từ chip ra ăng ten ngoài.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorElectronics.id,
+    categoryId: catElecPCB.id,
+    title: "Kỹ Thuật Thiết Kế Nguồn Xung (SMPS) & Mạch Bảo Vệ Công Suất Cho Bo Mạch",
+    slug: "thiet-ke-nguon-xung-smps-cong-suat",
+    shortDescription: "Nguyên lý hoạt động và layout mạch nguồn Buck, Boost, Flyback: Tính chọn cuộn cảm, tụ lọc ESR thấp và cách tản nhiệt cho MOSFET công suất.",
+    description: "Làm chủ thiết kế nguồn điện ổn định, chịu điện áp quá độ (Surge), chống tĩnh điện ESD và đáp ứng tiêu chuẩn an toàn UL/CE.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80",
+    price: 1700000,
+    salePrice: 890000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Thiết Kế Mạch Nguồn Buck Giảm Áp Đồng Bộ",
+    lessonTitle: "Bài 1: Layout Vòng Lặp Dòng Lớn (Hot Loop) Giảm Nhiễu Phát Xạ",
+    lessonSlug: "bai-1-layout-hot-loop-nguon-xung",
+    contentBody: "Quy tắc thu hẹp diện tích vòng lặp chuyển mạch tần số cao để triệt tiêu sóng hài nhiễu.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorElectronics.id,
+    categoryId: catElecPCB.id,
+    title: "Hướng Dẫn Thiết Kế Mạch Nguyên Lý Schematic & Chọn Linh Kiện Trên KiCAD",
+    slug: "thiet-ke-mach-nguyen-ly-kicad-free",
+    shortDescription: "Phần mềm mã nguồn mở KiCAD 8: Vẽ sơ đồ khối mạch điện tử, gán Footprint linh kiện SMD, chạy kiểm tra luật điện học ERC và xuất Netlist.",
+    description: "Khóa học miễn phí giúp các bạn bắt đầu làm quen với quy trình thiết kế phần cứng chuyên nghiệp mà không tốn chi phí bản quyền phần mềm.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Quy Trình Vẽ Schematic Chuẩn Quốc Tế",
+    lessonTitle: "Bài 1: Đặt Tên Net Label, Phân Chia Khối Nguồn Và Khối Xử Lý",
+    lessonSlug: "bai-1-dat-ten-net-label-kicad",
+    contentBody: "Cách tổ chức sơ đồ nguyên lý phân cấp (Hierarchical Sheet) cho dự án nhiều trang.",
+  });
+
+  // 7. Additional Mechanical Courses (Total: 6)
+  await createDemoCourse({
+    instructorId: instructorMechanical.id,
+    categoryId: catMechCAD.id,
+    title: "Thiết Kế Đồ Gá Gia Công (JIG) & Đồ Gá Kiểm Tra Chuẩn Xác với SolidWorks",
+    slug: "thiet-ke-do-ga-gia-cong-jig-solidworks",
+    shortDescription: "Nguyên tắc định vị 6 bậc tự do, cơ cấu kẹp chặt nhanh (Toggle Clamp), thiết kế JIG phay CNC, JIG hàn và JIG kiểm tra kích thước sản phẩm.",
+    description: "Được đúc kết từ kinh nghiệm thiết kế thực tế tại các xưởng gia công phụ tùng ô tô xe máy, tối ưu thời gian gá đặt phôi.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1581092162384-8987c1d64718?auto=format&fit=crop&w=1200&q=80",
+    price: 1800000,
+    salePrice: 990000,
+    level: "INTERMEDIATE",
+    isFeatured: true,
+    sectionTitle: "Chương 1: Nguyên Tắc Định Vị & Kẹp Chặt Chi Tiết",
+    lessonTitle: "Bài 1: Bố Trí Chốt Trụ Và Chốt Trám Triệt Tiêu Xoay",
+    lessonSlug: "bai-1-bo-tri-chot-dinh-vi-do-ga",
+    contentBody: "Cách tính toán lực kẹp không làm biến dạng chi tiết vỏ mỏng khi gia công phay cao tốc.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorMechanical.id,
+    categoryId: catMechCAE.id,
+    title: "Mô Phỏng Độ Bền Kết Cấu & Phân Tích Phần Tử Hữu Hạn FEA trên ANSYS",
+    slug: "mo-phong-do-ben-ket-cau-fea-ansys",
+    shortDescription: "Phân tích ứng suất tĩnh (Static Structural), mỏi vật liệu (Fatigue), dao động riêng (Modal Analysis) và tối ưu hóa khối lượng chi tiết máy.",
+    description: "Làm chủ kỹ thuật chia lưới phần tử (Meshing), đặt điều kiện biên (Boundary Conditions) và đọc biểu đồ ứng suất Von-Mises chuẩn xác.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=1200&q=80",
+    price: 2100000,
+    salePrice: 1150000,
+    level: "ADVANCED",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Kỹ Thuật Chia Lưới Phần Tử (Meshing)",
+    lessonTitle: "Bài 1: Kiểm Soát Chất Lượng Lưới (Skewness & Aspect Ratio)",
+    lessonSlug: "bai-1-kiem-soat-chat-luong-luoi-fea",
+    contentBody: "Cách chèn Mesh Sizing tại các góc lượn chịu tập trung ứng suất (Stress Concentration).",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorMechanical.id,
+    categoryId: catMechCAE.id,
+    title: "Lập Trình Phay Tiện CNC Thực Chiến với Mastercam & Tối Ưu Đường Dao",
+    slug: "lap-trinh-cnc-mastercam-toi-uu-dao-cat",
+    shortDescription: "Xuất chương trình G-code cho máy phay 3 trục: Phay thô cao tốc Dynamic Motion, phay tinh biên dạng 3D, chọn chế độ cắt S & F chuẩn vật liệu.",
+    description: "Khóa học thực chiến giúp kỹ sư đứng máy CNC rút ngắn 30-50% thời gian gia công và tăng gấp đôi tuổi thọ mảnh dao cắt hợp kim.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
+    price: 2400000,
+    salePrice: 1290000,
+    level: "INTERMEDIATE",
+    isFeatured: false,
+    sectionTitle: "Chương 1: Chiến Lược Phay Phá Thô Dynamic Milling",
+    lessonTitle: "Bài 1: Thiết Lập Bước Tiến Dao Và Chiều Sâu Cắt Tiếp Tuyến",
+    lessonSlug: "bai-1-thiet-lap-dynamic-milling",
+    contentBody: "Tận dụng toàn bộ chiều dài me cắt của dao phay ngón để giảm tải lực uốn cán dao.",
+  });
+
+  await createDemoCourse({
+    instructorId: instructorMechanical.id,
+    categoryId: catMechCAD.id,
+    title: "Nhập Môn Thiết Kế Kim Loại Tấm (Sheet Metal) & Khung Hàn Weldments 3D",
+    slug: "thiet-ke-kim-loai-tam-sheet-metal-free",
+    shortDescription: "Học dựng vỏ tủ điện, khay đựng, khung máy thép hộp trên SolidWorks: Trải phôi kim loại phẳng (Flat Pattern) và tính hệ số dãn K-Factor.",
+    description: "Khóa học miễn phí bổ ích cho kỹ sư thiết kế các sản phẩm gia công đột dập, chấn uốn và cắt laser kim loại tấm.",
+    thumbnailUrl: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80",
+    price: 0,
+    salePrice: 0,
+    level: "BEGINNER",
+    isFree: true,
+    sectionTitle: "Chương 1: Dựng Vỏ Kim Loại Tấm",
+    lessonTitle: "Bài 1: Công Cụ Base Flange & Thiết Lập Bán Kính Uốn Góc Chấn",
+    lessonSlug: "bai-1-base-flange-sheet-metal",
+    contentBody: "Ý nghĩa của hệ số K-factor trong việc bù trừ biến dạng mép cắt trước khi đưa vào máy chấn phôi.",
+  });
+
+  console.log("✅ 42 realistic courses created (6 courses per each of the 7 niches)!");
 
   // 5. Create Enrollment for Sample Student in Course 1
   const enrollment = await prisma.enrollment.create({
@@ -1004,7 +1965,110 @@ Nhiều người nóng vội giảm ngay 1.000 calo/ngày. Hậu quả là:
     },
   });
 
-  console.log("✅ Blog posts created for Trading, IELTS, Baking, and Fitness niches");
+  // 13E. IT Blog Post
+  const blogPostIT = await prisma.blogPost.create({
+    data: {
+      authorId: instructorIT.id,
+      categoryId: catITFullstack.id,
+      title: "Kiến Trúc Microservices vs Monolith: Chiến Lược Tách Hệ Thống Chịu Tải Cao Cho Doanh Nghiệp",
+      slug: "kien-truc-microservices-vs-monolith",
+      summary: "So sánh chuyên sâu giữa Monolith và Microservices, cách phòng ngừa lỗi phân mảnh dữ liệu và quy trình bẻ gãy hệ thống lớn từng bước an toàn.",
+      content: `## 1. Xu Hướng Chuyển Đổi: Đừng Vội Tách Khi Chưa Đủ Lớn
+
+Nhiều đội ngũ kỹ thuật vội vàng chuyển từ Monolith sang Microservices ngay từ giai đoạn khởi nghiệp và gặp phải "Distributed Monolith" – hệ thống vừa chậm, vừa khó debug mà chi phí hạ tầng lại tăng vọt.
+
+### ⚖️ Khi Nào Cần Sang Microservices?
+* **Quy mô đội ngũ kỹ sư:** Khi có hơn 30 - 50 kỹ sư cùng commit vào một repository và xảy ra xung đột merge code liên tục.
+* **Nhu cầu mở rộng độc lập (Independent Scaling):** Ví dụ dịch vụ thanh toán (Payment) chỉ cần 2 instance nhưng dịch vụ xem video cần 50 instance.
+* **Thời gian release độc lập:** Một lỗi ở module gợi ý khóa học không được phép làm sập toàn bộ cổng thanh toán.
+
+## 2. Chiến Lược Strangler Fig Pattern: Tách Từng Phần
+Thay vì đập đi xây lại toàn bộ hệ thống, chiến lược an toàn nhất là:
+1. Đặt một **API Gateway** (như Envoy hoặc Kong) đứng trước hệ thống Monolith cũ.
+2. Xây dựng dịch vụ mới độc lập (New Microservice).
+3. Định tuyến một phần nhỏ traffic (Canary) sang dịch vụ mới.
+4. Khi dịch vụ mới ổn định 100%, ngắt bỏ module cũ trong Monolith.
+
+## 3. Quản Lý Giao Dịch Phân Tán (Distributed Transactions)
+Trong Microservices, việc sử dụng ACID transaction trên nhiều database là bất khả thi. Thay vào đó, chúng ta sử dụng:
+* **Saga Pattern (Orchestration hoặc Choreography):** Chia nhỏ nghiệp vụ thành các giao dịch cục bộ kèm cơ chế bù trừ lỗi (Compensating transactions).
+* **Outbox Pattern:** Đảm bảo dữ liệu lưu vào Database và bắn Message Queue (Kafka/RabbitMQ) đồng thời mà không bị thất thoát message.`,
+      coverImageUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80",
+      status: "PUBLISHED",
+      isFeatured: true,
+      readingTime: 7,
+      metaTitle: "Kiến Trúc Microservices vs Monolith Thực Chiến | DevCraft",
+      metaDescription: "Kinh nghiệm phân tách kiến trúc hệ thống chịu tải lớn từ Solution Architect.",
+      publishedAt: new Date(),
+    },
+  });
+
+  // 13F. Electronics Blog Post
+  const blogPostElectronics = await prisma.blogPost.create({
+    data: {
+      authorId: instructorElectronics.id,
+      categoryId: catElecPCB.id,
+      title: "Bí Quyết Thiết Kế PCB Tốc Độ Cao: Kiểm Soát Trở Kháng Đường Truyền Và Khử Nhiễu EMI/EMC",
+      slug: "bi-quyet-thiet-ke-pcb-toc-do-cao-emi-emc",
+      summary: "Quy tắc định tuyến tín hiệu vi sai (Differential Pairs), thiết kế lớp Reference Plane liên tục và mẹo vượt qua bài test tương thích điện từ EMC.",
+      content: `## 1. Bản Chất Của Tín Hiệu Tốc Độ Cao (High-Speed Signals)
+
+Trong thiết kế điện tử, một tín hiệu được coi là "tốc độ cao" không chỉ dựa vào tần số xung nhịp (Clock frequency) mà phụ thuộc chủ yếu vào **thời gian tăng trưởng sườn nến (Rise Time)**. Khi thời gian truyền dẫn (Propagation delay) trên đường mạch lớn hơn 1/6 thời gian tăng trưởng sườn xung, đường mạch bắt đầu hoạt động như một **đường truyền sóng (Transmission Line)**.
+
+### ⚡ Các Hiện Tượng Vật Lý Cần Kiểm Soát:
+* **Phản xạ tín hiệu (Signal Reflection):** Xảy ra khi trở kháng nguồn, đường truyền và tải không khớp nhau (Impedance Mismatch).
+* **Nhiễu xuyên âm (Crosstalk):** Hiện tượng cảm ứng điện từ giữa hai đường mạch đặt quá sát nhau (áp dụng quy tắc 3W rule).
+* **Độ trễ pha đường vi sai (Skew):** Khi hai nhánh của cặp vi sai không bằng nhau về chiều dài, chuyển đổi tín hiệu chế độ vi sai sang chế độ chung (Common-mode), phát xạ nhiễu EMI mạnh.
+
+## 2. Nguyên Tắc Vàng Khi Thiết Kế Mặt Phẳng Nối Đất (Ground Reference Plane)
+1. **Không bao giờ đi dây cắt ngang khe hở mặt phẳng đất (No Split Planes):** Dòng điện hồi tiếp tần số cao luôn chạy ngay bên dưới đường mạch tín hiệu. Cắt mặt đất sẽ tạo ra vòng lặp lớn phát xạ sóng điện từ.
+2. **Bố trí tụ thoát nhiễu (Decoupling Capacitors) sát chân IC:** Đặt tụ trị số nhỏ (0.1uF, 0.01uF) gần nhất có thể, sử dụng Via có khoảng cách tối thiểu để giảm điện cảm ký sinh (Parasitic Inductance).
+3. **Quy tắc Stitching Vias:** Bố trí hàng Via tiếp địa xung quanh mép bo mạch và dọc theo các đường tín hiệu nhạy cảm để tạo lồng chắn Faraday.`,
+      coverImageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+      status: "PUBLISHED",
+      isFeatured: true,
+      readingTime: 6,
+      metaTitle: "Bí Quyết Thiết Kế PCB Tốc Độ Cao & Khử Nhiễu EMC | CircuitMaster",
+      metaDescription: "Kỹ thuật Layout bo mạch nhiều lớp và kiểm soát trở kháng đường truyền chuẩn IPC.",
+      publishedAt: new Date(),
+    },
+  });
+
+  // 13G. Mechanical Blog Post
+  const blogPostMechanical = await prisma.blogPost.create({
+    data: {
+      authorId: instructorMechanical.id,
+      categoryId: catMechCAD.id,
+      title: "Quy Trình Thiết Kế Cơ Cấu Chấp Hành Cho Robot Công Nghiệp: Từ Tính Toán Tải Trọng Đến Bản Vẽ Chế Tạo",
+      slug: "quy-trinh-thiet-ke-co-cau-robot-cong-nghiep",
+      summary: "Phương pháp chọn động cơ Servo dựa trên momen quán tính (Inertia ratio), thiết kế truyền động dây đai răng và xuất bản vẽ dung sai GD&T.",
+      content: `## 1. Sai Lầm Phổ Biến Khi Chọn Động Cơ Servo Cho Cơ Cấu Máy
+
+Nhiều kỹ sư cơ khí mới ra trường chỉ tính toán mô-men tĩnh (Static Torque) dựa trên trọng lượng vật thể mà bỏ qua **Mô-men quán tính (Moment of Inertia - J)**. Khi động cơ cần tăng tốc đột ngột từ 0 lên 3000 vòng/phút trong 0.1 giây, tải quán tính sẽ sinh ra tải phản lực cực lớn.
+
+### 📐 Tỷ Lệ Quán Tính Lý Tưởng (Inertia Ratio):
+* Tỷ số quán tính tải / quán tính rotor động cơ ($J_{load} / J_{motor}$) nên nhỏ hơn **5:1** đối với các cơ cấu đòi hỏi độ chính xác cao và đáp ứng động nhanh (Pick & Place).
+* Nếu tỷ số vượt quá 10:1, hệ thống điều khiển servo sẽ bị dao động rung lắc (Hunting/Vibration), khó ổn định vị trí dừng.
+
+## 2. Tính Toán Truyền Động Dây Đai Răng (Timing Belt Drive)
+* **Chọn bước răng (Pitch):** Với tải nhẹ tốc độ cao, ưu tiên bước GT2 hoặc 3M. Với tải công nghiệp nặng, chọn 5M hoặc HTD 8M.
+* **Căng đai chuẩn xác:** Sử dụng cơ cấu tăng đai bằng con lăn lệch tâm hoặc rãnh trượt để kiểm soát độ võng của đai, tránh hiện tượng trượt bước (Tooth jumping).
+
+## 3. Xuất Bản Vẽ Kỹ Thuật Dung Sai Hình Học (GD&T)
+Một thiết kế 3D hoàn hảo sẽ trở nên vô nghĩa nếu bản vẽ 2D xuất xưởng không chỉ định đúng dung sai:
+* **Độ đồng tâm (Concentricity) & Độ đảo (Runout):** Cực kỳ quan trọng cho các trục lắp ổ bi quay tốc độ cao để tránh phá hủy vòng bi sớm.
+* **Độ vuông góc (Perpendicularity):** Áp dụng cho các mặt bích lắp ghép ray trượt dẫn hướng tuyến tính nhằm hạn chế kẹt bi khi chuyển động.`,
+      coverImageUrl: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80",
+      status: "PUBLISHED",
+      isFeatured: true,
+      readingTime: 6,
+      metaTitle: "Quy Trình Thiết Kế Cơ Cấu Robot Công Nghiệp | MechDesign",
+      metaDescription: "Kinh nghiệm tính toán momen quán tính và xuất bản vẽ dung sai GD&T chế tạo máy.",
+      publishedAt: new Date(),
+    },
+  });
+
+  console.log("✅ Blog posts created for Trading, IELTS, Baking, Fitness, IT, Electronics, and Mechanical niches");
 
   // 14. Initialize Default System Settings (including VietQR & Bank settings)
   console.log("Seeding default system and payment settings...");

@@ -53,10 +53,14 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { id, status, isFeatured } = body;
+    const { id, ids, status, isFeatured } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing course ID" }, { status: 400 });
+    const targetIds: string[] = Array.isArray(ids)
+      ? ids.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : id ? [id] : [];
+
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: "Missing course ID or IDs" }, { status: 400 });
     }
 
     const ALLOWED_COURSE_STATUSES = ["PUBLISHED", "DRAFT", "ARCHIVED"];
@@ -71,19 +75,36 @@ export async function PATCH(req: Request) {
     if (status !== undefined) dataToUpdate.status = status;
     if (isFeatured !== undefined) dataToUpdate.isFeatured = Boolean(isFeatured);
 
-    const updated = await prisma.course.update({
-      where: { id },
-      data: dataToUpdate,
-    });
+    if (Object.keys(dataToUpdate).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Course updated successfully!",
-      course: updated,
-    });
+    if (targetIds.length === 1) {
+      const updated = await prisma.course.update({
+        where: { id: targetIds[0] },
+        data: dataToUpdate,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Course updated successfully!",
+        course: updated,
+      });
+    } else {
+      const result = await prisma.course.updateMany({
+        where: { id: { in: targetIds } },
+        data: dataToUpdate,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully updated ${result.count} courses!`,
+        count: result.count,
+      });
+    }
   } catch (error: any) {
     console.error("Admin Course PATCH Error:", error);
-    return NextResponse.json({ error: "Error updating course" }, { status: 500 });
+    return NextResponse.json({ error: "Error updating course(s)" }, { status: 500 });
   }
 }
 
@@ -99,22 +120,65 @@ export async function DELETE(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const queryId = searchParams.get("id");
+    const queryIds = searchParams.get("ids");
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing course ID" }, { status: 400 });
+    let targetIds: string[] = [];
+    if (queryId) {
+      targetIds = [queryId];
+    } else if (queryIds) {
+      targetIds = queryIds.split(",").map((s) => s.trim()).filter(Boolean);
+    } else {
+      try {
+        const body = await req.json();
+        if (Array.isArray(body?.ids)) {
+          targetIds = body.ids.filter((item: any): item is string => typeof item === "string" && item.trim().length > 0);
+        } else if (body?.id) {
+          targetIds = [body.id];
+        }
+      } catch {
+        // No JSON body provided
+      }
     }
 
-    await prisma.course.delete({
-      where: { id },
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: "Missing course ID or IDs" }, { status: 400 });
+    }
+
+    // Check if any courses have existing order items
+    const existingOrders = await prisma.orderItem.findMany({
+      where: { courseId: { in: targetIds } },
+      select: { courseId: true },
     });
+    const coursesWithOrders = new Set(existingOrders.map((o) => o.courseId));
+    const deletableIds = targetIds.filter((id) => !coursesWithOrders.has(id));
+
+    if (deletableIds.length === 0) {
+      return NextResponse.json(
+        {
+          error: "All selected courses have associated orders and cannot be deleted directly to preserve financial records.",
+          coursesWithOrders: Array.from(coursesWithOrders),
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(
+      deletableIds.map((id) =>
+        prisma.course.delete({
+          where: { id },
+        })
+      )
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Course deleted successfully!",
+      message: `Successfully deleted ${deletableIds.length} course(s)!`,
+      deletedCount: deletableIds.length,
+      skippedCount: coursesWithOrders.size,
     });
   } catch (error: any) {
     console.error("Admin Course DELETE Error:", error);
-    return NextResponse.json({ error: "Error deleting course" }, { status: 500 });
+    return NextResponse.json({ error: "Error deleting course(s)" }, { status: 500 });
   }
 }

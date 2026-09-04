@@ -54,6 +54,27 @@ const NICHE_OPTIONS: NicheOption[] = [
     defaultBrand: "IronPulse Fitness",
     defaultTeacher: "HLV Hoàng Long",
   },
+  {
+    id: "it",
+    label: "CNTT & Lập trình",
+    icon: "💻",
+    defaultBrand: "DevCraft Tech Academy",
+    defaultTeacher: "Kỹ sư Hoàng Minh",
+  },
+  {
+    id: "electronics",
+    label: "Phần cứng điện tử",
+    icon: "⚡",
+    defaultBrand: "CircuitMaster Hardware Lab",
+    defaultTeacher: "ThS. Vũ Thành Nam",
+  },
+  {
+    id: "mechanical",
+    label: "Thiết kế cơ khí",
+    icon: "⚙️",
+    defaultBrand: "MechDesign Pro Academy",
+    defaultTeacher: "Kỹ sư Đỗ Quang Huy",
+  },
 ];
 
 function getCookie(name: string): string | null {
@@ -194,7 +215,7 @@ export default function DemoNicheSwitcher() {
             <label className="text-[11px] font-semibold text-slate-400 block mb-2">
               Chọn Lĩnh Vực Demo:
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
               {NICHE_OPTIONS.map((opt) => {
                 const isSelected = currentNiche === opt.id;
                 return (
