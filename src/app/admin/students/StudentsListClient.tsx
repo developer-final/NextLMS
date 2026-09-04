@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import Pagination from "@/components/ui/Pagination";
+import BulkActionBar from "@/components/admin/BulkActionBar";
 
 interface PaginationInfo {
   currentPage: number;
@@ -53,8 +54,14 @@ export default function StudentsListClient({
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id || "");
   const [granting, setGranting] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
+  const [bulkGrantModalOpen, setBulkGrantModalOpen] = useState(false);
+  const [bulkCourseId, setBulkCourseId] = useState(courses[0]?.id || "");
+
   useEffect(() => {
     setStudents(initialStudents);
+    setSelectedIds([]);
   }, [initialStudents]);
 
   useEffect(() => {
@@ -103,6 +110,93 @@ export default function StudentsListClient({
   };
 
   const filtered = students;
+
+  const allSelected =
+    filtered.length > 0 && selectedIds.length === filtered.length;
+  const isIndeterminate =
+    selectedIds.length > 0 && selectedIds.length < filtered.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map((s) => s.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkBlock = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t.admin.students.bulkBlockConfirmDesc)) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/enrollments/manual", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedIds, status: "BLOCKED" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.students.bulkSuccess);
+      setStudents((prev) =>
+        prev.map((s) => (selectedIds.includes(s.id) ? { ...s, status: "BLOCKED" } : s))
+      );
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.students.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkUnblock = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/enrollments/manual", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedIds, status: "ACTIVE" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.students.bulkSuccess);
+      setStudents((prev) =>
+        prev.map((s) => (selectedIds.includes(s.id) ? { ...s, status: "ACTIVE" } : s))
+      );
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.students.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleExecuteBulkGrant = async () => {
+    if (selectedIds.length === 0 || !bulkCourseId) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/enrollments/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: selectedIds, courseId: bulkCourseId }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.students.bulkSuccess);
+      setBulkGrantModalOpen(false);
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.students.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
 
   const handleGrantAccess = async () => {
     if (!selectedStudent || !selectedCourseId) return;
@@ -277,6 +371,18 @@ export default function StudentsListClient({
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
+              <th className="w-10 px-4 py-3.5 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = isIndeterminate;
+                  }}
+                  onChange={handleToggleSelectAll}
+                  aria-label={t.admin.students.selectAll}
+                  className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                />
+              </th>
               <th className="px-5 py-3.5">{t.admin.students.nameHeader}</th>
               <th className="px-5 py-3.5">{t.admin.students.joinedDateHeader}</th>
               <th className="px-5 py-3.5">{t.admin.students.enrolledCoursesHeader}</th>
@@ -287,97 +393,141 @@ export default function StudentsListClient({
           <tbody className="divide-y divide-slate-800/60">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">
+                <td colSpan={6} className="text-center py-8 text-slate-500">
                   -
                 </td>
               </tr>
             ) : (
-              filtered.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="font-bold text-white">{s.name}</div>
-                    <div className="text-[11px] text-slate-400">{s.email}</div>
-                  </td>
+              filtered.map((s) => {
+                const isSelected = selectedIds.includes(s.id);
 
-                  <td className="px-5 py-4 text-slate-400">
-                    {new Date(s.createdAt).toLocaleDateString()}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    {s.enrollments.length === 0 ? (
-                      <span className="text-[11px] text-slate-500">-</span>
-                    ) : (
-                      <div className="space-y-1.5 max-w-sm">
-                        {s.enrollments.map((enr: any) => (
-                          <div
-                            key={enr.id}
-                            className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-950 border border-slate-800/80 text-[11px]"
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="h-1.5 w-1.5 rounded-full bg-brand-400 flex-shrink-0" />
-                              <span className="truncate text-slate-200">{enr.course?.title}</span>
-                              <span className="text-brand-400 font-bold flex-shrink-0">
-                                ({enr.progressPercent}%)
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleRevokeEnrollment(
-                                  s.id,
-                                  enr.course?.id,
-                                  enr.course?.title,
-                                  enr.id
-                                )
-                              }
-                              className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors flex-shrink-0"
-                              title={t.admin.students.revokeBtn}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleStatus(s.id, s.status || "ACTIVE")}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                        s.status === "BLOCKED"
-                          ? "bg-rose-950 text-rose-400 border border-rose-800 hover:bg-rose-900"
-                          : "bg-emerald-950 text-emerald-400 border border-emerald-800 hover:bg-emerald-900"
-                      }`}
-                      title={t.admin.students.toggleStatusBtn}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          s.status === "BLOCKED" ? "bg-rose-400" : "bg-emerald-400"
-                        }`}
+                return (
+                  <tr
+                    key={s.id}
+                    className={`transition-colors ${
+                      isSelected
+                        ? "bg-brand-500/10 hover:bg-brand-500/15"
+                        : "hover:bg-slate-800/30"
+                    }`}
+                  >
+                    <td className="w-10 px-4 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(s.id)}
+                        aria-label={`Select student ${s.name}`}
+                        className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
                       />
-                      {s.status === "BLOCKED"
-                        ? t.admin.students.statusBlocked
-                        : t.admin.students.statusActive}
-                    </button>
-                  </td>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="font-bold text-white">{s.name}</div>
+                      <div className="text-[11px] text-slate-400">{s.email}</div>
+                    </td>
 
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => setSelectedStudent(s)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-brand-500 hover:text-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition-all"
-                    >
-                      <PlusCircle className="h-3.5 w-3.5" /> {t.admin.students.grantBtn}
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    <td className="px-5 py-4 text-slate-400">
+                      {new Date(s.createdAt).toLocaleDateString()}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {s.enrollments.length === 0 ? (
+                        <span className="text-[11px] text-slate-500">-</span>
+                      ) : (
+                        <div className="space-y-1.5 max-w-sm">
+                          {s.enrollments.map((enr: any) => (
+                            <div
+                              key={enr.id}
+                              className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-950 border border-slate-800/80 text-[11px]"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="h-1.5 w-1.5 rounded-full bg-brand-400 flex-shrink-0" />
+                                <span className="truncate text-slate-200">{enr.course?.title}</span>
+                                <span className="text-brand-400 font-bold flex-shrink-0">
+                                  ({enr.progressPercent}%)
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRevokeEnrollment(
+                                    s.id,
+                                    enr.course?.id,
+                                    enr.course?.title,
+                                    enr.id
+                                  )
+                                }
+                                className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors flex-shrink-0"
+                                title={t.admin.students.revokeBtn}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(s.id, s.status || "ACTIVE")}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                          s.status === "BLOCKED"
+                            ? "bg-rose-950 text-rose-400 border border-rose-800 hover:bg-rose-900"
+                            : "bg-emerald-950 text-emerald-400 border border-emerald-800 hover:bg-emerald-900"
+                        }`}
+                        title={t.admin.students.toggleStatusBtn}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            s.status === "BLOCKED" ? "bg-rose-400" : "bg-emerald-400"
+                          }`}
+                        />
+                        {s.status === "BLOCKED"
+                          ? t.admin.students.statusBlocked
+                          : t.admin.students.statusActive}
+                      </button>
+                    </td>
+
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        onClick={() => setSelectedStudent(s)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-brand-500 hover:text-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition-all"
+                      >
+                        <PlusCircle className="h-3.5 w-3.5" /> {t.admin.students.grantBtn}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClearSelection={() => setSelectedIds([])}
+        isLoading={isBulkOperating}
+        actions={[
+          {
+            label: t.admin.students.bulkGrant,
+            onClick: () => setBulkGrantModalOpen(true),
+            variant: "primary",
+          },
+          {
+            label: t.admin.students.bulkBlock,
+            onClick: handleBulkBlock,
+            variant: "danger",
+          },
+          {
+            label: t.admin.students.bulkUnblock,
+            onClick: handleBulkUnblock,
+            variant: "success",
+          },
+        ]}
+      />
 
       {/* Reusable Server Pagination */}
       <Pagination
@@ -443,6 +593,65 @@ export default function StudentsListClient({
                 className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50"
               >
                 {granting ? t.admin.students.grantingBtn : t.admin.students.grantBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Grant Access Modal */}
+      {bulkGrantModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="relative max-w-md w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <UserCheck className="h-4 w-4 text-brand-400" /> {t.admin.students.bulkGrant}
+              </h3>
+              <button
+                onClick={() => setBulkGrantModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300">
+              <p>
+                {t.admin.students.selectedCount}:{" "}
+                <strong className="text-brand-400">{selectedIds.length}</strong>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                {t.admin.students.selectCourseLabel}:
+              </label>
+              <select
+                value={bulkCourseId}
+                onChange={(e) => setBulkCourseId(e.target.value)}
+                className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setBulkGrantModalOpen(false)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                {t.admin.students.cancelBtn}
+              </button>
+              <button
+                onClick={handleExecuteBulkGrant}
+                disabled={isBulkOperating}
+                className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50"
+              >
+                {isBulkOperating ? t.admin.students.bulkProcessing : t.admin.students.grantBtn}
               </button>
             </div>
           </div>

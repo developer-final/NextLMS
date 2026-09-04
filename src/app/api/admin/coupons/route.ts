@@ -115,6 +115,44 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+    const user = session.user;
+
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { ids, isActive } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0 || typeof isActive !== "boolean") {
+      return NextResponse.json(
+        { error: "Missing required fields: ids (array) and isActive (boolean)" },
+        { status: 400 }
+      );
+    }
+
+    const result = await prisma.coupon.updateMany({
+      where: { id: { in: ids } },
+      data: { isActive },
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: result.count,
+      message: `Updated ${result.count} coupons successfully!`,
+    });
+  } catch (error: any) {
+    console.error("Admin Coupon PATCH Error:", error);
+    return NextResponse.json({ error: "Error updating coupons" }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -128,19 +166,36 @@ export async function DELETE(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const queryId = searchParams.get("id");
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing coupon ID" }, { status: 400 });
+    let idsToDelete: string[] = [];
+    if (queryId) {
+      idsToDelete = [queryId];
+    } else {
+      try {
+        const body = await req.json();
+        if (Array.isArray(body.ids)) {
+          idsToDelete = body.ids;
+        } else if (body.id) {
+          idsToDelete = [body.id];
+        }
+      } catch {
+        // No body
+      }
     }
 
-    await prisma.coupon.delete({
-      where: { id },
+    if (idsToDelete.length === 0) {
+      return NextResponse.json({ error: "Missing coupon ID or ids" }, { status: 400 });
+    }
+
+    const result = await prisma.coupon.deleteMany({
+      where: { id: { in: idsToDelete } },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Coupon deleted successfully!",
+      count: result.count,
+      message: `Deleted ${result.count} coupons successfully!`,
     });
   } catch (error: any) {
     console.error("Admin Coupon DELETE Error:", error);

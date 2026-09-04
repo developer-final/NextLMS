@@ -14,6 +14,7 @@ import {
 import { formatVND } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCouponInput } from "@/lib/validation";
+import BulkActionBar from "@/components/admin/BulkActionBar";
 
 interface CouponsListClientProps {
   initialCoupons: any[];
@@ -26,6 +27,8 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
 
   // Form states
   const [code, setCode] = useState("");
@@ -39,6 +42,88 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
   const filtered = coupons.filter((c) =>
     c.code.toLowerCase().includes(search.toLowerCase())
   );
+
+  const allSelected = filtered.length > 0 && selectedIds.length === filtered.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < filtered.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map((c) => c.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkActivate = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/coupons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, isActive: true }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.coupons.bulkSuccess);
+      setCoupons((prev) =>
+        prev.map((c) => (selectedIds.includes(c.id) ? { ...c, isActive: true } : c))
+      );
+      setSelectedIds([]);
+    } catch {
+      toast.error(t.admin.coupons.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/coupons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, isActive: false }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.coupons.bulkSuccess);
+      setCoupons((prev) =>
+        prev.map((c) => (selectedIds.includes(c.id) ? { ...c, isActive: false } : c))
+      );
+      setSelectedIds([]);
+    } catch {
+      toast.error(t.admin.coupons.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t.admin.coupons.bulkDeleteConfirmDesc)) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/coupons", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.coupons.bulkSuccess);
+      setCoupons((prev) => prev.filter((c) => !selectedIds.includes(c.id)));
+      setSelectedIds([]);
+    } catch {
+      toast.error(t.admin.coupons.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
 
   const openCreateModal = () => {
     setEditingCoupon(null);
@@ -188,6 +273,18 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
+              <th className="w-10 px-4 py-3.5 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = isIndeterminate;
+                  }}
+                  onChange={handleToggleSelectAll}
+                  aria-label={t.admin.coupons.selectAll}
+                  className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                />
+              </th>
               <th className="px-5 py-3.5">{t.admin.coupons.codeHeader}</th>
               <th className="px-5 py-3.5">{t.admin.coupons.valueHeader}</th>
               <th className="px-5 py-3.5">{t.admin.coupons.usageHeader}</th>
@@ -198,16 +295,33 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
           <tbody className="divide-y divide-slate-800/60">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-8 text-slate-500">
+                <td colSpan={6} className="text-center py-8 text-slate-500">
                   -
                 </td>
               </tr>
             ) : (
               filtered.map((c) => {
                 const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+                const isSelected = selectedIds.includes(c.id);
 
                 return (
-                  <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={c.id}
+                    className={`transition-colors ${
+                      isSelected
+                        ? "bg-brand-500/10 hover:bg-brand-500/15"
+                        : "hover:bg-slate-800/30"
+                    }`}
+                  >
+                    <td className="w-10 px-4 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(c.id)}
+                        aria-label={`Select coupon ${c.code}`}
+                        className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                      />
+                    </td>
                     <td className="px-5 py-4">
                       <span className="font-mono font-bold text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
                         {c.code}
@@ -263,6 +377,30 @@ export default function CouponsListClient({ initialCoupons }: CouponsListClientP
           </tbody>
         </table>
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClearSelection={() => setSelectedIds([])}
+        isLoading={isBulkOperating}
+        actions={[
+          {
+            label: t.admin.coupons.bulkActivate,
+            onClick: handleBulkActivate,
+            variant: "success",
+          },
+          {
+            label: t.admin.coupons.bulkDeactivate,
+            onClick: handleBulkDeactivate,
+            variant: "warning",
+          },
+          {
+            label: t.admin.coupons.bulkDelete,
+            onClick: handleBulkDelete,
+            variant: "danger",
+          },
+        ]}
+      />
 
       {/* Modal Add / Edit Coupon */}
       {showModal && (

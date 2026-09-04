@@ -563,6 +563,19 @@ export interface DictionaryType {
       cancelConfirm: string;
       approveFailed: string;
       cancelFailed: string;
+      selectAll: string;
+      deselectAll: string;
+      selectedCount: string;
+      bulkActions: string;
+      bulkApprove: string;
+      bulkCancel: string;
+      bulkApproveConfirmTitle: string;
+      bulkApproveConfirmDesc: string;
+      bulkCancelConfirmTitle: string;
+      bulkCancelConfirmDesc: string;
+      bulkSuccess: string;
+      bulkError: string;
+      bulkProcessing: string;
     };
     categories: {
       title: string;
@@ -626,6 +639,18 @@ export interface DictionaryType {
       createSuccess: string;
       codeRequired: string;
       discountInvalid: string;
+      selectAll: string;
+      deselectAll: string;
+      selectedCount: string;
+      bulkActions: string;
+      bulkActivate: string;
+      bulkDeactivate: string;
+      bulkDelete: string;
+      bulkDeleteConfirmTitle: string;
+      bulkDeleteConfirmDesc: string;
+      bulkSuccess: string;
+      bulkError: string;
+      bulkProcessing: string;
     };
     students: {
       title: string;
@@ -653,6 +678,18 @@ export interface DictionaryType {
       grantFailed: string;
       revokeFailed: string;
       statusUpdateFailed: string;
+      selectAll: string;
+      deselectAll: string;
+      selectedCount: string;
+      bulkActions: string;
+      bulkBlock: string;
+      bulkUnblock: string;
+      bulkGrant: string;
+      bulkBlockConfirmTitle: string;
+      bulkBlockConfirmDesc: string;
+      bulkSuccess: string;
+      bulkError: string;
+      bulkProcessing: string;
     };
     settings: {
       title: string;
@@ -697,6 +734,18 @@ export interface DictionaryType {
       deleteConfirm: string;
       deleteSuccess: string;
       deleteFailed: string;
+      selectAll: string;
+      deselectAll: string;
+      selectedCount: string;
+      bulkActions: string;
+      bulkPublish: string;
+      bulkDraft: string;
+      bulkDelete: string;
+      bulkDeleteConfirmTitle: string;
+      bulkDeleteConfirmDesc: string;
+      bulkSuccess: string;
+      bulkError: string;
+      bulkProcessing: string;
       formTitle: string;
       formEditTitle: string;
       titleLabel: string;

@@ -211,3 +211,112 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Error creating post" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user;
+    const isStaff =
+      user.role === "ADMIN" ||
+      user.role === "SUPER_ADMIN" ||
+      user.role === "INSTRUCTOR";
+
+    if (!isStaff) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { ids, status, isFeatured } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "Missing or invalid post ids" }, { status: 400 });
+    }
+
+    const whereClause: any = { id: { in: ids } };
+    if (user.role === "INSTRUCTOR") {
+      whereClause.authorId = user.id;
+    }
+
+    const updateData: any = {};
+    if (status) {
+      const ALLOWED_STATUSES = ["DRAFT", "PUBLISHED", "ARCHIVED"];
+      if (!ALLOWED_STATUSES.includes(status)) {
+        return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+      }
+      updateData.status = status;
+      if (status === "PUBLISHED") {
+        updateData.publishedAt = new Date();
+      }
+    }
+
+    if (typeof isFeatured === "boolean") {
+      updateData.isFeatured = isFeatured;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No update fields provided" }, { status: 400 });
+    }
+
+    const result = await prisma.blogPost.updateMany({
+      where: whereClause,
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: result.count,
+      message: `Updated ${result.count} posts successfully.`,
+    });
+  } catch (error: any) {
+    console.error("Admin Posts PATCH Error:", error);
+    return NextResponse.json({ error: "Error updating posts" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user;
+    const isStaff =
+      user.role === "ADMIN" ||
+      user.role === "SUPER_ADMIN" ||
+      user.role === "INSTRUCTOR";
+
+    if (!isStaff) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { ids } = body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: "Missing or invalid post ids" }, { status: 400 });
+    }
+
+    const whereClause: any = { id: { in: ids } };
+    if (user.role === "INSTRUCTOR") {
+      whereClause.authorId = user.id;
+    }
+
+    const result = await prisma.blogPost.deleteMany({
+      where: whereClause,
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: result.count,
+      message: `Deleted ${result.count} posts successfully.`,
+    });
+  } catch (error: any) {
+    console.error("Admin Posts DELETE Error:", error);
+    return NextResponse.json({ error: "Error deleting posts" }, { status: 500 });
+  }
+}

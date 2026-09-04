@@ -15,31 +15,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 403 });
     }
 
-    const { userId, courseId } = await req.json();
+    const body = await req.json();
+    const { userId, userIds, courseId } = body;
+    const targetUserIds: string[] = Array.isArray(userIds)
+      ? userIds
+      : userId
+      ? [userId]
+      : [];
 
-    if (!userId || !courseId) {
-      return NextResponse.json({ error: "Missing userId or courseId" }, { status: 400 });
+    if (targetUserIds.length === 0 || !courseId) {
+      return NextResponse.json({ error: "Missing userId/userIds or courseId" }, { status: 400 });
     }
 
-    const enrollment = await prisma.enrollment.upsert({
-      where: {
-        userId_courseId: { userId, courseId },
-      },
-      update: {
-        status: "ACTIVE",
-      },
-      create: {
-        userId,
-        courseId,
-        status: "ACTIVE",
-        progressPercent: 0,
-      },
-    });
+    let grantedCount = 0;
+    for (const uId of targetUserIds) {
+      try {
+        await prisma.enrollment.upsert({
+          where: {
+            userId_courseId: { userId: uId, courseId },
+          },
+          update: {
+            status: "ACTIVE",
+          },
+          create: {
+            userId: uId,
+            courseId,
+            status: "ACTIVE",
+            progressPercent: 0,
+          },
+        });
+        grantedCount++;
+      } catch (err) {
+        console.error(`Error enrolling student ${uId}:`, err);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Access granted successfully to student!",
-      enrollment,
+      count: grantedCount,
+      total: targetUserIds.length,
+      message: `Access granted successfully to ${grantedCount} students!`,
     });
   } catch (error: any) {
     console.error("Manual Enrollment POST Error:", error);
@@ -101,10 +116,15 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { userId, status } = body;
+    const { userId, userIds, status } = body;
+    const targetUserIds: string[] = Array.isArray(userIds)
+      ? userIds
+      : userId
+      ? [userId]
+      : [];
 
-    if (!userId || !status) {
-      return NextResponse.json({ error: "Missing userId or status" }, { status: 400 });
+    if (targetUserIds.length === 0 || !status) {
+      return NextResponse.json({ error: "Missing userId/userIds or status" }, { status: 400 });
     }
 
     const ALLOWED_USER_STATUSES = ["ACTIVE", "BLOCKED"];
@@ -115,15 +135,15 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
+    const result = await prisma.user.updateMany({
+      where: { id: { in: targetUserIds } },
       data: { status },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Student account status updated successfully!",
-      user: updatedUser,
+      count: result.count,
+      message: `Student account status updated successfully for ${result.count} students!`,
     });
   } catch (error: any) {
     console.error("Student PATCH Status Error:", error);

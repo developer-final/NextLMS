@@ -16,10 +16,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const { orderId, action } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+    const targetIds: string[] = Array.isArray(body.orderIds)
+      ? body.orderIds
+      : body.orderId
+      ? [body.orderId]
+      : [];
 
-    if (!orderId) {
-      return NextResponse.json({ error: "Missing required orderId" }, { status: 400 });
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: "Missing required orderId or orderIds" }, { status: 400 });
     }
 
     // Strict action validation
@@ -30,8 +36,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const orders = await prisma.order.findMany({
+      where: { id: { in: targetIds } },
       include: {
         user: true,
         orderItems: {
@@ -40,96 +46,183 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (orders.length === 0) {
+      return NextResponse.json({ error: "No matching orders found" }, { status: 404 });
     }
 
-    // State machine check
+    // Single order backward compatibility flow
+    if (targetIds.length === 1 && !Array.isArray(body.orderIds)) {
+      const order = orders[0];
+
+      if (action === "APPROVE") {
+        if (order.status === "COMPLETED") {
+          return NextResponse.json(
+            { error: "This order has already been approved." },
+            { status: 400 }
+          );
+        }
+        if (order.status === "CANCELLED") {
+          return NextResponse.json(
+            { error: "Cannot approve a cancelled order." },
+            { status: 400 }
+          );
+        }
+
+        const result = await completeOrderAndEnroll({
+          orderCode: order.orderCode,
+          gatewayRef: `ADMIN-APPROVAL-${session.user.id}`,
+          bankCode: order.paymentMethod,
+          transferContent:
+            order.proofImageUrl || "Admin manual verification",
+          amount: Number(order.finalAmount),
+          rawWebhookData: JSON.stringify({
+            approvedBy: session.user.id,
+            approvedAt: new Date().toISOString(),
+          }),
+          paymentMethod: order.paymentMethod,
+        });
+
+        if (!result.success && !result.alreadyCompleted) {
+          return NextResponse.json(
+            { error: result.message },
+            { status: result.status || 400 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: "Order approved and course access activated successfully.",
+        });
+      }
+
+      if (action === "CANCEL") {
+        if (order.status === "CANCELLED") {
+          return NextResponse.json(
+            { error: "This order has already been cancelled." },
+            { status: 400 }
+          );
+        }
+
+        const wasCompleted = order.status === "COMPLETED";
+
+        await prisma.$transaction(async (tx) => {
+          await tx.order.update({
+            where: { id: order.id },
+            data: { status: "CANCELLED" },
+          });
+
+          if (wasCompleted) {
+            const courseIds = order.orderItems.map((item) => item.courseId);
+            if (courseIds.length > 0) {
+              await tx.enrollment.deleteMany({
+                where: {
+                  userId: order.userId,
+                  courseId: { in: courseIds },
+                },
+              });
+            }
+
+            if (order.couponId) {
+              await tx.coupon.updateMany({
+                where: { id: order.couponId, usedCount: { gt: 0 } },
+                data: {
+                  usedCount: { decrement: 1 },
+                },
+              });
+            }
+          }
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: wasCompleted
+            ? "Order cancelled and course access revoked successfully."
+            : "Order cancelled successfully.",
+        });
+      }
+    }
+
+    // Bulk operation flow
+    let processedCount = 0;
+
     if (action === "APPROVE") {
-      if (order.status === "COMPLETED") {
-        return NextResponse.json(
-          { error: "This order has already been approved." },
-          { status: 400 }
-        );
-      }
-      if (order.status === "CANCELLED") {
-        return NextResponse.json(
-          { error: "Cannot approve a cancelled order." },
-          { status: 400 }
-        );
-      }
+      const eligibleOrders = orders.filter((o) => o.status === "PENDING");
+      for (const order of eligibleOrders) {
+        try {
+          const result = await completeOrderAndEnroll({
+            orderCode: order.orderCode,
+            gatewayRef: `ADMIN-BULK-APPROVAL-${session.user.id}`,
+            bankCode: order.paymentMethod,
+            transferContent:
+              order.proofImageUrl || "Admin manual bulk verification",
+            amount: Number(order.finalAmount),
+            rawWebhookData: JSON.stringify({
+              approvedBy: session.user.id,
+              approvedAt: new Date().toISOString(),
+              bulk: true,
+            }),
+            paymentMethod: order.paymentMethod,
+          });
 
-      const result = await completeOrderAndEnroll({
-        orderCode: order.orderCode,
-        gatewayRef: `ADMIN-APPROVAL-${session.user.id}`,
-        bankCode: order.paymentMethod,
-        transferContent:
-          order.proofImageUrl || "Admin manual verification",
-        amount: Number(order.finalAmount),
-        rawWebhookData: JSON.stringify({
-          approvedBy: session.user.id,
-          approvedAt: new Date().toISOString(),
-        }),
-        paymentMethod: order.paymentMethod,
-      });
-
-      if (!result.success && !result.alreadyCompleted) {
-        return NextResponse.json(
-          { error: result.message },
-          { status: result.status || 400 }
-        );
+          if (result.success || result.alreadyCompleted) {
+            processedCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to approve order ${order.id}:`, err);
+        }
       }
 
       return NextResponse.json({
         success: true,
-        message: "Order approved and course access activated successfully.",
+        count: processedCount,
+        total: targetIds.length,
+        message: `Successfully approved ${processedCount} of ${targetIds.length} orders.`,
       });
     }
 
     if (action === "CANCEL") {
-      if (order.status === "CANCELLED") {
-        return NextResponse.json(
-          { error: "This order has already been cancelled." },
-          { status: 400 }
-        );
-      }
-
-      const wasCompleted = order.status === "COMPLETED";
-
-      await prisma.$transaction(async (tx) => {
-        await tx.order.update({
-          where: { id: orderId },
-          data: { status: "CANCELLED" },
-        });
-
-        // If previously completed, revoke access and refund coupon usage
-        if (wasCompleted) {
-          const courseIds = order.orderItems.map((item) => item.courseId);
-          if (courseIds.length > 0) {
-            await tx.enrollment.deleteMany({
-              where: {
-                userId: order.userId,
-                courseId: { in: courseIds },
-              },
+      const cancellableOrders = orders.filter((o) => o.status !== "CANCELLED");
+      for (const order of cancellableOrders) {
+        try {
+          const wasCompleted = order.status === "COMPLETED";
+          await prisma.$transaction(async (tx) => {
+            await tx.order.update({
+              where: { id: order.id },
+              data: { status: "CANCELLED" },
             });
-          }
 
-          if (order.couponId) {
-            await tx.coupon.updateMany({
-              where: { id: order.couponId, usedCount: { gt: 0 } },
-              data: {
-                usedCount: { decrement: 1 },
-              },
-            });
-          }
+            if (wasCompleted) {
+              const courseIds = order.orderItems.map((item) => item.courseId);
+              if (courseIds.length > 0) {
+                await tx.enrollment.deleteMany({
+                  where: {
+                    userId: order.userId,
+                    courseId: { in: courseIds },
+                  },
+                });
+              }
+
+              if (order.couponId) {
+                await tx.coupon.updateMany({
+                  where: { id: order.couponId, usedCount: { gt: 0 } },
+                  data: {
+                    usedCount: { decrement: 1 },
+                  },
+                });
+              }
+            }
+          });
+          processedCount++;
+        } catch (err) {
+          console.error(`Failed to cancel order ${order.id}:`, err);
         }
-      });
+      }
 
       return NextResponse.json({
         success: true,
-        message: wasCompleted
-          ? "Order cancelled and course access revoked successfully."
-          : "Order cancelled successfully.",
+        count: processedCount,
+        total: targetIds.length,
+        message: `Successfully cancelled ${processedCount} of ${targetIds.length} orders.`,
       });
     }
 

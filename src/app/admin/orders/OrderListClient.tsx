@@ -17,6 +17,7 @@ import { formatVND } from "@/lib/utils";
 import { isValidSafeUrl } from "@/lib/validation";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import Pagination from "@/components/ui/Pagination";
+import BulkActionBar from "@/components/admin/BulkActionBar";
 
 interface PaginationInfo {
   currentPage: number;
@@ -47,9 +48,12 @@ export default function OrderListClient({
   const [searchQuery, setSearchQuery] = useState(currentSearch);
   const [selectedProofImg, setSelectedProofImg] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
 
   useEffect(() => {
     setOrders(initialOrders);
+    setSelectedIds([]);
   }, [initialOrders]);
 
   useEffect(() => {
@@ -82,6 +86,81 @@ export default function OrderListClient({
   };
 
   const filteredOrders = orders;
+
+  const allSelected =
+    filteredOrders.length > 0 && selectedIds.length === filteredOrders.length;
+  const isIndeterminate =
+    selectedIds.length > 0 && selectedIds.length < filteredOrders.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredOrders.map((o) => o.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t.admin.orders.bulkApproveConfirmDesc)) return;
+
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/orders/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderIds: selectedIds, action: "APPROVE" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t.admin.orders.bulkError);
+        return;
+      }
+
+      toast.success(t.admin.orders.bulkSuccess);
+      setSelectedIds([]);
+      router.refresh();
+    } catch (err) {
+      toast.error(t.admin.orders.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t.admin.orders.bulkCancelConfirmDesc)) return;
+
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/orders/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderIds: selectedIds, action: "CANCEL" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t.admin.orders.bulkError);
+        return;
+      }
+
+      toast.info(t.admin.orders.bulkSuccess);
+      setSelectedIds([]);
+      router.refresh();
+    } catch (err) {
+      toast.error(t.admin.orders.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
 
   const handleApprove = async (orderId: string) => {
     setProcessingId(orderId);
@@ -188,6 +267,18 @@ export default function OrderListClient({
         <table className="w-full text-left text-xs text-slate-300">
           <thead className="bg-slate-950/80 uppercase text-[11px] font-bold text-slate-400 border-b border-slate-800">
             <tr>
+              <th className="w-10 px-4 py-3.5 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={(input) => {
+                    if (input) input.indeterminate = isIndeterminate;
+                  }}
+                  onChange={handleToggleSelectAll}
+                  aria-label={t.admin.orders.selectAll}
+                  className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                />
+              </th>
               <th className="px-5 py-3.5">{t.admin.orders.orderCodeHeader}</th>
               <th className="px-5 py-3.5">{t.admin.orders.studentHeader}</th>
               <th className="px-5 py-3.5">{t.admin.courses.courseHeader}</th>
@@ -200,7 +291,7 @@ export default function OrderListClient({
           <tbody className="divide-y divide-slate-800/60">
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-slate-500">
+                <td colSpan={8} className="text-center py-8 text-slate-500">
                   {t.admin.orders.noOrders}
                 </td>
               </tr>
@@ -208,9 +299,26 @@ export default function OrderListClient({
               filteredOrders.map((order) => {
                 const isPending = order.status === "PENDING";
                 const isCompleted = order.status === "COMPLETED";
+                const isSelected = selectedIds.includes(order.id);
 
                 return (
-                  <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr
+                    key={order.id}
+                    className={`transition-colors ${
+                      isSelected
+                        ? "bg-brand-500/10 hover:bg-brand-500/15"
+                        : "hover:bg-slate-800/30"
+                    }`}
+                  >
+                    <td className="w-10 px-4 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(order.id)}
+                        aria-label={`Select order ${order.orderCode}`}
+                        className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                      />
+                    </td>
                     <td className="px-5 py-4 font-bold text-white">
                       <div>#{order.orderCode}</div>
                       <div className="text-[10px] text-slate-500 font-normal">
@@ -296,6 +404,25 @@ export default function OrderListClient({
           </tbody>
         </table>
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClearSelection={() => setSelectedIds([])}
+        isLoading={isBulkOperating}
+        actions={[
+          {
+            label: t.admin.orders.bulkApprove,
+            onClick: handleBulkApprove,
+            variant: "success",
+          },
+          {
+            label: t.admin.orders.bulkCancel,
+            onClick: handleBulkCancel,
+            variant: "danger",
+          },
+        ]}
+      />
 
       {/* Reusable Server Pagination */}
       <Pagination

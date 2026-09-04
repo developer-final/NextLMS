@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import Pagination from "@/components/ui/Pagination";
+import BulkActionBar from "@/components/admin/BulkActionBar";
 
 interface TagInfo {
   id: string;
@@ -77,6 +78,86 @@ export default function AdminPostsClient({
   const { t } = useLanguage();
   const [search, setSearch] = useState(currentSearch);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
+
+  const allSelected = posts.length > 0 && selectedIds.length === posts.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < posts.length;
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(posts.map((p) => p.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/posts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, status: "PUBLISHED" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.posts.bulkSuccess);
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.posts.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkDraft = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/posts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, status: "DRAFT" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.posts.bulkSuccess);
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.posts.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(t.admin.posts.bulkDeleteConfirmDesc)) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch("/api/admin/posts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(t.admin.posts.bulkSuccess);
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      toast.error(t.admin.posts.bulkError);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
 
   const applyFilters = (newParams: Record<string, string>) => {
     const params = new URLSearchParams();
@@ -198,6 +279,18 @@ export default function AdminPostsClient({
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="border-b border-slate-800 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = isIndeterminate;
+                    }}
+                    onChange={handleToggleSelectAll}
+                    aria-label={t.admin.posts.selectAll}
+                    className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                  />
+                </th>
                 <th className="px-5 py-3.5">{t.admin.posts.titleLabel}</th>
                 <th className="px-4 py-3.5">{t.admin.posts.authorHeader}</th>
                 <th className="px-4 py-3.5">{t.admin.posts.categoryHeader}</th>
@@ -210,137 +303,181 @@ export default function AdminPostsClient({
             <tbody className="divide-y divide-slate-800/60">
               {posts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     <FileText className="mx-auto h-8 w-8 text-slate-600 mb-2" />
                     {t.admin.posts.noPostsFound}
                   </td>
                 </tr>
               ) : (
-                posts.map((post) => (
-                  <tr key={post.id} className="hover:bg-slate-800/30 transition-colors">
-                    {/* Title + Cover */}
-                    <td className="px-5 py-3.5 max-w-sm">
-                      <div className="flex items-center gap-3">
-                        {post.coverImageUrl ? (
-                          <img
-                            src={post.coverImageUrl}
-                            alt={post.title}
-                            className="h-10 w-16 rounded-lg object-cover border border-slate-700/60 flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="h-10 w-16 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 text-slate-500">
-                            <FileText className="h-5 w-5" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <Link
-                            href={`/admin/posts/${post.id}/edit`}
-                            className="font-bold text-white hover:text-brand-400 transition-colors line-clamp-1"
-                          >
-                            {post.title}
-                          </Link>
-                          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
-                            <span>{post.readingTime} {t.blog.minRead}</span>
-                            {post._count.attachments > 0 && (
-                              <span className="flex items-center gap-0.5 text-brand-400">
-                                <Paperclip className="h-3 w-3" />
-                                {post._count.attachments}
-                              </span>
-                            )}
-                            {post._count.comments > 0 && (
-                              <span className="flex items-center gap-0.5 text-cyan-400">
-                                <MessageSquare className="h-3 w-3" />
-                                {post._count.comments}
-                              </span>
-                            )}
+                posts.map((post) => {
+                  const isSelected = selectedIds.includes(post.id);
+
+                  return (
+                    <tr
+                      key={post.id}
+                      className={`transition-colors ${
+                        isSelected
+                          ? "bg-brand-500/10 hover:bg-brand-500/15"
+                          : "hover:bg-slate-800/30"
+                      }`}
+                    >
+                      <td className="w-10 px-4 py-3.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(post.id)}
+                          aria-label={`Select post ${post.title}`}
+                          className="rounded border-slate-700 bg-slate-900 text-brand-500 focus:ring-brand-500 focus:ring-offset-slate-950 cursor-pointer h-4 w-4"
+                        />
+                      </td>
+                      {/* Title + Cover */}
+                      <td className="px-5 py-3.5 max-w-sm">
+                        <div className="flex items-center gap-3">
+                          {post.coverImageUrl ? (
+                            <img
+                              src={post.coverImageUrl}
+                              alt={post.title}
+                              className="h-10 w-16 rounded-lg object-cover border border-slate-700/60 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="h-10 w-16 rounded-lg bg-slate-800 border border-slate-700/60 flex items-center justify-center flex-shrink-0 text-slate-500">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <Link
+                              href={`/admin/posts/${post.id}/edit`}
+                              className="font-bold text-white hover:text-brand-400 transition-colors line-clamp-1"
+                            >
+                              {post.title}
+                            </Link>
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
+                              <span>{post.readingTime} {t.blog.minRead}</span>
+                              {post._count.attachments > 0 && (
+                                <span className="flex items-center gap-0.5 text-brand-400">
+                                  <Paperclip className="h-3 w-3" />
+                                  {post._count.attachments}
+                                </span>
+                              )}
+                              {post._count.comments > 0 && (
+                                <span className="flex items-center gap-0.5 text-cyan-400">
+                                  <MessageSquare className="h-3 w-3" />
+                                  {post._count.comments}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Author */}
-                    <td className="px-4 py-3.5 text-slate-300 font-medium">
-                      {post.author.name}
-                    </td>
+                      {/* Author */}
+                      <td className="px-4 py-3.5 text-slate-300 font-medium">
+                        {post.author.name}
+                      </td>
 
-                    {/* Category */}
-                    <td className="px-4 py-3.5 text-slate-400">
-                      {post.category ? (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
-                          {post.category.name}
-                        </span>
-                      ) : (
-                        <span className="text-slate-600">—</span>
-                      )}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-3.5">
-                      {post.status === "PUBLISHED" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          {t.admin.posts.statusPublished}
-                        </span>
-                      ) : post.status === "DRAFT" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          {t.admin.posts.statusDraft}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700/30 text-slate-400 border border-slate-600/30">
-                          {t.admin.posts.statusArchived}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Views */}
-                    <td className="px-4 py-3.5 text-center text-slate-400 font-mono text-[11px]">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="h-3 w-3 text-slate-500" />
-                        {post.viewCount}
-                      </span>
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-4 py-3.5 text-slate-400 text-[11px]">
-                      {new Date(post.createdAt).toLocaleDateString("vi-VN")}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {post.status === "PUBLISHED" && (
-                          <Link
-                            href={`/blog/${post.slug}`}
-                            target="_blank"
-                            title={t.admin.posts.viewLive}
-                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Link>
+                      {/* Category */}
+                      <td className="px-4 py-3.5 text-slate-400">
+                        {post.category ? (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
+                            {post.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">—</span>
                         )}
-                        <Link
-                          href={`/admin/posts/${post.id}/edit`}
-                          title={t.admin.posts.editAction}
-                          className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-brand-400 transition-colors"
-                        >
-                          <PenSquare className="h-3.5 w-3.5" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(post.id)}
-                          disabled={deletingId === post.id}
-                          title={t.admin.posts.deleteAction}
-                          className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3.5">
+                        {post.status === "PUBLISHED" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            {t.admin.posts.statusPublished}
+                          </span>
+                        ) : post.status === "DRAFT" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            {t.admin.posts.statusDraft}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-700/30 text-slate-400 border border-slate-600/30">
+                            {t.admin.posts.statusArchived}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Views */}
+                      <td className="px-4 py-3.5 text-center text-slate-400 font-mono text-[11px]">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="h-3 w-3 text-slate-500" />
+                          {post.viewCount}
+                        </span>
+                      </td>
+
+                      {/* Date */}
+                      <td className="px-4 py-3.5 text-slate-400 text-[11px]">
+                        {new Date(post.createdAt).toLocaleDateString("vi-VN")}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {post.status === "PUBLISHED" && (
+                            <Link
+                              href={`/blog/${post.slug}`}
+                              target="_blank"
+                              title={t.admin.posts.viewLive}
+                              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Link>
+                          )}
+                          <Link
+                            href={`/admin/posts/${post.id}/edit`}
+                            title={t.admin.posts.editAction}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-brand-400 transition-colors"
+                          >
+                            <PenSquare className="h-3.5 w-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            disabled={deletingId === post.id}
+                            title={t.admin.posts.deleteAction}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-500/20 hover:text-rose-400 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedIds.length}
+        onClearSelection={() => setSelectedIds([])}
+        isLoading={isBulkOperating}
+        actions={[
+          {
+            label: t.admin.posts.bulkPublish,
+            onClick: handleBulkPublish,
+            variant: "success",
+          },
+          {
+            label: t.admin.posts.bulkDraft,
+            onClick: handleBulkDraft,
+            variant: "warning",
+          },
+          {
+            label: t.admin.posts.bulkDelete,
+            onClick: handleBulkDelete,
+            variant: "danger",
+          },
+        ]}
+      />
 
       {/* Pagination */}
       <Pagination
