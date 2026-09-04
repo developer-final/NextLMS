@@ -1,6 +1,7 @@
 {
-  "name": "elearning-platform",
+  "name": "nextlms",
   "version": "1.0.0",
+  "description": "NextLMS - The Modern, Open-Source LMS & Academy Platform built with Next.js 15, Prisma, and Tailwind CSS",
   "private": true,
   "scripts": {
     "dev": "next dev",

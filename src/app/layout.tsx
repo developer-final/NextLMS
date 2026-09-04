@@ -9,7 +9,7 @@ import Footer from "@/components/layout/Footer";
 import DemoNicheSwitcher from "@/components/demo/DemoNicheSwitcher";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const appName = process.env.APP_NAME || "World Trading Lab";
+const appName = process.env.APP_NAME || "NextLMS";
 const appSlogan = process.env.APP_SLOGAN || "Nền tảng Đào tạo Chuyên sâu";
 const appDescription =
   process.env.APP_DESCRIPTION ||

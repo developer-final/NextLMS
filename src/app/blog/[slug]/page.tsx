@@ -53,7 +53,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getPostBySlug(slug);
 
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
 
   if (!post || post.status !== "PUBLISHED") {
     return {
@@ -203,7 +203,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
     },
     publisher: {
       "@type": "Organization",
-      name: process.env.APP_NAME || "World Trading Lab",
+      name: process.env.APP_NAME || "NextLMS",
       logo: {
         "@type": "ImageObject",
         url: `${baseUrl}/favicon.ico`,

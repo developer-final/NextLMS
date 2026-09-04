@@ -36,7 +36,7 @@ export default function NavbarClient({
   const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
   const isInstructor = user?.role === "INSTRUCTOR" || isAdmin;
 
-  const displayName = brandName?.trim() || "World Trading Lab";
+  const displayName = brandName?.trim() || "NextLMS";
   const displaySlogan = slogan?.trim() || t.common.appSlogan;
 
   const renderBrandName = () => {

@@ -28,7 +28,7 @@ export async function generateMetadata({
     select: { name: true, headline: true, bio: true },
   });
 
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
 
   if (!author) {
     return { title: `Tác giả không tồn tại | ${siteName}` };
@@ -46,7 +46,7 @@ export default async function AuthorPage({ params, searchParams }: AuthorPagePro
   const { id } = await params;
   const { page } = await searchParams;
 
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
   const pageSize = 9;
   const currentPage = Math.max(1, parseInt(page || "1", 10));
 

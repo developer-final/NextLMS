@@ -1,18 +1,18 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: elearning_db
+    container_name: nextlms_db
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-elearning_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-elearning_secure_pass_2026}
-      POSTGRES_DB: ${POSTGRES_DB:-elearning}
+      POSTGRES_USER: ${POSTGRES_USER:-nextlms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nextlms_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-nextlms}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - nextlms_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-elearning_user} -d ${POSTGRES_DB:-elearning}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nextlms_user} -d ${POSTGRES_DB:-nextlms}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: elearning_web
+    container_name: nextlms_web
     restart: always
     depends_on:
       db:
@@ -30,13 +30,13 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-elearning_user}:${POSTGRES_PASSWORD:-elearning_secure_pass_2026}@db:5432/${POSTGRES_DB:-elearning}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nextlms_user}:${POSTGRES_PASSWORD:-nextlms_secure_pass_2026}@db:5432/${POSTGRES_DB:-nextlms}?schema=public
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-super-random-jwt-key-32chars-must-change}
-      APP_NAME: ${APP_NAME:-World Trading Lab}
+      APP_NAME: ${APP_NAME:-NextLMS}
     env_file:
       - .env.production.local
 
 volumes:
-  postgres_data:
+  nextlms_pgdata:
     driver: local

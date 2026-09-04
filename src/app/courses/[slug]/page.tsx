@@ -72,7 +72,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const course = await getCourseBySlug(slug);
 
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
 
   if (!course) {
     return {
@@ -159,7 +159,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   const firstLesson = course.sections[0]?.lessons[0];
 
   // Course JSON-LD Schema for Google Search Rich Snippets
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
   const courseJsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",

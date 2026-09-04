@@ -55,16 +55,16 @@ export interface SystemConfig {
 }
 
 export const DEFAULT_CONFIG: SystemConfig = {
-  appName: process.env.APP_NAME || "World Trading Lab",
-  appSlogan: process.env.APP_SLOGAN || "Học viện Đào tạo Trading Thực chiến",
+  appName: process.env.APP_NAME || "NextLMS",
+  appSlogan: process.env.APP_SLOGAN || "Nền tảng Học viện & Đào tạo Trực tuyến Hiện đại",
   appDescription:
     process.env.APP_DESCRIPTION ||
-    "Nền tảng đào tạo trực tuyến hàng đầu về Giao dịch Tài chính, Đầu tư Chứng khoán, Crypto và Kỹ năng Thực chiến.",
-  supportEmail: process.env.SUPPORT_EMAIL || "support@worldtradinglab.com",
+    "NextLMS là nền tảng e-Learning mã nguồn mở hiện đại, tối ưu cho giảng viên, học viện và doanh nghiệp.",
+  supportEmail: process.env.SUPPORT_EMAIL || "support@nextlms.org",
   supportHotline: process.env.SUPPORT_HOTLINE || "0988.888.888",
   zaloUrl: process.env.ZALO_URL || "https://zalo.me/0988888888",
-  telegramUrl: process.env.TELEGRAM_URL || "https://t.me/worldtradinglab",
-  facebookUrl: process.env.FACEBOOK_URL || "https://facebook.com/worldtradinglab",
+  telegramUrl: process.env.TELEGRAM_URL || "https://t.me/trading_world_support",
+  facebookUrl: process.env.FACEBOOK_URL || "https://facebook.com/nextlms",
 
   bankId: process.env.BANK_ID || "MB",
   bankName: process.env.BANK_NAME || "MB Bank (Ngân hàng Quân Đội)",

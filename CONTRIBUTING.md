@@ -1,6 +1,6 @@
-# Contributing Guidelines
+# Contributing Guidelines — NextLMS
 
-Thank you for your interest in contributing to the **E-Learning Platform**! Community contributions are welcome to make this platform the best open-source LMS solution for creators, academies, and educators.
+Thank you for your interest in contributing to **NextLMS**! Community contributions are welcome to make this platform the best open-source LMS solution for creators, academies, and educators.
 
 ---
 

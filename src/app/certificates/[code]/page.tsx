@@ -26,7 +26,7 @@ export async function generateMetadata({
     },
   });
 
-  const siteName = process.env.APP_NAME || "World Trading Lab";
+  const siteName = process.env.APP_NAME || "NextLMS";
 
   if (!cert) {
     return {
@@ -110,7 +110,7 @@ export default async function CertificatePage({ params }: CertificatePageProps) 
   return (
     <CertificateViewClient
       certificate={certificateData}
-      siteName={settings.appName || "World Trading Lab"}
+      siteName={settings.appName || "NextLMS"}
     />
   );
 }

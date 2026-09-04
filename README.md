@@ -1,20 +1,21 @@
-# 🎓 World Trading Lab — Hệ thống Đào tạo & Khóa học Trực tuyến Toàn diện
+# 🎓 NextLMS — Nền Tảng Học Viện & Đào Tạo Trực Tuyến Mã Nguồn Mở Hiện Đại
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](./Dockerfile)
 
-**World Trading Lab** là nền tảng e-Learning đào tạo trực tuyến hiện đại, tối ưu hóa cho lĩnh vực Phân tích Tài chính, Smart Money Concepts (SMC), Đầu tư Chứng khoán, Crypto và Thuật toán Trading (nhưng có khả năng tùy biến linh hoạt cho mọi ngành nghề đào tạo khác).
+**NextLMS** là nền tảng e-Learning / LMS mã nguồn mở hiện đại, tối ưu hóa cho giảng viên, chuyên gia đào tạo, trung tâm học viện và doanh nghiệp. Hệ thống được xây dựng trên nền tảng **Next.js 15 (App Router)**, **TypeScript**, **Prisma ORM** và **Tailwind CSS**, mang lại tốc độ tải trang cực nhanh cùng giao diện Dark Theme FinTech sang trọng.
 
-Hệ thống được thiết kế theo mô hình **SaaS Stack tối ưu chi phí (0$ Chi phí Cố định)**, tốc độ tải trang cực nhanh, giao diện Dark Theme FinTech sang trọng, tích hợp đầy đủ quy trình Đăng ký $\rightarrow$ Thanh toán VietQR $\rightarrow$ Duyệt kích hoạt 1-click $\rightarrow$ Học trực tuyến $\rightarrow$ Cấp chứng chỉ tốt nghiệp.
+Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rightarrow$ Thanh toán đa kênh (VietQR NAPAS tự động, PayPal, Stripe, Crypto USDT) $\rightarrow$ Kích hoạt 1-click $\rightarrow$ Phòng học LMS chuyên nghiệp (Video Streaming, Đính kèm tài liệu, Q&A thảo luận) $\rightarrow$ Cấp chứng chỉ độc bản PDF**.
 
 ## 🚀 Trải Nghiệm & Triển Khai Nhanh
 
-* 🔗 **Website Demo Trực Tuyến**: [https://worldtradinglab.vercel.app](https://worldtradinglab.vercel.app)
+* 🔗 **Website Demo Trực Tuyến (Showcase World Trading Lab)**: [https://worldtradinglab.vercel.app](https://worldtradinglab.vercel.app)  
+  *(Bản trình diễn học viện Giao dịch Tài chính SMC thực chiến xây dựng trên nền tảng NextLMS)*
 * ⚡ **Triển Khai 1-Click Lên Vercel**:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fenzii%2FeLearning&project-name=my-elearning-platform&repository-name=my-elearning-platform)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fenzii%2FeLearning&project-name=nextlms-platform&repository-name=nextlms-platform)
 
 ---
 
@@ -749,9 +750,9 @@ Nền tảng được cung cấp mã nguồn mở theo giấy phép **GNU AGPLv3
 | 🛡️ **4. Giấy Phép Thương Mại (Commercial License)** | Giấy phép cho phép tích hợp mã nguồn đóng, phân phối nội bộ hoặc kinh doanh SaaS đa người thuê (Multi-tenant) mà không cần công khai mã nguồn. | Doanh nghiệp & tập đoàn giáo dục. |
 
 ### 📞 Kênh Tiếp Nhận & Tư Vấn Kỹ Thuật:
-* 📱 **Zalo**: [+84971929521](https://zalo.me/84971929521) (0971.929.521)
+* 📱 **Zalo**: [+84971929521](https://zalo.me/84971929521)
 * ✈️ **Telegram**: [https://t.me/trading_world_support](https://t.me/trading_world_support)
 
 ---
 
-© 2026 **World Trading Lab**. Đã đăng ký bản quyền. Xây dựng với tinh thần phụng sự.
+© 2026 **NextLMS**. Phát hành theo giấy phép mã nguồn mở GNU AGPLv3. Xây dựng với tinh thần phụng sự.

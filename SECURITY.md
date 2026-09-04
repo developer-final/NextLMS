@@ -1,8 +1,8 @@
-# Security Policy
+# Security Policy — NextLMS
 
 ## Reporting Security Vulnerabilities
 
-We take the security of this e-learning platform and the privacy of its users very seriously. If you discover a security vulnerability, **please DO NOT report it via a public GitHub issue**.
+We take the security of **NextLMS** and the privacy of its users very seriously. If you discover a security vulnerability, **please DO NOT report it via a public GitHub issue**.
 
 Instead, please send a responsible disclosure report directly to our core security team:
 
