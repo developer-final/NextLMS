@@ -17,6 +17,8 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import BlogCard from "@/components/cards/BlogCard";
 import Pagination from "@/components/ui/Pagination";
 
+import { NicheConfig } from "@/lib/niches";
+
 interface PostItem {
   id: string;
   title: string;
@@ -60,6 +62,7 @@ interface BlogPageClientProps {
   currentCategory?: string;
   currentTag?: string;
   currentSearch?: string;
+  nicheConfig?: NicheConfig;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -75,11 +78,18 @@ export default function BlogPageClient({
   currentCategory,
   currentTag,
   currentSearch,
+  nicheConfig,
   pagination,
 }: BlogPageClientProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState(currentSearch || "");
+
+  const blogHeroTitle = nicheConfig?.blogPageTitle || t.blog.heroTitle;
+  const blogHeroSubtitle = nicheConfig?.blogPageSubtitle || t.blog.heroSubtitle;
+  const blogBadge = nicheConfig
+    ? `${nicheConfig.brandName.toUpperCase()} INSIGHTS`
+    : "WORLD TRADING LAB INSIGHTS";
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,15 +125,15 @@ export default function BlogPageClient({
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 backdrop-blur-md">
             <Sparkles className="h-3.5 w-3.5" />
-            WORLD TRADING LAB INSIGHTS
+            {blogBadge}
           </span>
 
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
-            {t.blog.heroTitle}
+            {blogHeroTitle}
           </h1>
 
           <p className="mx-auto max-w-2xl text-sm md:text-base text-slate-400 leading-relaxed">
-            {t.blog.heroSubtitle}
+            {blogHeroSubtitle}
           </p>
 
           {/* Search Bar */}

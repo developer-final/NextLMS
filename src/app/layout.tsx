@@ -5,6 +5,7 @@ import ToastProvider from "@/components/providers/ToastProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import DemoNicheSwitcher from "@/components/demo/DemoNicheSwitcher";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-1 flex flex-col">{children}</main>
             <Footer />
+            <DemoNicheSwitcher />
           </LanguageProvider>
         </AuthProvider>
         <SpeedInsights />

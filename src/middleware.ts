@@ -8,6 +8,14 @@ import {
   getCountryFromRequest,
   detectLanguageFromCountry,
 } from "@/lib/i18n";
+import {
+  COOKIE_NICHE_KEY,
+  COOKIE_BRAND_KEY,
+  COOKIE_TEACHER_KEY,
+  HEADER_NICHE_KEY,
+  HEADER_BRAND_KEY,
+  HEADER_TEACHER_KEY,
+} from "@/lib/niches";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -57,36 +65,120 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 2. GeoIP & Internationalization detection for visitors
+  // 2. Demo Niche Dynamic Parameters & GeoIP Detection
   // Do not modify auth callback endpoints or internal API routes
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
 
-  const existingLocaleCookie = req.cookies.get(COOKIE_LOCALE_KEY)?.value;
-  const res = NextResponse.next();
+  const requestHeaders = new Headers(req.headers);
 
-  // If visitor already has a locale cookie (previously selected or detected), preserve it
-  if (existingLocaleCookie) {
-    return res;
-  }
+  const safeHeaderEncode = (val: string) => encodeURIComponent(val);
 
-  // Detect country from Vercel edge headers, proxy headers, or dev query param
-  const { country, source } = getCountryFromRequest(req);
-  const detectedLocale = detectLanguageFromCountry(country);
+  // Handle Dynamic Demo Niche query params: ?niche=... &brand=... &teacher=...
+  const nicheParam = req.nextUrl.searchParams.get("niche");
+  const brandParam = req.nextUrl.searchParams.get("brand");
+  const teacherParam = req.nextUrl.searchParams.get("teacher");
 
-  // Set the NEXT_LOCALE cookie for seamless UX across page loads
-  res.cookies.set({
-    name: COOKIE_LOCALE_KEY,
-    value: detectedLocale,
-    path: "/",
-    maxAge: 31536000, // 1 year
-    sameSite: "lax",
+  const existingNicheCookie = req.cookies.get(COOKIE_NICHE_KEY)?.value;
+  const existingBrandCookie = req.cookies.get(COOKIE_BRAND_KEY)?.value;
+  const existingTeacherCookie = req.cookies.get(COOKIE_TEACHER_KEY)?.value;
+
+  if (existingNicheCookie) requestHeaders.set(HEADER_NICHE_KEY, safeHeaderEncode(existingNicheCookie));
+  if (existingBrandCookie) requestHeaders.set(HEADER_BRAND_KEY, safeHeaderEncode(existingBrandCookie));
+  if (existingTeacherCookie) requestHeaders.set(HEADER_TEACHER_KEY, safeHeaderEncode(existingTeacherCookie));
+
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
   });
 
-  res.headers.set("x-detected-country", country || "UNKNOWN");
-  res.headers.set("x-detected-locale", detectedLocale);
-  res.headers.set("x-geo-source", source);
+  if (nicheParam !== null) {
+    const cleanNiche = nicheParam.trim().toLowerCase();
+    if (cleanNiche === "reset" || cleanNiche === "default") {
+      res.cookies.delete(COOKIE_NICHE_KEY);
+      res.cookies.delete(COOKIE_BRAND_KEY);
+      res.cookies.delete(COOKIE_TEACHER_KEY);
+      requestHeaders.delete(HEADER_NICHE_KEY);
+      requestHeaders.delete(HEADER_BRAND_KEY);
+      requestHeaders.delete(HEADER_TEACHER_KEY);
+    } else if (cleanNiche) {
+      // If switching to a DIFFERENT niche without explicit brand/teacher, wipe the previous niche's overrides
+      if (existingNicheCookie && existingNicheCookie !== cleanNiche) {
+        if (brandParam === null) {
+          res.cookies.delete(COOKIE_BRAND_KEY);
+          requestHeaders.delete(HEADER_BRAND_KEY);
+        }
+        if (teacherParam === null) {
+          res.cookies.delete(COOKIE_TEACHER_KEY);
+          requestHeaders.delete(HEADER_TEACHER_KEY);
+        }
+      }
+
+      res.cookies.set({
+        name: COOKIE_NICHE_KEY,
+        value: cleanNiche,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        sameSite: "lax",
+      });
+      requestHeaders.set(HEADER_NICHE_KEY, safeHeaderEncode(cleanNiche));
+    }
+  }
+
+  if (brandParam !== null) {
+    const cleanBrand = brandParam.trim();
+    if (cleanBrand === "reset" || cleanBrand === "") {
+      res.cookies.delete(COOKIE_BRAND_KEY);
+      requestHeaders.delete(HEADER_BRAND_KEY);
+    } else {
+      res.cookies.set({
+        name: COOKIE_BRAND_KEY,
+        value: cleanBrand,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+        sameSite: "lax",
+      });
+      requestHeaders.set(HEADER_BRAND_KEY, safeHeaderEncode(cleanBrand));
+    }
+  }
+
+  if (teacherParam !== null) {
+    const cleanTeacher = teacherParam.trim();
+    if (cleanTeacher === "reset" || cleanTeacher === "") {
+      res.cookies.delete(COOKIE_TEACHER_KEY);
+      requestHeaders.delete(HEADER_TEACHER_KEY);
+    } else {
+      res.cookies.set({
+        name: COOKIE_TEACHER_KEY,
+        value: cleanTeacher,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+        sameSite: "lax",
+      });
+      requestHeaders.set(HEADER_TEACHER_KEY, safeHeaderEncode(cleanTeacher));
+    }
+  }
+
+  // If visitor does not have a locale cookie yet, detect and set it
+  const existingLocaleCookie = req.cookies.get(COOKIE_LOCALE_KEY)?.value;
+  if (!existingLocaleCookie) {
+    const { country, source } = getCountryFromRequest(req);
+    const detectedLocale = detectLanguageFromCountry(country);
+
+    res.cookies.set({
+      name: COOKIE_LOCALE_KEY,
+      value: detectedLocale,
+      path: "/",
+      maxAge: 31536000, // 1 year
+      sameSite: "lax",
+    });
+
+    res.headers.set("x-detected-country", country || "UNKNOWN");
+    res.headers.set("x-detected-locale", detectedLocale);
+    res.headers.set("x-geo-source", source);
+  }
 
   return res;
 }

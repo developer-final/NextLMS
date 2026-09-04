@@ -1,29 +1,10 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { serializePrisma } from "@/lib/utils";
+import { resolveServerNiche } from "@/lib/server-niche";
 import BlogPageClient from "./BlogPageClient";
 
-export const revalidate = 180; // ISR: 3 minutes
-
-export const metadata: Metadata = {
-  title: "Blog Kiến Thức & Phân Tích Giao Dịch | World Trading Lab",
-  description:
-    "Cập nhật các bài viết phân tích thị trường, chiến lược Price Action, SMC và cẩm nang đầu tư tài chính thực chiến từ chuyên gia.",
-  keywords: [
-    "Blog Trading",
-    "Kinh nghiệm giao dịch",
-    "Phân tích kỹ thuật",
-    "Price Action",
-    "SMC",
-    "World Trading Lab",
-  ],
-  openGraph: {
-    title: "Blog Kiến Thức & Phân Tích Giao Dịch | World Trading Lab",
-    description:
-      "Cập nhật các bài viết phân tích thị trường, chiến lược Price Action, SMC và cẩm nang đầu tư tài chính thực chiến từ chuyên gia.",
-    type: "website",
-  },
-};
+export const dynamic = "force-dynamic";
 
 interface BlogPageProps {
   searchParams: Promise<{
@@ -31,11 +12,16 @@ interface BlogPageProps {
     tag?: string;
     q?: string;
     page?: string;
+    niche?: string;
+    brand?: string;
+    teacher?: string;
   }>;
 }
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
-  const { category, tag, q, page } = await searchParams;
+  const resolvedParams = await searchParams;
+  const { category, tag, q, page } = resolvedParams;
+  const { nicheConfig } = await resolveServerNiche(resolvedParams);
 
   const pageSize = 9;
   const currentPage = Math.max(1, parseInt(page || "1", 10));
@@ -46,6 +32,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   if (category && category !== "ALL") {
     whereClause.category = { slug: category };
+  } else if (nicheConfig.categorySlugs.length > 0) {
+    whereClause.category = { slug: { in: nicheConfig.categorySlugs } };
   }
 
   if (tag) {
@@ -62,7 +50,14 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     ];
   }
 
-  const [totalPosts, posts, categories, featuredPost] = await Promise.all([
+  const categoryWhere: any = {
+    isActive: true,
+  };
+  if (nicheConfig.categorySlugs.length > 0) {
+    categoryWhere.slug = { in: nicheConfig.categorySlugs };
+  }
+
+  let [totalPosts, posts, categories, featuredPost] = await Promise.all([
     prisma.blogPost.count({ where: whereClause }),
     prisma.blogPost.findMany({
       where: whereClause,
@@ -82,7 +77,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       take: pageSize,
     }),
     prisma.category.findMany({
-      where: { isActive: true },
+      where: categoryWhere,
       include: {
         _count: {
           select: {
@@ -94,16 +89,61 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     }),
     currentPage === 1 && !category && !tag && !q
       ? prisma.blogPost.findFirst({
-          where: { status: "PUBLISHED", isFeatured: true },
+          where: { ...whereClause, isFeatured: true },
           include: {
             author: { select: { id: true, name: true, avatarUrl: true, headline: true } },
             category: { select: { id: true, name: true, slug: true } },
             tags: { select: { id: true, name: true, slug: true } },
           },
-          orderBy: { publishedAt: "desc" },
         })
       : null,
   ]);
+
+  // Fallback if 0 posts found in niche
+  if (posts.length === 0 && !category && !tag && !q) {
+    const fallbackWhere: any = { status: "PUBLISHED" };
+    [totalPosts, posts, categories, featuredPost] = await Promise.all([
+      prisma.blogPost.count({ where: fallbackWhere }),
+      prisma.blogPost.findMany({
+        where: fallbackWhere,
+        include: {
+          author: {
+            select: { id: true, name: true, avatarUrl: true, headline: true },
+          },
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
+          tags: {
+            select: { id: true, name: true, slug: true },
+          },
+        },
+        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        skip: (currentPage - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.category.findMany({
+        where: { isActive: true },
+        include: {
+          _count: {
+            select: {
+              posts: { where: { status: "PUBLISHED" } },
+            },
+          },
+        },
+        orderBy: { orderIndex: "asc" },
+      }),
+      currentPage === 1
+        ? prisma.blogPost.findFirst({
+            where: { status: "PUBLISHED", isFeatured: true },
+            include: {
+              author: { select: { id: true, name: true, avatarUrl: true, headline: true } },
+              category: { select: { id: true, name: true, slug: true } },
+              tags: { select: { id: true, name: true, slug: true } },
+            },
+          })
+        : null,
+    ]);
+  }
 
   const totalPages = Math.max(1, Math.ceil(totalPosts / pageSize));
 
@@ -115,6 +155,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       currentCategory={category}
       currentTag={tag}
       currentSearch={q}
+      nicheConfig={nicheConfig}
       pagination={{
         currentPage,
         totalPages,

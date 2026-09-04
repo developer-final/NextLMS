@@ -3,6 +3,7 @@
 import Link from "next/link";
 import CourseCard, { CourseCardProps } from "@/components/cards/CourseCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { NicheConfig } from "@/lib/niches";
 import {
   ArrowRight,
   Award,
@@ -33,6 +34,7 @@ interface HomePageClientProps {
   featuredCourses: CourseCardProps["course"][];
   categories: CategoryWithCount[];
   freeCourseHref: string;
+  nicheConfig?: NicheConfig;
 }
 
 export default function HomePageClient({
@@ -40,8 +42,38 @@ export default function HomePageClient({
   featuredCourses,
   categories,
   freeCourseHref,
+  nicheConfig,
 }: HomePageClientProps) {
   const { t } = useLanguage();
+
+  const heroBadge = nicheConfig?.heroBadge || t.home.badge;
+  const heroTitleLine1 = nicheConfig?.heroTitleLine1 || t.home.heroTitleLine1;
+  const heroTitleHighlight = nicheConfig?.heroTitleHighlight || t.home.heroTitleHighlight;
+  const heroTitleLine2 = nicheConfig?.heroTitleLine2 || t.home.heroTitleLine2;
+  const heroDescription = nicheConfig?.heroDescription || t.home.heroDescription;
+  const exploreBtnText = nicheConfig?.exploreBtnText || t.home.exploreCoursesBtn;
+  const freeTrialBtnText = nicheConfig?.freeTrialBtnText || t.home.freeTrialBtn;
+
+  const statStudentCount = nicheConfig?.stats.studentCount || settings.statsStudentCount;
+  const statStudentLabel = nicheConfig?.stats.studentLabel || t.home.studentsEnrolled;
+  const statSatisfactionRate = nicheConfig?.stats.satisfactionRate || settings.statsSatisfactionRate;
+  const statSatisfactionLabel = nicheConfig?.stats.satisfactionLabel || t.home.fiveStarRating;
+  const statPracticalRate = nicheConfig?.stats.practicalRate || settings.statsPracticalRate;
+  const statPracticalLabel = nicheConfig?.stats.practicalLabel || t.home.practicalContent;
+  const statSupportHours = nicheConfig?.stats.supportHours || settings.statsSupportHours;
+  const statSupportLabel = nicheConfig?.stats.supportLabel || t.home.qaSupport;
+
+  const categoryHeading = nicheConfig?.categoryHeading || t.home.categoriesHeading;
+  const categorySubheading = nicheConfig?.categorySubheading || t.home.categoriesSubheading;
+  const featuredHeading = nicheConfig?.featuredHeading || t.home.featuredHeading;
+  const whyChooseHeading = nicheConfig?.whyChooseHeading || t.home.whyChooseHeading;
+  const whyChooseSubheading = nicheConfig?.whyChooseSubheading || t.home.whyChooseSubheading;
+
+  const features = nicheConfig?.features || [
+    { title: t.home.feature1Title, description: t.home.feature1Desc },
+    { title: t.home.feature2Title, description: t.home.feature2Desc },
+    { title: t.home.feature3Title, description: t.home.feature3Desc },
+  ];
 
   return (
     <div className="flex flex-col gap-16 pb-20">
@@ -54,16 +86,16 @@ export default function HomePageClient({
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/30 bg-brand-950/60 px-4 py-1.5 text-xs font-semibold text-brand-400 backdrop-blur-md mb-6 shadow-glow">
-            <Sparkles className="h-4 w-4" /> {t.home.badge}
+            <Sparkles className="h-4 w-4" /> {heroBadge}
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white max-w-4xl mx-auto leading-[1.15]">
-            {t.home.heroTitleLine1} <br />
-            <span className="gradient-text-emerald">{t.home.heroTitleHighlight}</span> {t.home.heroTitleLine2}
+            {heroTitleLine1} <br />
+            <span className="gradient-text-emerald">{heroTitleHighlight}</span> {heroTitleLine2}
           </h1>
 
           <p className="mt-6 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            {t.home.heroDescription}
+            {heroDescription}
           </p>
 
           {/* CTA Buttons */}
@@ -72,7 +104,7 @@ export default function HomePageClient({
               href="/courses"
               className="flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-glow transition-all hover:scale-105"
             >
-              {t.home.exploreCoursesBtn}
+              {exploreBtnText}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
@@ -80,27 +112,27 @@ export default function HomePageClient({
               className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 px-6 py-3.5 text-sm font-semibold text-slate-200 backdrop-blur-sm transition-all"
             >
               <PlayCircle className="h-4 w-4 text-brand-400" />
-              {t.home.freeTrialBtn}
+              {freeTrialBtnText}
             </Link>
           </div>
 
           {/* Stats Bar */}
           <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-slate-800/80">
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-white">{settings.statsStudentCount}</p>
-              <p className="text-xs text-slate-400 mt-1">{t.home.studentsEnrolled}</p>
+              <p className="text-2xl sm:text-3xl font-black text-white">{statStudentCount}</p>
+              <p className="text-xs text-slate-400 mt-1">{statStudentLabel}</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-brand-400">{settings.statsSatisfactionRate}</p>
-              <p className="text-xs text-slate-400 mt-1">{t.home.fiveStarRating}</p>
+              <p className="text-2xl sm:text-3xl font-black text-brand-400">{statSatisfactionRate}</p>
+              <p className="text-xs text-slate-400 mt-1">{statSatisfactionLabel}</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-amber-400">{settings.statsPracticalRate}</p>
-              <p className="text-xs text-slate-400 mt-1">{t.home.practicalContent}</p>
+              <p className="text-2xl sm:text-3xl font-black text-amber-400">{statPracticalRate}</p>
+              <p className="text-xs text-slate-400 mt-1">{statPracticalLabel}</p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60">
-              <p className="text-2xl sm:text-3xl font-black text-white">{settings.statsSupportHours}</p>
-              <p className="text-xs text-slate-400 mt-1">{t.home.qaSupport}</p>
+              <p className="text-2xl sm:text-3xl font-black text-white">{statSupportHours}</p>
+              <p className="text-xs text-slate-400 mt-1">{statSupportLabel}</p>
             </div>
           </div>
         </div>
@@ -111,10 +143,10 @@ export default function HomePageClient({
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8">
           <div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              {t.home.categoriesHeading}
+              {categoryHeading}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              {t.home.categoriesSubheading}
+              {categorySubheading}
             </p>
           </div>
           <Link
@@ -162,7 +194,7 @@ export default function HomePageClient({
               <Sparkles className="h-3.5 w-3.5" /> {t.home.featuredBadge}
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              {t.home.featuredHeading}
+              {featuredHeading}
             </h2>
           </div>
           <Link
@@ -185,10 +217,10 @@ export default function HomePageClient({
         <div className="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950 p-8 sm:p-12 relative overflow-hidden">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              {t.home.whyChooseHeading}
+              {whyChooseHeading}
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-2">
-              {t.home.whyChooseSubheading}
+              {whyChooseSubheading}
             </p>
           </div>
 
@@ -197,9 +229,9 @@ export default function HomePageClient({
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
                 <PlayCircle className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-white">{t.home.feature1Title}</h3>
+              <h3 className="text-base font-bold text-white">{features[0]?.title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                {t.home.feature1Desc}
+                {features[0]?.description}
               </p>
             </div>
 
@@ -207,9 +239,9 @@ export default function HomePageClient({
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
                 <ShieldCheck className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-white">{t.home.feature2Title}</h3>
+              <h3 className="text-base font-bold text-white">{features[1]?.title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                {t.home.feature2Desc}
+                {features[1]?.description}
               </p>
             </div>
 
@@ -217,9 +249,9 @@ export default function HomePageClient({
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
                 <Award className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-bold text-white">{t.home.feature3Title}</h3>
+              <h3 className="text-base font-bold text-white">{features[2]?.title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                {t.home.feature3Desc}
+                {features[2]?.description}
               </p>
             </div>
           </div>

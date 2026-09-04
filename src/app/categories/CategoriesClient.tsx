@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { NicheConfig } from "@/lib/niches";
 
 interface CategoriesClientProps {
   categories: any[];
+  nicheConfig?: NicheConfig;
 }
 
-export default function CategoriesClient({ categories }: CategoriesClientProps) {
+export default function CategoriesClient({ categories, nicheConfig }: CategoriesClientProps) {
   const { t } = useLanguage();
+
+  const title = nicheConfig?.categoryPageTitle || t.categories.pageTitle;
+  const subtitle = nicheConfig?.categoryPageSubtitle || t.categories.pageSubtitle;
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8 border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-black text-white">{t.categories.pageTitle}</h1>
+        <h1 className="text-3xl font-black text-white">{title}</h1>
         <p className="text-xs text-slate-400 mt-1">
-          {t.categories.pageSubtitle}
+          {subtitle}
         </p>
       </div>
 
@@ -48,6 +53,5 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
         ))}
       </div>
     </div>
-
   );
 }

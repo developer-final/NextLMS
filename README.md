@@ -163,15 +163,125 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 | `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
 | `npx prisma db push` | Đẩy các thay đổi trong file `prisma/schema.prisma` vào Database |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
-| `node prisma/seed.js` | Nạp lại dữ liệu mẫu (Khóa học SMC, tài khoản Admin, Giảng viên, Học viên) |
+| `npm run db:seed` | Nạp dữ liệu mẫu 4 ngách cho môi trường Dev (Trading, IELTS, Làm bánh, Fitness) |
+| `npm run db:seed:prod` | Nạp dữ liệu mẫu 4 ngách lên Database Production |
 
 ---
 
-## 🔄 6. Hướng dẫn Tùy Biến & Chuyển Đổi Sang Lĩnh Vực / Ngành Khác
+## 🎯 6. Động Cơ Demo Đa Ngách Động (Dynamic Multi-Niche Demo Engine)
+
+Nền tảng được trang bị **Dynamic Multi-Niche Engine** — giải pháp tối ưu giúp bạn **chỉ cần duy nhất một trang web demo đã triển khai (Vercel / tên miền riêng)** nhưng có thể trình diễn thuyết phục cho mọi đối tác và khách hàng ở các lĩnh vực kinh doanh khác nhau.
+
+Không còn nỗi lo *"chào hàng giải pháp e-Learning cho chuyên gia làm bánh hay trung tâm tiếng Anh nhưng nội dung demo lại hiển thị biểu đồ phân tích nến Trading"*. Bằng cách sử dụng tham số URL hoặc tiện ích điều khiển trực quan, toàn bộ hệ thống (từ Logo, Khẩu hiệu, Giảng viên đại diện, Khóa học, Thống kê, Trang Giới thiệu đến Bài viết Blog) sẽ lập tức biến đổi đồng bộ theo ngành nghề tương ứng!
+
+---
+
+### 6.1. Bảng 4 Ngách Đào Tạo Mẫu Có Sẵn (Out-of-the-Box Niches)
+
+Hệ thống được thiết kế sẵn 4 bộ nội dung & dữ liệu mẫu hoàn chỉnh:
+
+| Mã Ngách (`niche`) | Tên Học Viện / Thương Hiệu | Giảng Viên Đại Diện | Lĩnh Vực Đào Tạo & Khóa Học Nổi Bật | Tông Màu & Phong Cách |
+| :--- | :--- | :--- | :--- | :--- |
+| **`trading`** *(Mặc định)* | **World Trading Lab** | Chuyên gia **Alex Vance** | SMC Masterclass, Phân tích Kỹ thuật, Crypto & Forex Algo | FinTech Dark Emerald, Đẳng cấp & Sang trọng |
+| **`ielts`** | **IELTS Elite Academy** | Thầy **Đặng Tuấn Nam** *(8.5 IELTS)* | Luyện thi IELTS Intensive 7.5+, Phát âm Chuẩn Quốc tế Pro | Học thuật Indigo / Purple, Trí tuệ & Chuyên sâu |
+| **`baking`** | **La Crème Pastry Academy** | Chef **Mai Hương** | Nghệ thuật Bánh ngọt Pháp Cổ điển, Sourdough Men tự nhiên | Rose / Amber ấm áp, Tinh tế chuẩn Âu |
+| **`fitness`** | **IronPulse Fitness** | HLV **Trọng Dũng** | Biến đổi Hình thể Toàn diện 90 ngày, Khoa học Dinh dưỡng Gym | Orange / Slate mạnh mẽ, Tràn đầy năng lượng |
+
+---
+
+### 6.2. Cú Pháp Đường Dẫn & Cá Nhân Hóa Khách Hàng (Personalized Demo Links)
+
+Bạn có thể gửi trực tiếp các đường link đã gắn tham số cho từng đối tượng khách hàng qua Zalo, Messenger, Email hoặc trình chiếu trong các buổi pitching:
+
+#### 1. Chuyển đổi ngành nghề cơ bản:
+* 🥖 **Lĩnh vực Làm bánh / Ẩm thực**:  
+  `https://ten-mien-cua-ban.com/?niche=baking`
+* 🇬🇧 **Lĩnh vực Tiếng Anh / Ngoại ngữ**:  
+  `https://ten-mien-cua-ban.com/?niche=ielts`
+* 🏋️ **Lĩnh vực Gym / Thể hình / Sức khỏe**:  
+  `https://ten-mien-cua-ban.com/?niche=fitness`
+* 📈 **Lĩnh vực Tài chính / Trading**:  
+  `https://ten-mien-cua-ban.com/?niche=trading` *(hoặc truy cập trang chủ không kèm tham số)*
+
+#### 2. Cá nhân hóa tức thì theo Tên Thương Hiệu & Giảng Viên của Khách hàng:
+Tăng gấp nhiều lần tỷ lệ chốt hợp đồng bằng cách đưa chính **tên trung tâm / thương hiệu** và **tên giảng viên** của khách hàng lên trang demo:
+
+* **Tham số hỗ trợ**:
+  * `brand`: Ghi đè tên thương hiệu học viện trên Navbar, Footer, Hero Banner, Trang Giới thiệu, Bản quyền, v.v.
+  * `teacher`: Ghi đè tên giảng viên / chuyên gia trên Hero, Giới thiệu và chi tiết khóa học.
+* **Ví dụ thực tế**:
+  * Chào hàng cho Tiệm bánh *Bếp Mẹ Hoa* của Chị Hoa:  
+    `https://ten-mien-cua-ban.com/?niche=baking&brand=Tiệm+Bánh+Bếp+Mẹ+Hoa&teacher=Chef+Mai+Hoa`
+  * Chào hàng cho Trung tâm Anh ngữ *Ms. Lan IELTS*:  
+    `https://ten-mien-cua-ban.com/?niche=ielts&brand=Ms.+Lan+IELTS+Academy&teacher=Cô+Lan+IELTS+8.5`
+  * Chào hàng cho Huấn luyện viên *Hùng Cường Fitness*:  
+    `https://ten-mien-cua-ban.com/?niche=fitness&brand=Cường+Fitness+Club&teacher=HLV+Hùng+Cường`
+
+> [!TIP]
+> Bạn có thể gõ tiếng Việt có dấu trực tiếp trên thanh địa chỉ trình duyệt, hoặc dùng nút **"Sao chép link Demo"** trong tiện ích Studio để hệ thống tự động mã hóa ký tự UTF-8 chuẩn xác.
+
+---
+
+### 6.3. Cơ Chế Lưu Cookie Tự Động & Trải Nghiệm Mượt Mà
+
+Hệ thống được thiết kế với cơ chế đồng bộ cấp độ kiến trúc (Server-side Middleware & Next.js Cookies):
+
+1. **Ghi nhớ trạng thái xuyên suốt phiên duyệt web**:
+   Khi người dùng nhấp vào link demo, Middleware lập tức lưu các giá trị `demo_niche`, `demo_brand`, `demo_teacher` vào Cookie trình duyệt (thời hạn 30 ngày). Khách hàng có thể tự do bấm sang xem trang Khóa học (`/courses`), Giới thiệu (`/about`), Danh mục (`/categories`), Blog (`/blog`) hay Đăng ký mà **không bị mất ngữ cảnh ngành nghề**.
+2. **Tự động dọn dẹp giá trị đè cũ (Auto-clean Lingering Overrides)**:
+   Khi đổi từ ngách này sang ngách khác (ví dụ: đang xem `baking` với `brand=Bếp Mẹ Hoa`, sau đó click sang `?niche=ielts`), Middleware và bộ lọc Server-side sẽ tự động phát hiện và xóa sạch thương hiệu cũ của tiệm bánh, giúp trung tâm IELTS hiển thị đúng nội dung chuẩn mực mà không bị lẫn lộn thương hiệu ngách trước đó.
+3. **An toàn chuẩn Header HTTP**:
+   Toàn bộ ký tự tiếng Việt UTF-8 được mã hóa hai chiều an toàn giữa Middleware và Server Components, loại bỏ hoàn toàn nguy cơ lỗi ByteString trên môi trường Serverless (Vercel / Node.js).
+
+---
+
+### 6.4. Tiện Ích Trực Quan "Demo Niche Studio"
+
+Trên mọi trang giao diện công khai, ở góc dưới màn hình luôn có sẵn widget nổi **Demo Niche Studio** (có thể thu nhỏ hoặc mở rộng):
+
+* 🔘 **Chọn nhanh 4 ngách**: Chuyển đổi tức thì chỉ với 1 click chuột.
+* ✏️ **Nhập trực tiếp Thương hiệu & Giảng viên**: Thử nghiệm ngay diện mạo mới của website mà không cần chỉnh sửa thanh địa chỉ URL.
+* 📋 **Nút "Sao chép link Demo"**: Tự động tạo link rút gọn kèm tham số để gửi ngay cho đối tác qua Zalo/Telegram.
+* 🔄 **Nút "Mặc định"**: Xóa toàn bộ cookie tùy biến và đưa giao diện về trạng thái World Trading Lab nguyên bản.
+
+---
+
+### 6.5. Nạp Dữ Liệu Mẫu Đa Ngách Vào Database (Seed Data)
+
+Tập lệnh `prisma/seed.js` đã được tích hợp sẵn toàn bộ dữ liệu mẫu đa dạng cho 4 ngách:
+* **4 Giảng viên chuyên ngành** với ảnh đại diện, chức danh và tiểu sử riêng biệt.
+* **9 Danh mục khóa học** phân theo từng ngành nghề.
+* **8 Khóa học thực tế**: Mỗi ngách gồm 1 khóa học chuyên sâu trả phí + 1 khóa học thử miễn phí (0đ).
+* **4 Bài viết Blog chất lượng cao** chia sẻ kiến thức đặc thù của từng ngách.
+
+Thực hiện nạp dữ liệu:
+```bash
+# Nạp dữ liệu vào Database môi trường phát triển (Dev Local / Supabase Dev)
+npm run db:seed
+
+# Nạp dữ liệu vào Database môi trường chạy thực tế (Production Cloud)
+npm run db:seed:prod
+```
+
+---
+
+### 6.6. Hướng Dẫn Mở Rộng Thêm Ngách Mới (Tùy Chọn)
+
+Để thêm ngách thứ 5 (ví dụ: `coding`, `marketing`, `photography`):
+1. Mở file [`src/lib/niches.ts`](./src/lib/niches.ts):
+   * Thêm định danh mới vào kiểu `NicheKey`: `'trading' | 'ielts' | 'baking' | 'fitness' | 'coding'`.
+   * Khai báo cấu hình nội dung cho ngách mới trong đối tượng `NICHE_CONFIGS` (Bao gồm: Tiêu đề Hero, Thống kê, Giá trị cốt lõi, Giới thiệu About, Tiêu đề Danh mục & Blog, Khóa học gợi ý).
+2. Mở file [`prisma/seed.js`](./prisma/seed.js):
+   * Bổ sung tài khoản Giảng viên mẫu, Danh mục và các Khóa học tương ứng với ngách mới.
+   * Chạy `npm run db:seed` để cập nhật cơ sở dữ liệu.
+
+---
+
+## 🔄 7. Hướng dẫn Tùy Biến Mã Nguồn Vĩnh Viễn Sang Thương Hiệu Khác (Full Rebranding)
 
 Nền tảng được thiết kế theo kiến trúc **Generic LMS (Quản lý Học tập Đa năng)**. Toàn bộ logic nghiệp vụ (trình phát video, đo lường tiến độ, thanh toán VietQR tự động, quản lý đơn hàng, cấp chứng chỉ và phân quyền) hoàn toàn trung lập và độc lập với nội dung tài chính.
 
-Bạn có thể chuyển đổi hệ thống sang bất kỳ lĩnh vực nào (Lập trình, Ngoại ngữ, Marketing, Thiết kế, Kỹ năng mềm...) trong vòng **30 - 60 phút** theo 4 bước sau:
+Nếu bạn muốn đóng gói và triển khai một website độc lập dành riêng cho một thương hiệu cố định (không dùng cơ chế demo động), bạn có thể chuyển đổi toàn bộ trong vòng **30 - 60 phút** theo 4 bước sau:
 
 ### Bước 1: Đổi Tên Thương Hiệu & Thông Tin Liên Hệ
 * Mở file [`.env`](./.env) và [`src/lib/config.ts`](./src/lib/config.ts):
@@ -194,7 +304,7 @@ Bạn có thể chuyển đổi hệ thống sang bất kỳ lĩnh vực nào (L
   * Thay đổi tên & tiểu sử giảng viên mẫu (`instructor`).
 * Chạy lệnh nạp lại dữ liệu sạch vào hệ thống:
   ```bash
-  node prisma/seed.js
+  npm run db:seed
   ```
 
 ### Bước 4: Cập Nhật Logo & Tiêu Đề SEO
@@ -214,39 +324,44 @@ Bạn có thể chuyển đổi hệ thống sang bất kỳ lĩnh vực nào (L
 
 ---
 
-## 📂 7. Cấu trúc Thư mục Dự án
+## 📂 8. Cấu trúc Thư mục Dự án
 
 ```
 eLearning/
 ├── prisma/
 │   ├── schema.prisma        # Mô hình cơ sở dữ liệu quan hệ (15 bảng)
-│   ├── seed.js              # Script khởi tạo dữ liệu mẫu thực tế
+│   ├── seed.js              # Script khởi tạo dữ liệu mẫu 4 ngách thực tế
 │   └── dev.db               # SQLite database cục bộ
 ├── src/
 │   ├── app/                 # Next.js 15 App Router (Pages & API Routes)
 │   │   ├── (auth)/          # Trang Đăng nhập & Đăng ký tài khoản
-│   │   ├── about/           # Trang Giới thiệu học viện
+│   │   ├── about/           # Trang Giới thiệu học viện (Tự động thích ứng theo ngách)
 │   │   ├── admin/           # Phân hệ Quản trị Dashboard, Orders, Courses, Students
 │   │   ├── api/             # REST API Handlers (Auth, Orders, Progress, Comments, Coupons)
-│   │   ├── categories/      # Danh mục chủ đề đào tạo
+│   │   ├── blog/            # Trang Tin tức & Bài viết chuyên ngành (Đa ngách)
+│   │   ├── categories/      # Danh mục chủ đề đào tạo (Tự động lọc theo ngách)
 │   │   ├── checkout/        # Trang Thanh toán VietQR & Upload Bill
-│   │   ├── courses/         # Trang Danh sách & Chi tiết Khóa học
+│   │   ├── courses/         # Trang Danh sách & Chi tiết Khóa học (Lọc theo ngách)
 │   │   ├── learn/           # LMS Classroom Player & Q&A
 │   │   ├── my-courses/      # Trang Khóa học của tôi
 │   │   ├── policy/          # Chính sách thanh toán, hoàn tiền, điều khoản
 │   │   ├── globals.css      # Design System CSS, Dark theme, Glassmorphism
-│   │   └── layout.tsx       # Root Layout
+│   │   └── layout.tsx       # Root Layout & Dynamic Demo Switcher
 │   ├── components/
 │   │   ├── cards/           # CourseCard, v.v.
-│   │   ├── layout/          # Navbar, Footer, LanguageSwitcher
+│   │   ├── demo/            # DemoNicheSwitcher (Tiện ích chuyển đổi ngách nổi)
+│   │   ├── layout/          # Navbar, Footer (Đồng bộ thương hiệu ngách), LanguageSwitcher
 │   │   └── providers/       # AuthProvider, LanguageProvider, ToastProvider (Sonner)
 │   ├── lib/
 │   │   ├── auth.ts          # NextAuth Options & Session config
-│   │   ├── config.ts        # Cấu hình thương hiệu & settings hệ thống
+│   │   ├── config.ts        # Cấu hình thương hiệu gốc & settings hệ thống
 │   │   ├── i18n/            # Hệ thống từ điển đa ngôn ngữ (vi.ts, en.ts)
+│   │   ├── niches.ts        # Cấu hình dữ liệu 4 ngách đào tạo (Trading, IELTS, Baking, Fitness)
 │   │   ├── prisma.ts        # Prisma Client singleton
+│   │   ├── server-niche.ts  # Bộ giải mã ngách & thương hiệu an toàn phía Server
 │   │   ├── utils.ts         # Tiện ích format VND, thời gian, slugify, YouTube embed
 │   │   └── vietqr.ts        # Generator mã QR VietQR chuẩn NAPAS
+│   ├── middleware.ts        # Xử lý tham số ngách URL, ghi nhớ Cookie & an toàn Header HTTP
 │   └── types/               # Kiểu dữ liệu TypeScript
 ├── .env                     # Biến môi trường
 ├── package.json             # Danh sách thư viện phụ thuộc
@@ -255,7 +370,7 @@ eLearning/
 
 ---
 
-## 📧 8. Hướng Dẫn Cấu Hình Hệ Thống Gửi Email (Gmail SMTP & Resend API)
+## 📧 9. Hướng Dẫn Cấu Hình Hệ Thống Gửi Email (Gmail SMTP & Resend API)
 
 Hệ thống E-Learning hỗ trợ cơ chế gửi email thông minh với **thứ tự ưu tiên tự động (Waterfall Priority)**:
 
@@ -274,7 +389,7 @@ Hệ thống E-Learning hỗ trợ cơ chế gửi email thông minh với **th�
 
 ---
 
-### 8.1. Giải Pháp 1: Gửi Qua Gmail SMTP (Khuyên Dùng khi dùng subdomain Vercel hoặc chưa có tên miền riêng)
+### 9.1. Giải Pháp 1: Gửi Qua Gmail SMTP (Khuyên Dùng khi dùng subdomain Vercel hoặc chưa có tên miền riêng)
 
 * **Ưu điểm**: Hoàn toàn **miễn phí**, **không cần tên miền riêng**, tỉ lệ vào Inbox của học viên cực cao, hỗ trợ chạy mượt mà ngay trên `*.vercel.app`.
 * **Giới hạn**: Tối đa **500 email / 24 giờ** với tài khoản Gmail cá nhân miễn phí (hoặc **2.000 email / ngày** với tài khoản Google Workspace).
@@ -303,7 +418,7 @@ node scripts/test-smtp.mjs dia_chi_nhan@gmail.com
 
 ---
 
-### 8.2. Giải Pháp 2: Gửi Qua Resend REST API (Dành cho khi đã có tên miền riêng)
+### 9.2. Giải Pháp 2: Gửi Qua Resend REST API (Dành cho khi đã có tên miền riêng)
 
 Khi website đã sở hữu tên miền riêng chính thức (ví dụ: `worldtradinglab.com`), bạn có thể sử dụng Resend để gửi hàng chục ngàn email/tháng:
 1. Đăng ký tài khoản tại [https://resend.com](https://resend.com).
@@ -320,7 +435,7 @@ Khi website đã sở hữu tên miền riêng chính thức (ví dụ: `worldtr
 
 ---
 
-### 8.3. Các Tính Năng Tự Động Gửi Email Trong Hệ Thống
+### 9.3. Các Tính Năng Tự Động Gửi Email Trong Hệ Thống
 * 🔐 **Xác thực tài khoản mới**: Tự động gửi link kích hoạt & OTP khi bật `REQUIRE_EMAIL_VERIFICATION="true"`.
 * 🔑 **Quên & Đặt lại mật khẩu**: Gửi link reset mật khẩu có chữ ký bảo mật hết hạn sau 15 phút.
 * 🧾 **Hóa đơn thanh toán thành công**: Gửi email biên nhận kèm link vào học ngay khi đơn hàng được duyệt.
@@ -329,13 +444,13 @@ Khi website đã sở hữu tên miền riêng chính thức (ví dụ: `worldtr
 
 ---
 
-## 🌐 9. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)
+## 🌐 10. Hướng Dẫn Triển Khai Hạ Tầng & CI/CD (Vercel + Neon/Supabase + GitHub Actions)
 
 Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World Trading Lab E-Learning** lên môi trường chạy thực tế (Production) theo kiến trúc **Serverless** đơn giản, bảo mật, tối ưu chi phí (0$ chi phí cố định ban đầu) và tự động hóa toàn diện.
 
 ---
 
-### 9.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)
+### 10.1. Tổng Quan Kiến Trúc Hạ Tầng (Cloud Serverless)
 
 ```
 [ Lập trình viên ]
@@ -360,7 +475,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 9.2. Hướng Dẫn Đưa Dự Án Lên GitHub
+### 10.2. Hướng Dẫn Đưa Dự Án Lên GitHub
 
 1. **Khởi tạo và kiểm tra trạng thái Git cục bộ**:
    ```bash
@@ -381,7 +496,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 9.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)
+### 10.3. Khởi Tạo Cơ Sở Dữ Liệu Cloud PostgreSQL (Miễn Phí với Neon hoặc Supabase)
 
 > [!NOTE]
 > Khi chạy trên môi trường Serverless Cloud (như Vercel/Cloudflare), hệ thống cần cơ sở dữ liệu đám mây PostgreSQL thay vì file SQLite cục bộ. Khuyến nghị sử dụng **Neon.tech** (tối ưu hóa cho Serverless Next.js, có sẵn Connection Pooling và độ trễ thấp).
@@ -426,7 +541,7 @@ Tài liệu này hướng dẫn chi tiết quy trình đưa ứng dụng **World
 
 ---
 
-### 9.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)
+### 10.4. Triển Khai Lên Vercel (Khuyên Dùng - Zero-DevOps)
 
 Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc độ phản hồi Server Actions và Edge CDN toàn cầu cực nhanh.
 
@@ -465,7 +580,7 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
 
 ---
 
-### 9.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)
+### 10.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)
 
 1. **Đăng nhập Cloudflare**: Vào Dashboard Cloudflare $\rightarrow$ Chọn **Compute (Workers & Pages)** $\rightarrow$ **Create Application** $\rightarrow$ **Pages** $\rightarrow$ **Connect to Git**.
 2. **Chọn Repository**: Chọn repo GitHub của dự án.
@@ -479,7 +594,7 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
 
 ---
 
-### 9.6. Quy Trình CI/CD Tự Động Với GitHub Actions
+### 10.6. Quy Trình CI/CD Tự Động Với GitHub Actions
 
 Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.github/workflows/ci.yml`.
 
@@ -496,7 +611,7 @@ Kịch bản tự động hóa CI/CD đã được cấu hình sẵn tại `.git
 
 ---
 
-### 9.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động (Background Tasks & Maintenance)
+### 10.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động (Background Tasks & Maintenance)
 
 Hệ thống SaaS cung cấp 2 giải pháp linh hoạt để tự động hóa các tác vụ bảo trì cơ sở dữ liệu, tự động hủy đơn hàng dang dở, dọn dẹp dữ liệu rác và gửi email chạy ngầm an toàn:
 
