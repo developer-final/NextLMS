@@ -152,7 +152,7 @@ function appendStreamChunk(taskId, chunk) {
  * Live Google Gemini Stream Caller
  */
 async function callLiveGemini(messages, onChunk) {
-  const model = "gemini-2.0-flash";
+  const model = "gemini-3.8-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${geminiKey}&alt=sse`;
 
   const contents = messages.map((m) => ({

@@ -13,7 +13,7 @@ export async function* streamGemini(
   config: GeminiConfig,
   options?: GenerateOptions
 ): AsyncGenerator<string, void, unknown> {
-  const model = options?.model || config.defaultModel || "gemini-2.0-flash";
+  const model = options?.model || config.defaultModel || "gemini-3.8-flash";
   const url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
   const response = await fetch(url, {
@@ -80,7 +80,7 @@ export async function generateGeminiText(
   config: GeminiConfig,
   options?: GenerateOptions
 ): Promise<string> {
-  const model = options?.model || config.defaultModel || "gemini-2.0-flash";
+  const model = options?.model || config.defaultModel || "gemini-3.8-flash";
   const url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
   const response = await fetch(url, {

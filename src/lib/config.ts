@@ -138,7 +138,7 @@ export const DEFAULT_CONFIG: SystemConfig = {
   aiDeepseekKey: process.env.DEEPSEEK_API_KEY || "",
   aiGlmKey: process.env.GLM_API_KEY || "",
   aiMoonshotKey: process.env.MOONSHOT_API_KEY || "",
-  aiDefaultModel: process.env.AI_DEFAULT_MODEL || "gemini-2.0-flash",
+  aiDefaultModel: process.env.AI_DEFAULT_MODEL || "gemini-3.8-flash",
   aiDevMockEnabled: process.env.AI_DEV_MOCK_ENABLED !== "false",
   aiTemperature: 0.7,
   aiMaxTokens: 4096,

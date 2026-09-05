@@ -34,11 +34,18 @@ import {
 
 interface SettingsFormClientProps {
   initialSettings: SystemConfig;
+  isDev?: boolean;
 }
 
-export default function SettingsFormClient({ initialSettings }: SettingsFormClientProps) {
+export default function SettingsFormClient({
+  initialSettings,
+  isDev = false,
+}: SettingsFormClientProps) {
   const { t, language } = useLanguage();
-  const [formData, setFormData] = useState<SystemConfig>(initialSettings);
+  const [formData, setFormData] = useState<SystemConfig>({
+    ...initialSettings,
+    aiDevMockEnabled: isDev ? initialSettings.aiDevMockEnabled : false,
+  });
   const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy" | "affiliate" | "ai">("payment");
   const [saving, setSaving] = useState(false);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
@@ -65,7 +72,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
   };
 
   useEffect(() => {
-    if (activeTab !== "ai") return;
+    if (activeTab !== "ai" || !isDev) return;
     fetchBridgeStatus();
     const timer = setInterval(() => {
       fetch("/api/admin/ai/bridge-status")
@@ -75,7 +82,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [activeTab]);
+  }, [activeTab, isDev]);
 
   const handleChange = (field: keyof SystemConfig, value: any) => {
     setFormData((prev) => ({
@@ -1128,29 +1135,31 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
               </div>
 
               {/* Dev Mock Switch */}
-              <div className="flex items-center gap-3 rounded-xl bg-slate-950/80 border border-slate-800 px-4 py-2.5">
-                <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Bot className="h-3.5 w-3.5 text-amber-400" />
-                    {t.admin.ai.devMockLabel}
+              {isDev && (
+                <div className="flex items-center gap-3 rounded-xl bg-slate-950/80 border border-slate-800 px-4 py-2.5">
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Bot className="h-3.5 w-3.5 text-amber-400" />
+                      {t.admin.ai.devMockLabel}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {formData.aiDevMockEnabled ? "Mô phỏng (Không tốn token)" : "Chế độ Production"}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-400">
-                    {formData.aiDevMockEnabled ? "Mô phỏng (Không tốn token)" : "Chế độ Production"}
-                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.aiDevMockEnabled}
+                      onChange={(e) => handleChange("aiDevMockEnabled", e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.aiDevMockEnabled}
-                    onChange={(e) => handleChange("aiDevMockEnabled", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
-              </div>
+              )}
             </div>
 
-            {formData.aiDevMockEnabled && (
+            {isDev && formData.aiDevMockEnabled && (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 flex items-start gap-2.5">
                 <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300/90 leading-relaxed">
@@ -1159,7 +1168,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
               </div>
             )}
 
-            {bridgeStatus?.isDev && (
+            {isDev && bridgeStatus?.isDev && (
               <div
                 className={`rounded-2xl border p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
                   bridgeStatus.running
@@ -1267,7 +1276,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
                   type="text"
                   value={formData.aiDefaultModel}
                   onChange={(e) => handleChange("aiDefaultModel", e.target.value)}
-                  placeholder="gemini-2.0-flash / gpt-4o-mini"
+                  placeholder="gemini-3.8-flash / gpt-4o-mini"
                   className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
                 />
               </div>

@@ -15,10 +15,13 @@ export default async function AdminSettingsPage() {
   }
 
   const currentSettings = await getSystemSettings();
+  const isDev =
+    process.env.NODE_ENV === "development" ||
+    process.env.APP_ENV === "development";
 
   return (
     <div className="max-w-5xl">
-      <SettingsFormClient initialSettings={currentSettings} />
+      <SettingsFormClient initialSettings={currentSettings} isDev={isDev} />
     </div>
   );
 }
