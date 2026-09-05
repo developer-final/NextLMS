@@ -94,6 +94,7 @@ Example:
         role: "ADMIN",
         passwordHash,
         name: finalName,
+        emailVerified: new Date(),
       },
     });
 
@@ -109,6 +110,7 @@ Example:
         email,
         passwordHash,
         role: "ADMIN",
+        emailVerified: new Date(),
         avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
         headline: "System Administrator & Academy Founder",
         bio: "Root administrator for this e-learning portal.",

@@ -69,7 +69,17 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (process.env.REQUIRE_EMAIL_VERIFICATION === "true" && !user.emailVerified) {
-          throw new Error("Please verify your email before logging in.");
+          const isAdminRole = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+          if (isAdminRole) {
+            // Auto-verify admin on correct credentials to prevent administration lockout
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { emailVerified: new Date() },
+            });
+            user.emailVerified = new Date();
+          } else {
+            throw new Error("Please verify your email before logging in.");
+          }
         }
 
         return {

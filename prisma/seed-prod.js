@@ -400,6 +400,7 @@ async function main() {
         passwordHash,
         role: "ADMIN",
         referralCode: adminRefCode,
+        emailVerified: new Date(),
         headline: "Nhà sáng lập & Quản trị Hệ thống World Trading Lab",
         bio: "Tài khoản quản trị viên tối cao khởi tạo cho hệ thống e-Learning.",
         avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
@@ -414,6 +415,17 @@ async function main() {
   } else {
     console.log(`   ✅ Administrative accounts verified (${adminCount} admin(s) exist).`);
   }
+
+  // Ensure all administrative accounts have emailVerified set to prevent login lockouts
+  await prisma.user.updateMany({
+    where: {
+      role: { in: ["ADMIN", "SUPER_ADMIN"] },
+      emailVerified: null,
+    },
+    data: {
+      emailVerified: new Date(),
+    },
+  });
 
   console.log("\n================================================================");
   console.log(" 🚀 PRODUCTION SAFE SEED COMPLETED SUCCESSFULLY!");

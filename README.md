@@ -166,6 +166,12 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 | 👨‍🏫 **Giảng viên (Instructor)** | `instructor@finlearn.vn` | `123456` | Tạo bài giảng, trả lời câu hỏi Q&A học viên |
 | 🎓 **Học viên mẫu (Student)** | `student@finlearn.vn` | `123456` | Đã sở hữu khóa học SMC Masterclass (tiến độ 40%), xem video bài giảng, thảo luận |
 
+> [!TIP]
+> **Trạng thái Xác thực Email của Tài khoản Mẫu & Cơ Chế Chống Khóa Quản Trị (Lockout Guard):**
+> * Toàn bộ tài khoản mẫu trên đều đã được hệ thống kích hoạt sẵn trạng thái **Đã xác thực Email** (`emailVerified: new Date()`) trong kịch bản nạp dữ liệu (`npm run db:seed`), đảm bảo khách hàng có thể bấm đăng nhập nhanh và trải nghiệm trọn vẹn ngay lập tức.
+> * Ngoài ra, hệ thống tích hợp sẵn cơ chế **Chống khóa ngoài Quản trị viên (Lockout Prevention)**: Tài khoản có vai trò `ADMIN` / `SUPER_ADMIN` khi nhập đúng mật khẩu sẽ luôn được tự động xác thực để không bao giờ bị khóa ngoài hệ thống dù bạn bật `REQUIRE_EMAIL_VERIFICATION="true"` trên máy chủ chưa cấu hình kịp dịch vụ gửi thư SMTP.
+> * Nếu bạn muốn tạm tắt yêu cầu xác thực email khi tự đăng ký tài khoản mới trong giai đoạn demo/thử nghiệm, chỉ cần đặt `REQUIRE_EMAIL_VERIFICATION="false"` trong file cấu hình `.env`.
+
 ---
 
 ## 📋 4. Hướng dẫn Thao tác Nghiệp vụ Chi tiết
