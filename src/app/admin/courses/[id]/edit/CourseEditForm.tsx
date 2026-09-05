@@ -22,10 +22,13 @@ import {
   ChevronUp,
   Tag,
   X,
+  Sparkles,
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCourseInput } from "@/lib/validation";
 import FileUploadZone from "@/components/ui/FileUploadZone";
+import AICopilotDrawer from "@/components/admin/ai/AICopilotDrawer";
+import CourseAIGeneratorModal from "@/components/admin/ai/CourseAIGeneratorModal";
 
 interface CourseEditFormProps {
   course: any;
@@ -38,6 +41,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   // General course info
   const [title, setTitle] = useState(course.title || "");
@@ -740,13 +744,22 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           <h3 className="text-sm font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
             <Layers className="h-4 w-4" /> 4. {t.admin.createCourse.curriculum}
           </h3>
-          <button
-            type="button"
-            onClick={addSection}
-            className="flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-brand-400 border border-slate-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" /> {t.admin.createCourse.addSectionBtn}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAIGenerator(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-brand-500/20 to-emerald-500/20 hover:from-brand-500/30 hover:to-emerald-500/30 px-3 py-1.5 text-xs font-bold text-brand-400 border border-brand-500/40 transition-all shadow-sm"
+            >
+              <Sparkles className="h-4 w-4 animate-pulse" /> {t.admin.ai.generateCourseBtn}
+            </button>
+            <button
+              type="button"
+              onClick={addSection}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-brand-400 border border-slate-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" /> {t.admin.createCourse.addSectionBtn}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -1053,6 +1066,23 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
           </div>
         </div>
       )}
+
+      {/* AI Copilot Drawer */}
+      <AICopilotDrawer
+        mode="course"
+        courseId={course.id}
+        defaultTopic={title}
+      />
+
+      {/* Course AI Generator Modal */}
+      <CourseAIGeneratorModal
+        isOpen={showAIGenerator}
+        onClose={() => setShowAIGenerator(false)}
+        courseId={course.id}
+        onSuccess={() => {
+          router.refresh();
+        }}
+      />
     </form>
   );
 }

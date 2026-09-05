@@ -52,6 +52,11 @@ Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rig
   * [10.6. Quy Trình CI/CD Tự Động Với GitHub Actions](#106-quy-trình-cicd-tự-động-với-github-actions)
   * [10.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động](#107-hướng-dẫn-triển-khai-tác-vụ-chạy-nền--cron-jobs-tự-động-background-tasks--maintenance)
   * [10.8. Triển Khai & Cập Nhật Tự Động Trên Máy Chủ Riêng / VPS (Self-Hosted VPS & Docker)](#108-triển-khai--cập-nhật-tự-động-trên-máy-chủ-riêng--vps-self-hosted-vps--docker)
+* [🤖 11. AI Copilot — Trợ Lý Sáng Tạo Nội Dung Tích Hợp (AI Content Assistant)](#-11-ai-copilot--trợ-lý-sáng-tạo-nội-dung-tích-hợp-ai-content-assistant)
+  * [11.1. Tổng Quan Kiến Trúc & 3 Chế Độ Vận Hành](#111-tổng-quan-kiến-trúc--3-chế-độ-vận-hành)
+  * [11.2. Hướng Dẫn Cài Đặt & Cấu Hình](#112-hướng-dẫn-cài-đặt--cấu-hình)
+  * [11.3. Quy Trình Sử Dụng AI Copilot Trong Admin](#113-quy-trình-sử-dụng-ai-copilot-trong-admin)
+  * [11.4. Nhà Cung Cấp AI Được Hỗ Trợ](#114-nhà-cung-cấp-ai-được-hỗ-trợ)
 * [🛠️ Dịch Vụ Hỗ Trợ Triển Khai & Phát Triển Tính Năng Theo Yêu Cầu](#️-dịch-vụ-hỗ-trợ-triển-khai--phát-triển-tính-năng-theo-yêu-cầu)
 
 ---
@@ -274,6 +279,7 @@ Hệ thống tích hợp sẵn mạng lưới **Tiếp thị liên kết tự đ
 | `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
 | `npm run db:migrate` | Áp dụng các migration CSDL mới nhất vào Database (`prisma migrate deploy`) |
 | `npm run deploy:docker` | Kéo code mới, tự động chạy migration CSDL và triển khai lại toàn bộ container Docker |
+| `npm run dev:ai` | Khởi chạy Dev AI Bridge Worker — trợ lý AI tự động sinh nội dung cho môi trường phát triển |
 | `npm run deploy:vps` | Kéo code mới, chạy migration CSDL trước, build Next.js và reload PM2 trên VPS |
 | `npx prisma db push` | Đẩy trực tiếp thay đổi schema vào Database nội bộ (chỉ nên dùng khi local prototyping) |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
@@ -929,6 +935,118 @@ Nếu bạn chỉ muốn kiểm tra hoặc áp dụng các migration CSDL mới 
 ./scripts/migrate-db.sh --prod   # Chạy trên môi trường Production
 ./scripts/migrate-db.sh --dev    # Chạy trên môi trường Development
 ```
+
+---
+
+## 🤖 11. AI Copilot — Trợ Lý Sáng Tạo Nội Dung Tích Hợp (AI Content Assistant)
+
+Nền tảng tích hợp sẵn **AI Copilot** — công cụ trợ lý thông minh giúp Admin và Giảng viên **tạo bài viết, soạn nội dung khóa học, sinh SEO metadata và gợi ý từ khóa** trực tiếp ngay trong giao diện quản trị, không cần rời khỏi trang.
+
+![AI Copilot — Trợ lý Soạn thảo AI tích hợp trong Admin Dashboard](./Images/AICopilot.png)
+
+> [!NOTE]
+> AI Copilot hoạt động hoàn toàn tách biệt với hệ thống LMS chính. Trong môi trường Development, tính năng chạy tự động mà **không cần API key bên ngoài** nhờ bộ sinh nội dung cục bộ chất lượng cao (Autonomous Engine). Trên Production, bạn có thể kết nối với Gemini, OpenAI, Claude hoặc DeepSeek.
+
+---
+
+### 11.1. Tổng Quan Kiến Trúc & 3 Chế Độ Vận Hành
+
+```
+[ Admin Dashboard — Tạo/Sửa Bài Viết ]
+        │
+        ▼  Click "AI Copilot" hoặc nhập prompt
+[ AICopilotDrawer (React Component) ]
+        │
+        ├── Chế độ 1: Local Mock Proxy (Mặc định Dev)
+        │   └── Trả kết quả ngay lập tức bằng bộ sinh nội dung cục bộ
+        │
+        ├── Chế độ 2: Dev AI Bridge Worker (`npm run dev:ai`)
+        │   └── Worker riêng giám sát hàng đợi, gọi LLM API thật hoặc Autonomous Engine
+        │
+        └── Chế độ 3: Production API (Gemini / OpenAI / Claude / DeepSeek)
+            └── Gọi trực tiếp API nhà cung cấp qua Route Handler
+```
+
+| Chế Độ | Yêu Cầu Cấu Hình | Chất Lượng Nội Dung | Phù Hợp Cho |
+| :--- | :--- | :--- | :--- |
+| **Mock Proxy** (Tự động bật khi Dev) | Không cần gì thêm | Nội dung mẫu đa lĩnh vực, đủ để trải nghiệm giao diện | Demo nhanh, thử nghiệm UI |
+| **Dev AI Bridge** (`npm run dev:ai`) | Chạy thêm 1 terminal | Nội dung chuyên sâu theo chủ đề, hỗ trợ hội thoại đa lượt | Phát triển & kiểm thử thực tế |
+| **Production API** | API Key nhà cung cấp (Gemini, OpenAI...) | Chất lượng cao nhất từ LLM thương mại | Triển khai cho người dùng cuối |
+
+---
+
+### 11.2. Hướng Dẫn Cài Đặt & Cấu Hình
+
+#### Chế Độ 1: Local Mock Proxy (Zero Config — Mặc Định)
+Không cần cấu hình gì thêm. Khi chạy `npm run dev`, hệ thống tự động kích hoạt Mock Proxy với bộ sinh nội dung cục bộ hỗ trợ đa lĩnh vực (Trading, Ngoại ngữ, CNTT, Ẩm thực...).
+
+#### Chế Độ 2: Dev AI Bridge Worker (Khuyên Dùng Cho Dev)
+Mở **thêm 1 terminal** song song với `npm run dev`:
+```bash
+# Terminal 1: Khởi chạy ứng dụng Next.js
+npm run dev
+
+# Terminal 2: Khởi chạy AI Bridge Worker
+npm run dev:ai
+```
+
+Worker sẽ tự động:
+- Giám sát thư mục hàng đợi `.dev-ai-tasks/queue/`
+- Gửi heartbeat để Dashboard biết trạng thái "🟢 Trực tuyến"
+- Sinh nội dung bằng **Autonomous Engine** (không cần API key) hoặc gọi LLM API thật nếu có key
+- Hỗ trợ **hội thoại đa lượt** — bạn có thể yêu cầu AI chỉnh sửa tiêu đề, mở rộng chủ đề, hoặc đổi góc nhìn
+
+#### Chế Độ 3: Production (Kết Nối LLM API Thật)
+Thêm API key vào biến môi trường `.env` hoặc cấu hình trong **Admin → Cài Đặt Hệ Thống**:
+```env
+# Chọn 1 hoặc nhiều nhà cung cấp:
+GEMINI_API_KEY="AIzaSy..."
+OPENAI_API_KEY="sk-..."
+ANTHROPIC_API_KEY="sk-ant-..."
+DEEPSEEK_API_KEY="sk-..."
+```
+
+Hoặc cấu hình trực tiếp qua giao diện Admin Dashboard tại trang **Cài Đặt** (key được lưu an toàn vào Database, ưu tiên cao hơn biến môi trường).
+
+---
+
+### 11.3. Quy Trình Sử Dụng AI Copilot Trong Admin
+
+1. **Mở AI Copilot**: Tại trang **Tạo Bài Viết Mới** (`/admin/posts/new`) hoặc **Chỉnh Sửa Bài Viết** (`/admin/posts/[id]/edit`), bấm nút **"✨ AI Copilot"** trên thanh công cụ.
+2. **Nhập yêu cầu**: Gõ mô tả chủ đề bằng ngôn ngữ tự nhiên, ví dụ:
+   - *"Viết bài phân tích xu hướng thị trường Forex quý 4/2026"*
+   - *"Hãy lên ý tưởng bài viết về phương pháp học tiếng Nhật hiệu quả"*
+   - *"Tạo bài hướng dẫn setup môi trường Next.js 15 cho người mới"*
+3. **Xem nội dung AI sinh ra**: Nội dung được truyền về dạng streaming (từng đoạn) với hiệu ứng đánh máy thời gian thực.
+4. **Tương tác đa lượt** *(Multi-turn)*: Bạn có thể tiếp tục trò chuyện để yêu cầu AI:
+   - Đổi tiêu đề → *"Đổi tiêu đề thành: Bí quyết Trading thành công"*
+   - Mở rộng nội dung → *"Phân tích sâu hơn phần phân tích kỹ thuật"*
+   - Thay đổi phong cách → *"Viết lại theo phong cách dễ hiểu cho người mới"*
+5. **Chèn nội dung vào biểu mẫu**: Bấm **"📥 Áp dụng bài viết"** để AI tự động điền:
+   - **Tiêu đề bài viết** (Title)
+   - **Tóm tắt** (Summary)
+   - **Nội dung chính** (Content — Markdown)
+   - **SEO Meta Title, Meta Description, Meta Keywords**
+   - **Tags / Từ khóa**
+6. **Chỉnh sửa & Xuất bản**: Rà soát, tinh chỉnh nội dung theo ý muốn rồi bấm **"Xuất bản"**.
+
+> [!TIP]
+> AI Copilot sử dụng bộ phân tích thông minh `extractPostData` để tự động tách các trường (Tiêu đề, Tóm tắt, SEO, Tags) từ văn bản AI trả về. Bạn không cần format cứng — chỉ cần gõ yêu cầu bằng ngôn ngữ tự nhiên.
+
+---
+
+### 11.4. Nhà Cung Cấp AI Được Hỗ Trợ
+
+| Nhà Cung Cấp | Biến Môi Trường | Ghi Chú |
+| :--- | :--- | :--- |
+| **Google Gemini** *(Mặc định)* | `GEMINI_API_KEY` | Miễn phí với Gemini Flash, chất lượng cao với Gemini Pro |
+| **OpenAI (GPT-4o)** | `OPENAI_API_KEY` | Chất lượng hàng đầu, phù hợp nội dung dài |
+| **Anthropic Claude** | `ANTHROPIC_API_KEY` | Xuất sắc với nội dung phân tích chuyên sâu |
+| **DeepSeek** | `DEEPSEEK_API_KEY` | Chi phí thấp, hỗ trợ tiếng Việt tốt |
+| **Autonomous Engine** *(Dev)* | Không cần API key | Bộ sinh nội dung cục bộ tích hợp sẵn, hoạt động 100% offline |
+
+> [!IMPORTANT]
+> Khi cấu hình nhiều API key cùng lúc, hệ thống sẽ ưu tiên sử dụng nhà cung cấp được chọn trong **Admin → Cài Đặt → AI Provider mặc định** (key `aiDefaultProvider` trong bảng `Setting`). Nếu chưa cấu hình, mặc định sử dụng **Gemini**.
 
 ---
 

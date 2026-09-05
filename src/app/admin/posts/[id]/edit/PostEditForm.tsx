@@ -32,6 +32,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { slugify } from "@/lib/utils";
 import FileUploadZone from "@/components/ui/FileUploadZone";
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer";
+import AICopilotDrawer from "@/components/admin/ai/AICopilotDrawer";
 
 interface CategoryOption {
   id: string;
@@ -107,6 +108,84 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
         start + replacement.length - suffix.length
       );
     }, 50);
+  };
+
+  // AI Copilot Integration Handlers
+  const handleInsertAIContent = (text: string) => {
+    setContent((prev) => (prev ? `${prev}\n\n${text}` : text));
+    setActiveTab("edit");
+  };
+
+  const handleReplaceAISelection = (text: string) => {
+    const textarea = document.getElementById("post-content-textarea") as HTMLTextAreaElement;
+    if (!textarea) {
+      setContent(text);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start === end) {
+      setContent((prev) => (prev ? `${prev}\n\n${text}` : text));
+    } else {
+      const newContent = content.substring(0, start) + text + content.substring(end);
+      setContent(newContent);
+    }
+    setActiveTab("edit");
+  };
+
+  const handleApplyAISEO = (seoData: {
+    metaTitle: string;
+    metaDescription: string;
+    metaKeywords: string;
+    summary: string;
+    readingTime: number;
+  }) => {
+    if (seoData.metaTitle) setMetaTitle(seoData.metaTitle);
+    if (seoData.metaDescription) setMetaDescription(seoData.metaDescription);
+    if (seoData.metaKeywords) setMetaKeywords(seoData.metaKeywords);
+    if (seoData.summary && !summary) setSummary(seoData.summary);
+  };
+
+  const handleApplyTitle = (newTitle: string) => {
+    setTitle(newTitle);
+    setSlug(slugify(newTitle));
+  };
+
+  const handleApplyFullArticle = (data: {
+    title?: string;
+    summary?: string;
+    content?: string;
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string;
+    tags?: string[];
+  }) => {
+    if (data.title) {
+      setTitle(data.title);
+      setSlug(slugify(data.title));
+    }
+    if (data.content) {
+      setContent(data.content);
+    }
+    if (data.summary) {
+      setSummary(data.summary);
+      if (!metaDescription) setMetaDescription(data.summary);
+    }
+    if (data.metaTitle) {
+      setMetaTitle(data.metaTitle);
+    } else if (data.title && !metaTitle) {
+      setMetaTitle(data.title);
+    }
+    if (data.metaDescription) {
+      setMetaDescription(data.metaDescription);
+    }
+    if (data.metaKeywords) {
+      setMetaKeywords(data.metaKeywords);
+    }
+    if (data.tags && data.tags.length > 0) {
+      setTags((prev) => Array.from(new Set([...prev, ...(data.tags || [])])));
+    }
+    setActiveTab("edit");
   };
 
   const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
@@ -650,6 +729,17 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
           </div>
         </div>
       </div>
+
+      {/* AI Copilot Assistant Drawer */}
+      <AICopilotDrawer
+        mode="post"
+        defaultTopic={title}
+        onInsertText={handleInsertAIContent}
+        onReplaceText={handleReplaceAISelection}
+        onApplySEO={handleApplyAISEO}
+        onApplyTitle={handleApplyTitle}
+        onApplyFullArticle={handleApplyFullArticle}
+      />
     </div>
   );
 }

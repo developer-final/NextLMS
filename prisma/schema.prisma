@@ -121,6 +121,7 @@ model User {
   postsAuthored   BlogPost[]       @relation("AuthorPosts")
   commissions     Commission[]
   payoutRequests  PayoutRequest[]
+  knowledgeDocs   KnowledgeDocument[]
 
   @@map("users")
 }
@@ -172,6 +173,7 @@ model Course {
   certificates Certificate[]
   attachments  Attachment[]
   tags         Tag[]
+  knowledgeDocs KnowledgeDocument[]
 
   @@index([status, isFeatured, createdAt(sort: Desc)])
   @@index([categoryId])
@@ -552,5 +554,44 @@ model PayoutRequest {
   @@index([userId])
   @@index([status])
   @@map("payout_requests")
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  title       String
+  fileName    String
+  fileUrl     String?
+  fileType    String   @default("text/plain")
+  fileSize    Int      @default(0)
+  content     String?
+  status      String   @default("READY") // PENDING, PROCESSING, READY, FAILED
+  chunkCount  Int      @default(0)
+  courseId    String?
+  authorId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course?          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  chunks DocumentChunk[]
+
+  @@index([courseId])
+  @@index([authorId])
+  @@index([status])
+  @@map("knowledge_documents")
+}
+
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  content     String
+  chunkIndex  Int      @default(0)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_chunks")
 }
 

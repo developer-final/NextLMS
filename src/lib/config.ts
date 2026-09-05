@@ -59,6 +59,19 @@ export interface SystemConfig {
   affiliateCookieDays: number;
   affiliateHoldDays: number;
   affiliateMinPayout: number;
+
+  // AI Assistant & Multi-Provider LLM
+  aiDefaultProvider: "gemini" | "openai" | "claude" | "deepseek" | "glm" | "moonshot";
+  aiGeminiKey: string;
+  aiOpenaiKey: string;
+  aiClaudeKey: string;
+  aiDeepseekKey: string;
+  aiGlmKey: string;
+  aiMoonshotKey: string;
+  aiDefaultModel: string;
+  aiDevMockEnabled: boolean;
+  aiTemperature: number;
+  aiMaxTokens: number;
 }
 
 export const DEFAULT_CONFIG: SystemConfig = {
@@ -116,6 +129,19 @@ export const DEFAULT_CONFIG: SystemConfig = {
   affiliateCookieDays: 30,
   affiliateHoldDays: 7,
   affiliateMinPayout: 200000,
+
+  // AI Assistant defaults
+  aiDefaultProvider: "gemini",
+  aiGeminiKey: process.env.GEMINI_API_KEY || "",
+  aiOpenaiKey: process.env.OPENAI_API_KEY || "",
+  aiClaudeKey: process.env.ANTHROPIC_API_KEY || "",
+  aiDeepseekKey: process.env.DEEPSEEK_API_KEY || "",
+  aiGlmKey: process.env.GLM_API_KEY || "",
+  aiMoonshotKey: process.env.MOONSHOT_API_KEY || "",
+  aiDefaultModel: process.env.AI_DEFAULT_MODEL || "gemini-2.0-flash",
+  aiDevMockEnabled: process.env.AI_DEV_MOCK_ENABLED !== "false",
+  aiTemperature: 0.7,
+  aiMaxTokens: 4096,
 };
 
 let cachedSettings: SystemConfig | null = null;
@@ -206,6 +232,18 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       affiliateMinPayout: configMap["affiliateMinPayout"]
         ? parseFloat(configMap["affiliateMinPayout"])
         : DEFAULT_CONFIG.affiliateMinPayout,
+
+      aiDefaultProvider: (configMap["aiDefaultProvider"] as any) || DEFAULT_CONFIG.aiDefaultProvider,
+      aiGeminiKey: configMap["aiGeminiKey"] || DEFAULT_CONFIG.aiGeminiKey,
+      aiOpenaiKey: configMap["aiOpenaiKey"] || DEFAULT_CONFIG.aiOpenaiKey,
+      aiClaudeKey: configMap["aiClaudeKey"] || DEFAULT_CONFIG.aiClaudeKey,
+      aiDeepseekKey: configMap["aiDeepseekKey"] || DEFAULT_CONFIG.aiDeepseekKey,
+      aiGlmKey: configMap["aiGlmKey"] || DEFAULT_CONFIG.aiGlmKey,
+      aiMoonshotKey: configMap["aiMoonshotKey"] || DEFAULT_CONFIG.aiMoonshotKey,
+      aiDefaultModel: configMap["aiDefaultModel"] || DEFAULT_CONFIG.aiDefaultModel,
+      aiDevMockEnabled: parseBool(configMap["aiDevMockEnabled"], DEFAULT_CONFIG.aiDevMockEnabled),
+      aiTemperature: configMap["aiTemperature"] ? parseFloat(configMap["aiTemperature"]) : DEFAULT_CONFIG.aiTemperature,
+      aiMaxTokens: configMap["aiMaxTokens"] ? parseInt(configMap["aiMaxTokens"], 10) : DEFAULT_CONFIG.aiMaxTokens,
     };
 
     cachedSettings = result;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -16,6 +16,10 @@ import {
   Coins,
   AlertTriangle,
   Share2,
+  Sparkles,
+  Bot,
+  Cpu,
+  RefreshCw,
 } from "lucide-react";
 import { SystemConfig } from "@/lib/config";
 import { generateVietQRUrl } from "@/lib/vietqr";
@@ -35,14 +39,86 @@ interface SettingsFormClientProps {
 export default function SettingsFormClient({ initialSettings }: SettingsFormClientProps) {
   const { t, language } = useLanguage();
   const [formData, setFormData] = useState<SystemConfig>(initialSettings);
-  const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy" | "affiliate">("payment");
+  const [activeTab, setActiveTab] = useState<"payment" | "contact" | "hero" | "policy" | "affiliate" | "ai">("payment");
   const [saving, setSaving] = useState(false);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [bridgeStatus, setBridgeStatus] = useState<{
+    isDev?: boolean;
+    running?: boolean;
+    pendingCount?: number;
+    completedCount?: number;
+    heartbeat?: any;
+  } | null>(null);
+  const [checkingBridge, setCheckingBridge] = useState(false);
+
+  const fetchBridgeStatus = async () => {
+    try {
+      setCheckingBridge(true);
+      const res = await fetch("/api/admin/ai/bridge-status");
+      const data = await res.json();
+      setBridgeStatus(data);
+    } catch {
+      setBridgeStatus(null);
+    } finally {
+      setCheckingBridge(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== "ai") return;
+    fetchBridgeStatus();
+    const timer = setInterval(() => {
+      fetch("/api/admin/ai/bridge-status")
+        .then((res) => res.json())
+        .then((data) => setBridgeStatus(data))
+        .catch(() => {});
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [activeTab]);
 
   const handleChange = (field: keyof SystemConfig, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleTestConnection = async (provider: string) => {
+    setTestingProvider(provider);
+    try {
+      const res = await fetch("/api/admin/ai/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          devMockEnabled: formData.aiDevMockEnabled,
+          apiKey:
+            provider === "gemini"
+              ? formData.aiGeminiKey
+              : provider === "openai"
+              ? formData.aiOpenaiKey
+              : provider === "claude"
+              ? formData.aiClaudeKey
+              : provider === "deepseek"
+              ? formData.aiDeepseekKey
+              : provider === "glm"
+              ? formData.aiGlmKey
+              : formData.aiMoonshotKey,
+          model: formData.aiDefaultModel,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`${t.admin.ai.testSuccess} (${data.message || provider})`);
+      } else {
+        toast.error(data.error || t.admin.ai.testFailed);
+      }
+    } catch {
+      toast.error(t.admin.ai.testFailed);
+    } finally {
+      setTestingProvider(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,6 +248,18 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
           }`}
         >
           <Share2 className="h-4 w-4" /> 5. {t.admin.sidebar.affiliates}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("ai")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            activeTab === "ai"
+              ? "bg-brand-500 text-slate-950 shadow-glow"
+              : "bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700"
+          }`}
+        >
+          <Sparkles className="h-4 w-4" /> 6. {t.admin.ai.tabAi}
         </button>
       </div>
 
@@ -1013,6 +1101,378 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
               <p className="text-[11px] text-slate-500 mt-1">
                 Cơ chế Last-Click Cookie. Đơn hàng phát sinh trong số ngày này kể từ lần click gần nhất sẽ được tính hoa hồng (VD: 30 ngày).
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. AI & LLM PROVIDERS TAB */}
+      {activeTab === "ai" && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-5 w-5 text-brand-400" />
+                  <h3 className="text-base font-bold text-white">
+                    {t.admin.ai.title}
+                  </h3>
+                  <span className="rounded-full bg-brand-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-400 border border-brand-500/30">
+                    Multi-Provider
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  {t.admin.ai.subtitle}
+                </p>
+              </div>
+
+              {/* Dev Mock Switch */}
+              <div className="flex items-center gap-3 rounded-xl bg-slate-950/80 border border-slate-800 px-4 py-2.5">
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Bot className="h-3.5 w-3.5 text-amber-400" />
+                    {t.admin.ai.devMockLabel}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {formData.aiDevMockEnabled ? "Mô phỏng (Không tốn token)" : "Chế độ Production"}
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.aiDevMockEnabled}
+                    onChange={(e) => handleChange("aiDevMockEnabled", e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+            </div>
+
+            {formData.aiDevMockEnabled && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5 flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-300/90 leading-relaxed">
+                  {t.admin.ai.devMockDesc}
+                </p>
+              </div>
+            )}
+
+            {bridgeStatus?.isDev && (
+              <div
+                className={`rounded-2xl border p-4.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                  bridgeStatus.running
+                    ? "border-emerald-500/40 bg-emerald-950/20 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.08)]"
+                    : "border-slate-800 bg-slate-950/60 text-slate-400"
+                }`}
+              >
+                <div className="flex items-start gap-3.5">
+                  <span
+                    className={`mt-1 flex h-3.5 w-3.5 shrink-0 rounded-full ${
+                      bridgeStatus.running
+                        ? "bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+                        : "bg-slate-600"
+                    }`}
+                  />
+                  <div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      Dev AI Bridge (Kịch bản 2):{" "}
+                      <span
+                        className={
+                          bridgeStatus.running
+                            ? "text-emerald-400"
+                            : "text-slate-400"
+                        }
+                      >
+                        {bridgeStatus.running ? "Đang chạy (ONLINE)" : "Ngoại tuyến (OFFLINE)"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-300/90 mt-1 leading-relaxed">
+                      {bridgeStatus.running ? (
+                        <>
+                          <span className="text-emerald-300 font-medium">
+                            🟢 Đã kích hoạt:
+                          </span>{" "}
+                          Toàn bộ thao tác tạo nội dung (Chat Copilot, Soạn khóa học, Viết blog) sẽ được chuyển thẳng qua Dev AI Bridge để tạo nội dung AI thật 100%!
+                          <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                            PID: {bridgeStatus.heartbeat?.workerPid} | Chế độ: {bridgeStatus.heartbeat?.mode} | Đang chờ: {bridgeStatus.pendingCount} | Đã hoàn tất: {bridgeStatus.completedCount}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          Worker nền chưa chạy. Hệ thống đang sử dụng bộ mô phỏng Mock Proxy dự phòng. Để kết nối AI thật, mở terminal gõ:{" "}
+                          <code className="text-amber-400 font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                            npm run dev:ai
+                          </code>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    disabled={checkingBridge}
+                    onClick={fetchBridgeStatus}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-all disabled:opacity-50"
+                  >
+                    <RefreshCw
+                      className={`h-3.5 w-3.5 ${
+                        checkingBridge ? "animate-spin text-brand-400" : ""
+                      }`}
+                    />
+                    Làm mới
+                  </button>
+
+                  <span
+                    className={`text-[11px] font-bold px-3 py-1.5 rounded-xl uppercase border tracking-wider ${
+                      bridgeStatus.running
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40 shadow-sm"
+                        : "bg-slate-800 text-slate-400 border-slate-700"
+                    }`}
+                  >
+                    {bridgeStatus.running ? "ONLINE" : "OFFLINE"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* General Parameters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {t.admin.ai.defaultProviderLabel}
+                </label>
+                <select
+                  value={formData.aiDefaultProvider}
+                  onChange={(e) => handleChange("aiDefaultProvider", e.target.value)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI (ChatGPT)</option>
+                  <option value="claude">Anthropic Claude</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="glm">Zhipu GLM</option>
+                  <option value="moonshot">Moonshot (Kimi)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {t.admin.ai.defaultModelLabel}
+                </label>
+                <input
+                  type="text"
+                  value={formData.aiDefaultModel}
+                  onChange={(e) => handleChange("aiDefaultModel", e.target.value)}
+                  placeholder="gemini-2.0-flash / gpt-4o-mini"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {t.admin.ai.temperatureLabel} ({formData.aiTemperature})
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={formData.aiTemperature}
+                  onChange={(e) => handleChange("aiTemperature", parseFloat(e.target.value))}
+                  className="w-full accent-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {t.admin.ai.maxTokensLabel}
+                </label>
+                <input
+                  type="number"
+                  min={512}
+                  max={8192}
+                  step={512}
+                  value={formData.aiMaxTokens}
+                  onChange={(e) => handleChange("aiMaxTokens", parseInt(e.target.value, 10))}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs text-white focus:border-brand-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Providers API Keys */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-5">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Key className="h-4 w-4 text-brand-400" />
+              Khóa API của 6 Nhà Cung Cấp (API Keys)
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 1. Google Gemini */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">1. Google Gemini</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiGeminiKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiGeminiKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiGeminiKey}
+                  onChange={(e) => handleChange("aiGeminiKey", e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "gemini"}
+                    onClick={() => handleTestConnection("gemini")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "gemini" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. OpenAI */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">2. OpenAI (ChatGPT)</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiOpenaiKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiOpenaiKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiOpenaiKey}
+                  onChange={(e) => handleChange("aiOpenaiKey", e.target.value)}
+                  placeholder="sk-proj-..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "openai"}
+                    onClick={() => handleTestConnection("openai")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "openai" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Anthropic Claude */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">3. Anthropic Claude</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiClaudeKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiClaudeKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiClaudeKey}
+                  onChange={(e) => handleChange("aiClaudeKey", e.target.value)}
+                  placeholder="sk-ant-..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "claude"}
+                    onClick={() => handleTestConnection("claude")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "claude" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. DeepSeek */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">4. DeepSeek</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiDeepseekKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiDeepseekKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiDeepseekKey}
+                  onChange={(e) => handleChange("aiDeepseekKey", e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "deepseek"}
+                    onClick={() => handleTestConnection("deepseek")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "deepseek" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* 5. Zhipu GLM */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">5. Zhipu GLM</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiGlmKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiGlmKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiGlmKey}
+                  onChange={(e) => handleChange("aiGlmKey", e.target.value)}
+                  placeholder="API Key GLM..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "glm"}
+                    onClick={() => handleTestConnection("glm")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "glm" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
+
+              {/* 6. Moonshot Kimi */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">6. Moonshot (Kimi)</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${formData.aiMoonshotKey ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30" : "bg-slate-800 text-slate-400"}`}>
+                    {formData.aiMoonshotKey ? t.admin.ai.configured : t.admin.ai.notConfigured}
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={formData.aiMoonshotKey}
+                  onChange={(e) => handleChange("aiMoonshotKey", e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white font-mono focus:border-brand-500 focus:outline-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={testingProvider === "moonshot"}
+                    onClick={() => handleTestConnection("moonshot")}
+                    className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 disabled:opacity-50"
+                  >
+                    {testingProvider === "moonshot" ? "Đang kiểm tra..." : t.admin.ai.testConnectionBtn}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

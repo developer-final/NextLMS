@@ -24,6 +24,7 @@ import {
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { validateCourseInput } from "@/lib/validation";
 import FileUploadZone from "@/components/ui/FileUploadZone";
+import AICopilotDrawer from "@/components/admin/ai/AICopilotDrawer";
 
 interface CourseCreateFormProps {
   categories: any[];
@@ -809,6 +810,15 @@ export default function CourseCreateForm({ categories }: CourseCreateFormProps) 
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
+
+      {/* AI Copilot Drawer */}
+      <AICopilotDrawer
+        mode="course"
+        defaultTopic={title}
+        onInsertText={(text) => {
+          setDescription((prev) => (prev ? `${prev}\n\n${text}` : text));
+        }}
+      />
     </form>
   );
 }
