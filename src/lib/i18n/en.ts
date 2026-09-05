@@ -265,7 +265,7 @@ export const en: DictionaryType = {
     adminDemoBtn: "Admin Account",
     studentDemoBtn: "Sample Student",
     emailLabel: "Email Address",
-    emailPlaceholder: "example@worldtradinglab.com",
+    emailPlaceholder: "user@example.com",
     passwordLabel: "Password",
     passwordPlaceholder: "••••••••",
     forgotPassword: "Forgot password?",

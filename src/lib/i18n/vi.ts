@@ -265,7 +265,7 @@ export const vi: DictionaryType = {
     adminDemoBtn: "Tài khoản Admin",
     studentDemoBtn: "Học viên mẫu",
     emailLabel: "Địa chỉ Email",
-    emailPlaceholder: "vidu@worldtradinglab.com",
+    emailPlaceholder: "user@example.com",
     passwordLabel: "Mật khẩu",
     passwordPlaceholder: "••••••••",
     forgotPassword: "Quên mật khẩu?",
