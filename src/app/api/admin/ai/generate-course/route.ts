@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import {
   runCoursePlannerAgent,
   runCourseExecutorAgent,
+  initCourseStructure,
+  generateSingleLesson,
 } from "@/lib/ai/agent/course-workflow";
 
 export async function POST(req: NextRequest) {
@@ -44,7 +46,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, outline });
     }
 
-    // Action 2: Execute approved syllabus into course
+    // Action 2: Fast Structure Initialization (Zero timeout risk, ~100ms)
+    if (action === "init-structure") {
+      const { courseId, outline } = body;
+
+      if (!courseId || !outline) {
+        return NextResponse.json(
+          { error: "courseId and outline are required" },
+          { status: 400 }
+        );
+      }
+
+      const initResult = await initCourseStructure(courseId, outline);
+      return NextResponse.json({ success: true, ...initResult });
+    }
+
+    // Action 3: Generate Individual Lesson Content
+    if (action === "generate-lesson") {
+      const {
+        lessonId,
+        courseTitle,
+        sectionTitle,
+        lessonTitle,
+        contentType,
+        knowledgeDocIds,
+      } = body;
+
+      if (!lessonId || !lessonTitle) {
+        return NextResponse.json(
+          { error: "lessonId and lessonTitle are required" },
+          { status: 400 }
+        );
+      }
+
+      const result = await generateSingleLesson(
+        lessonId,
+        courseTitle || "Khóa học",
+        sectionTitle || "Chương học",
+        lessonTitle,
+        contentType || "ARTICLE",
+        knowledgeDocIds
+      );
+
+      return NextResponse.json(result);
+    }
+
+    // Action 4: Execute approved syllabus all-in-one (legacy/backward compatibility)
     if (action === "execute") {
       const { courseId, outline, knowledgeDocIds } = body;
 
@@ -65,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Invalid action. Use 'plan' or 'execute'." },
+      { error: "Invalid action. Use 'plan', 'init-structure', 'generate-lesson', or 'execute'." },
       { status: 400 }
     );
   } catch (error: any) {

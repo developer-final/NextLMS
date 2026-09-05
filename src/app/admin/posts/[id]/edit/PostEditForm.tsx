@@ -87,6 +87,7 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
   const [metaKeywords, setMetaKeywords] = useState(post.metaKeywords || "");
 
   const [saving, setSaving] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   const insertMarkdown = (prefix: string, suffix = "") => {
     const textarea = document.getElementById("post-content-textarea") as HTMLTextAreaElement;
@@ -130,6 +131,7 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
       const newContent = content.substring(0, start) + text + content.substring(end);
       setContent(newContent);
     }
+    setSelectedText("");
     setActiveTab("edit");
   };
 
@@ -505,6 +507,24 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
                   rows={18}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
+                  onSelect={(e) => {
+                    const target = e.currentTarget;
+                    const start = target.selectionStart;
+                    const end = target.selectionEnd;
+                    setSelectedText(start !== end ? target.value.substring(start, end) : "");
+                  }}
+                  onKeyUp={(e) => {
+                    const target = e.currentTarget;
+                    const start = target.selectionStart;
+                    const end = target.selectionEnd;
+                    setSelectedText(start !== end ? target.value.substring(start, end) : "");
+                  }}
+                  onMouseUp={(e) => {
+                    const target = e.currentTarget;
+                    const start = target.selectionStart;
+                    const end = target.selectionEnd;
+                    setSelectedText(start !== end ? target.value.substring(start, end) : "");
+                  }}
                   placeholder={t.admin.posts.contentPlaceholder}
                   className="w-full p-4 bg-transparent text-slate-100 font-mono text-xs leading-relaxed focus:outline-none resize-y"
                 />
@@ -734,6 +754,7 @@ export default function PostEditForm({ post, categories }: PostEditFormProps) {
       <AICopilotDrawer
         mode="post"
         defaultTopic={title}
+        currentSelectedText={selectedText}
         onInsertText={handleInsertAIContent}
         onReplaceText={handleReplaceAISelection}
         onApplySEO={handleApplyAISEO}

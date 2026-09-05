@@ -42,6 +42,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   // General course info
   const [title, setTitle] = useState(course.title || "");
@@ -647,9 +648,28 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
               {t.admin.createCourse.descLabel} (Markdown / Rich Text)
             </label>
             <textarea
+              id="course-description-textarea"
               rows={6}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onSelect={(e) => {
+                const target = e.currentTarget;
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                setSelectedText(start !== end ? target.value.substring(start, end) : "");
+              }}
+              onKeyUp={(e) => {
+                const target = e.currentTarget;
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                setSelectedText(start !== end ? target.value.substring(start, end) : "");
+              }}
+              onMouseUp={(e) => {
+                const target = e.currentTarget;
+                const start = target.selectionStart;
+                const end = target.selectionEnd;
+                setSelectedText(start !== end ? target.value.substring(start, end) : "");
+              }}
               className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-white focus:border-brand-500 focus:outline-none font-mono"
             />
           </div>
@@ -1072,6 +1092,30 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
         mode="course"
         courseId={course.id}
         defaultTopic={title}
+        currentSelectedText={selectedText}
+        onInsertText={(text) => {
+          setDescription((prev: string) => (prev ? `${prev}\n\n${text}` : text));
+          toast.success("Đã chèn nội dung vào mô tả khóa học!");
+        }}
+        onReplaceText={(text) => {
+          const textarea = document.getElementById("course-description-textarea") as HTMLTextAreaElement;
+          if (!textarea) {
+            setDescription(text);
+            return;
+          }
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          if (start === end) {
+            setDescription((prev: string) => (prev ? `${prev}\n\n${text}` : text));
+          } else {
+            const newContent = description.substring(0, start) + text + description.substring(end);
+            setDescription(newContent);
+          }
+          setSelectedText("");
+        }}
+        onApplyTitle={(newTitle) => {
+          setTitle(newTitle);
+        }}
       />
 
       {/* Course AI Generator Modal */}

@@ -46,15 +46,29 @@ export async function runCoursePlannerAgent(
   );
 }
 
-/**
- * 2. Executor Agent: Creates sections, lessons, and content in database
- */
-export async function runCourseExecutorAgent(
-  input: CourseExecuteInput,
-  onProgress?: (step: string, current: number, total: number) => void
-): Promise<{ sectionsCreated: number; lessonsCreated: number }> {
-  const { courseId, outline } = input;
+export interface InitCourseStructureResult {
+  courseId: string;
+  courseTitle: string;
+  sectionsCreated: number;
+  totalLessons: number;
+  lessons: {
+    lessonId: string;
+    sectionId: string;
+    sectionTitle: string;
+    lessonTitle: string;
+    contentType: "ARTICLE" | "VIDEO_YOUTUBE" | "QUIZ";
+    orderIndex: number;
+  }[];
+}
 
+/**
+ * 2. Structure Initializer: Fast database setup for sections and lessons shell
+ * Executes in ~100ms, completely immune to gateway timeouts
+ */
+export async function initCourseStructure(
+  courseId: string,
+  outline: CourseOutline
+): Promise<InitCourseStructureResult> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: { sections: true },
@@ -64,24 +78,12 @@ export async function runCourseExecutorAgent(
     throw new Error(`Course with ID ${courseId} not found`);
   }
 
-  // Count total lessons
-  const totalLessons = outline.sections.reduce(
-    (acc, sec) => acc + sec.lessons.length,
-    0
-  );
-
-  let currentLessonCount = 0;
-  let sectionsCreated = 0;
-  let lessonsCreated = 0;
-
-  // Determine starting order index
   let sectionIndex = course.sections.length;
+  const createdLessons: InitCourseStructureResult["lessons"] = [];
 
   for (const secData of outline.sections) {
     sectionIndex++;
-    sectionsCreated++;
 
-    // Create Section in database
     const section = await prisma.section.create({
       data: {
         courseId,
@@ -92,84 +94,145 @@ export async function runCourseExecutorAgent(
     });
 
     let lessonIndex = 0;
-
     for (const lesData of secData.lessons) {
       lessonIndex++;
-      currentLessonCount++;
-      lessonsCreated++;
-
-      if (onProgress) {
-        onProgress(
-          `Generating content for "${lesData.title}"...`,
-          currentLessonCount,
-          totalLessons
-        );
-      }
-
-      // Retrieve contextual knowledge for this specific lesson
-      let lessonContext: string[] = [];
-      if (input.knowledgeDocIds && input.knowledgeDocIds.length > 0) {
-        const chunks = await searchSimilarChunks(
-          `${secData.title} ${lesData.title}`,
-          {
-            documentIds: input.knowledgeDocIds,
-            limit: 4,
-          }
-        );
-        lessonContext = chunks.map((c) => c.content);
-      }
-
-      // Generate lesson body
-      let contentBody = "";
-      if (lesData.contentType === "ARTICLE") {
-        contentBody = await generateLessonArticle(
-          course.title,
-          secData.title,
-          lesData.title,
-          lessonContext
-        );
-      } else if (lesData.contentType === "QUIZ") {
-        const quizList = await generateQuizFromContent(
-          `${secData.title} ${lesData.title}`,
-          5
-        );
-        contentBody = `# ${lesData.title}\n\n` +
-          quizList
-            .map(
-              (q, qIdx) =>
-                `### Question ${qIdx + 1}: ${q.question}\n` +
-                q.options
-                  .map((opt, optIdx) => `- [${optIdx === q.correctAnswerIndex ? "x" : " "}] ${opt}`)
-                  .join("\n") +
-                `\n\n> **Explanation**: ${q.explanation}\n`
-            )
-            .join("\n\n---\n\n");
-      } else {
-        contentBody = `# Video Lecture: ${lesData.title}\n\n` +
-          `**Module**: ${secData.title}\n\n` +
-          `### Video Script Outline\n` +
-          `- **Intro (0:00 - 1:30)**: Introduction to key objectives.\n` +
-          `- **Main Teaching (1:30 - 8:00)**: Step-by-step demonstration.\n` +
-          `- **Wrap Up (8:00 - 10:00)**: Summary and action items.`;
-      }
-
       const baseSlug = slugify(lesData.title);
-      const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+      const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-4)}${lessonIndex}`;
 
-      // Create Lesson in database
-      await prisma.lesson.create({
+      const lesson = await prisma.lesson.create({
         data: {
           sectionId: section.id,
           title: lesData.title,
           slug: uniqueSlug,
           contentType: lesData.contentType,
-          contentBody,
+          contentBody: "",
           orderIndex: lessonIndex,
           isPreview: lessonIndex === 1 && sectionIndex === 1,
         },
       });
+
+      createdLessons.push({
+        lessonId: lesson.id,
+        sectionId: section.id,
+        sectionTitle: secData.title,
+        lessonTitle: lesData.title,
+        contentType: lesData.contentType,
+        orderIndex: lessonIndex,
+      });
     }
   }
 
-  return { sectionsCreated, lessonsCreated };
+  return {
+    courseId,
+    courseTitle: course.title,
+    sectionsCreated: outline.sections.length,
+    totalLessons: createdLessons.length,
+    lessons: createdLessons,
+  };
+}
+
+/**
+ * 3. Single Lesson Content Generator
+ * Generates rich markdown content or interactive quiz for an individual lesson
+ */
+export async function generateSingleLesson(
+  lessonId: string,
+  courseTitle: string,
+  sectionTitle: string,
+  lessonTitle: string,
+  contentType: "ARTICLE" | "VIDEO_YOUTUBE" | "QUIZ",
+  knowledgeDocIds?: string[]
+): Promise<{ lessonId: string; success: boolean }> {
+  let lessonContext: string[] = [];
+  if (knowledgeDocIds && knowledgeDocIds.length > 0) {
+    const chunks = await searchSimilarChunks(`${sectionTitle} ${lessonTitle}`, {
+      documentIds: knowledgeDocIds,
+      limit: 4,
+    });
+    lessonContext = chunks.map((c) => c.content);
+  }
+
+  let contentBody = "";
+  if (contentType === "ARTICLE") {
+    contentBody = await generateLessonArticle(
+      courseTitle,
+      sectionTitle,
+      lessonTitle,
+      lessonContext
+    );
+  } else if (contentType === "QUIZ") {
+    const quizContext =
+      lessonContext.length > 0
+        ? lessonContext.join("\n\n")
+        : `${sectionTitle} ${lessonTitle}`;
+    const quizList = await generateQuizFromContent(quizContext, 5);
+    contentBody =
+      `# ${lessonTitle}\n\n` +
+      quizList
+        .map(
+          (q, qIdx) =>
+            `### Câu ${qIdx + 1}: ${q.question}\n` +
+            q.options
+              .map(
+                (opt, optIdx) =>
+                  `- [${optIdx === q.correctAnswerIndex ? "x" : " "}] ${opt}`
+              )
+              .join("\n") +
+            `\n\n> **Giải thích**: ${q.explanation}\n`
+        )
+        .join("\n\n---\n\n");
+  } else {
+    contentBody =
+      `# Bài giảng Video: ${lessonTitle}\n\n` +
+      `**Chương**: ${sectionTitle}\n\n` +
+      `### Dàn ý Kịch bản Video\n` +
+      `- **Mở đầu (0:00 - 1:30)**: Giới thiệu mục tiêu và vấn đề then chốt.\n` +
+      `- **Nội dung trọng tâm (1:30 - 8:00)**: Phân tích nguyên lý và hướng dẫn thực hành từng bước.\n` +
+      `- **Tổng kết & Bài tập (8:00 - 10:00)**: Tóm tắt điểm cốt lõi và hành động cần làm.`;
+  }
+
+  await prisma.lesson.update({
+    where: { id: lessonId },
+    data: { contentBody },
+  });
+
+  return { lessonId, success: true };
+}
+
+/**
+ * 4. All-in-one Executor Agent (with backward compatibility)
+ */
+export async function runCourseExecutorAgent(
+  input: CourseExecuteInput,
+  onProgress?: (step: string, current: number, total: number) => void
+): Promise<{ sectionsCreated: number; lessonsCreated: number }> {
+  const { courseId, outline, knowledgeDocIds } = input;
+
+  const initResult = await initCourseStructure(courseId, outline);
+
+  let current = 0;
+  for (const les of initResult.lessons) {
+    current++;
+    if (onProgress) {
+      onProgress(
+        `Generating content for "${les.lessonTitle}"...`,
+        current,
+        initResult.totalLessons
+      );
+    }
+
+    await generateSingleLesson(
+      les.lessonId,
+      initResult.courseTitle,
+      les.sectionTitle,
+      les.lessonTitle,
+      les.contentType,
+      knowledgeDocIds
+    );
+  }
+
+  return {
+    sectionsCreated: initResult.sectionsCreated,
+    lessonsCreated: initResult.totalLessons,
+  };
 }

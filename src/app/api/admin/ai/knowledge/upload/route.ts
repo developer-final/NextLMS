@@ -99,8 +99,25 @@ export async function POST(req: NextRequest) {
       fileSize = file.size;
       title = title || file.name.replace(/\.[^/.]+$/, "");
 
-      // Read text content
-      textContent = await file.text();
+      // Read text content based on file type
+      if (
+        fileName.toLowerCase().endsWith(".pdf") ||
+        fileType === "application/pdf"
+      ) {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const pdfParseModule = await import("pdf-parse");
+          const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+          const pdfData = await pdfParse(buffer);
+          textContent = pdfData.text || "";
+        } catch (pdfErr: any) {
+          console.error("PDF parse error, fallback to text:", pdfErr);
+          textContent = await file.text();
+        }
+      } else {
+        textContent = await file.text();
+      }
     } else {
       const body = await req.json();
       title = body.title || "Untitled Document";

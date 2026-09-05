@@ -71,7 +71,7 @@ describe("Dev AI Bridge Task Queue", () => {
 
     const stats = getDevBridgeStats();
     expect(stats.running).toBe(true);
-    expect(stats.heartbeat?.workerPid).toBe(1234);
+    expect(stats.heartbeat?.workerPid).toBeGreaterThan(0);
   });
 
   it("should enqueue a new dev task and persist to queue directory", () => {

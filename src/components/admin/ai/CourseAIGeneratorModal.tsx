@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sparkles,
   X,
@@ -18,6 +18,14 @@ import {
 import { toast } from "sonner";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { CourseOutline } from "@/lib/ai/types";
+
+interface KnowledgeDocItem {
+  id: string;
+  title: string;
+  fileName: string;
+  chunkCount: number;
+  status: string;
+}
 
 interface CourseAIGeneratorModalProps {
   isOpen: boolean;
@@ -37,16 +45,50 @@ export default function CourseAIGeneratorModal({
 
   // Step 1 Form
   const [topic, setTopic] = useState("");
-  const [level, setLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ALL_LEVELS">("ALL_LEVELS");
+  const [level, setLevel] = useState<
+    "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ALL_LEVELS"
+  >("ALL_LEVELS");
   const [targetAudience, setTargetAudience] = useState("Học viên mọi trình độ");
+
+  // RAG Knowledge Docs Selection
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDocItem[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
 
   // Step 2 Syllabus Plan
   const [outline, setOutline] = useState<CourseOutline | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
 
-  // Step 3 Execution
+  // Step 3 Progressive Execution
   const [isExecuting, setIsExecuting] = useState(false);
   const [progressStatus, setProgressStatus] = useState("");
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalLessonsToGenerate, setTotalLessonsToGenerate] = useState(0);
+
+  // Fetch available knowledge documents when opening modal
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingDocs(true);
+      const url = courseId
+        ? `/api/admin/ai/knowledge/upload?courseId=${courseId}`
+        : `/api/admin/ai/knowledge/upload`;
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.documents && Array.isArray(data.documents)) {
+            setKnowledgeDocs(data.documents);
+            setSelectedDocIds(
+              data.documents
+                .filter((d: KnowledgeDocItem) => d.status === "READY")
+                .map((d: KnowledgeDocItem) => d.id)
+            );
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingDocs(false));
+    }
+  }, [isOpen, courseId]);
 
   if (!isOpen) return null;
 
@@ -66,6 +108,7 @@ export default function CourseAIGeneratorModal({
           topic,
           level,
           targetAudience,
+          knowledgeDocIds: selectedDocIds,
         }),
       });
 
@@ -89,31 +132,72 @@ export default function CourseAIGeneratorModal({
 
     setStep(3);
     setIsExecuting(true);
-    setProgressStatus(t.admin.ai.generatingLessons);
+    setProgressPercent(5);
+    setProgressStatus("Đang thiết lập cấu trúc chương & bài học...");
 
     try {
-      const res = await fetch("/api/admin/ai/generate-course", {
+      // Step 3a: Fast Structure Initialization (~100ms)
+      const initRes = await fetch("/api/admin/ai/generate-course", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "execute",
+          action: "init-structure",
           courseId,
           outline,
         }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success(
-          `Khởi tạo thành công ${data.sectionsCreated} chương và ${data.lessonsCreated} bài học!`
-        );
-        if (onSuccess) onSuccess();
-        onClose();
-      } else {
-        toast.error(data.error || "Lỗi tạo nội dung bài học");
+      const initData = await initRes.json();
+      if (!initRes.ok || !initData.success || !Array.isArray(initData.lessons)) {
+        throw new Error(initData.error || "Lỗi thiết lập cấu trúc giáo trình");
       }
-    } catch {
-      toast.error("Lỗi kết nối khi khởi tạo bài học");
+
+      const createdLessons = initData.lessons;
+      const total = createdLessons.length;
+      setTotalLessonsToGenerate(total);
+
+      // Step 3b: Progressive lesson content generation
+      for (let i = 0; i < total; i++) {
+        const les = createdLessons[i];
+        const currentIdx = i + 1;
+        const percent = Math.round((currentIdx / total) * 90) + 5;
+        setProgressPercent(percent);
+        setCompletedCount(currentIdx);
+        setProgressStatus(
+          `Đang tạo nội dung cho "${les.lessonTitle}" (${currentIdx}/${total})...`
+        );
+
+        try {
+          await fetch("/api/admin/ai/generate-course", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "generate-lesson",
+              lessonId: les.lessonId,
+              courseTitle: initData.courseTitle || outline.title,
+              sectionTitle: les.sectionTitle,
+              lessonTitle: les.lessonTitle,
+              contentType: les.contentType,
+              knowledgeDocIds: selectedDocIds,
+            }),
+          });
+        } catch (lesErr) {
+          console.warn(`Lesson generation error for "${les.lessonTitle}":`, lesErr);
+        }
+      }
+
+      setProgressPercent(100);
+      setProgressStatus("Hoàn tất toàn bộ khóa học!");
+      toast.success(
+        `Khởi tạo thành công ${initData.sectionsCreated} chương và ${total} bài học!`
+      );
+      if (onSuccess) onSuccess();
+      setTimeout(() => {
+        onClose();
+      }, 700);
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi khởi tạo bài học");
+      setStep(2);
     } finally {
       setIsExecuting(false);
     }
@@ -154,7 +238,7 @@ export default function CourseAIGeneratorModal({
               <p className="text-[11px] text-slate-400">
                 Bước {step}/3:{" "}
                 {step === 1
-                  ? "Nhập ý tưởng khóa học"
+                  ? "Nhập ý tưởng & tài liệu khóa học"
                   : step === 2
                   ? "Duyệt & chỉnh sửa đề cương giáo trình"
                   : "Khởi tạo nội dung chi tiết"}
@@ -174,7 +258,7 @@ export default function CourseAIGeneratorModal({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* STEP 1: INPUT IDEA */}
+          {/* STEP 1: INPUT IDEA & REFERENCE DOCS */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -219,6 +303,66 @@ export default function CourseAIGeneratorModal({
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-white focus:border-brand-500 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Reference Knowledge Docs Selector */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                    <BookOpen className="h-4 w-4 text-brand-400" />
+                    <span>Tài liệu tham khảo RAG (Tùy chọn)</span>
+                  </div>
+                  <span className="text-[10px] text-brand-400 font-semibold">
+                    Đã chọn {selectedDocIds.length}/{knowledgeDocs.length}
+                  </span>
+                </div>
+
+                {loadingDocs ? (
+                  <p className="text-[11px] text-slate-500 italic">
+                    Đang tải danh sách tài liệu...
+                  </p>
+                ) : knowledgeDocs.length === 0 ? (
+                  <p className="text-[11px] text-slate-500">
+                    Chưa có tài liệu tải lên cho khóa học này. AI sẽ nghiên cứu dựa trên tri thức mở.
+                  </p>
+                ) : (
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {knowledgeDocs.map((doc) => {
+                      const isSelected = selectedDocIds.includes(doc.id);
+                      return (
+                        <label
+                          key={doc.id}
+                          className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-brand-500/50 bg-brand-500/10 text-white"
+                              : "border-slate-800 bg-slate-950/60 text-slate-400 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate mr-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDocIds((prev) => [...prev, doc.id]);
+                                } else {
+                                  setSelectedDocIds((prev) =>
+                                    prev.filter((id) => id !== doc.id)
+                                  );
+                                }
+                              }}
+                              className="rounded border-slate-700 text-brand-500 focus:ring-0"
+                            />
+                            <span className="font-medium truncate">{doc.title}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 shrink-0">
+                            {doc.chunkCount} đoạn cắt
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 space-y-2">
@@ -280,7 +424,7 @@ export default function CourseAIGeneratorModal({
                       {sec.lessons.map((les, lIdx) => (
                         <div
                           key={lIdx}
-                          className="flex items-center justify-between gap-2 rounded-xl bg-slate-950/60 p-2 text-xs"
+                          className="flex items-center justify-between gap-2 rounded-xl bg-slate-950/60 p-2 text-xs border border-slate-800/60"
                         >
                           <input
                             type="text"
@@ -290,28 +434,18 @@ export default function CourseAIGeneratorModal({
                               newSections[sIdx].lessons[lIdx].title = e.target.value;
                               setOutline({ ...outline, sections: newSections });
                             }}
-                            className="flex-1 bg-transparent text-slate-200 text-xs focus:outline-none"
+                            className="flex-1 bg-transparent text-slate-200 border-none focus:outline-none"
                           />
-
                           <div className="flex items-center gap-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                les.contentType === "VIDEO_YOUTUBE"
-                                  ? "bg-red-500/10 text-red-400"
-                                  : les.contentType === "QUIZ"
-                                  ? "bg-purple-500/10 text-purple-400"
-                                  : "bg-blue-500/10 text-blue-400"
-                              }`}
-                            >
+                            <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400">
                               {les.contentType}
                             </span>
-
                             <button
                               type="button"
                               onClick={() => handleRemoveLesson(sIdx, lIdx)}
-                              className="text-slate-500 hover:text-red-400"
+                              className="text-slate-500 hover:text-rose-400"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
@@ -323,17 +457,32 @@ export default function CourseAIGeneratorModal({
             </div>
           )}
 
-          {/* STEP 3: EXECUTION */}
+          {/* STEP 3: PROGRESSIVE BATCHING EXECUTION */}
           {step === 3 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
-              <Loader2 className="h-12 w-12 text-brand-400 animate-spin" />
-              <div>
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400">
+                <Loader2 className="h-10 w-10 animate-spin" />
+                <span className="absolute text-[11px] font-bold text-white">
+                  {progressPercent}%
+                </span>
+              </div>
+              <div className="w-full max-w-md space-y-3">
                 <h4 className="text-sm font-bold text-white">
-                  Đang khởi tạo toàn bộ khóa học...
+                  Đang khởi tạo và sinh nội dung bài học...
                 </h4>
-                <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  {progressStatus}
-                </p>
+                {/* Progress Bar Container */}
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-900 border border-slate-800">
+                  <div
+                    className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 transition-all duration-300 rounded-full"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="truncate max-w-[280px]">{progressStatus}</span>
+                  <span className="font-semibold text-brand-400 shrink-0">
+                    {completedCount}/{totalLessonsToGenerate} bài
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -372,7 +521,9 @@ export default function CourseAIGeneratorModal({
                 ) : (
                   <Sparkles className="h-4 w-4" />
                 )}
-                <span>{isPlanning ? t.admin.ai.generatingPlan : t.admin.ai.startGenerationBtn}</span>
+                <span>
+                  {isPlanning ? t.admin.ai.generatingPlan : t.admin.ai.startGenerationBtn}
+                </span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             )}
