@@ -15,7 +15,7 @@ Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rig
   *(Bản trình diễn học viện Giao dịch Tài chính SMC thực chiến xây dựng trên nền tảng NextLMS)*
 * ⚡ **Triển Khai 1-Click Lên Vercel**:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fenzii%2FeLearning&project-name=nextlms-platform&repository-name=nextlms-platform)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdeveloper-final%2FNextLMS&project-name=nextlms-platform&repository-name=nextlms-platform)
 
 ---
 
