@@ -171,7 +171,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
               : "bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700"
           }`}
         >
-          <Share2 className="h-4 w-4" /> 5. Tiếp thị liên kết (Affiliate)
+          <Share2 className="h-4 w-4" /> 5. {t.admin.sidebar.affiliates}
         </button>
       </div>
 
@@ -925,7 +925,7 @@ export default function SettingsFormClient({ initialSettings }: SettingsFormClie
               <div className="flex items-center gap-2">
                 <Share2 className="h-5 w-5 text-amber-400" />
                 <h3 className="text-base font-bold text-white">
-                  Cấu Hình Hệ Thống Tiếp Thị Liên Kết (Affiliate & Referral)
+                  Cấu Hình Hệ Thống Tiếp Thị Liên Kết
                 </h3>
               </div>
               <p className="text-xs text-slate-400 mt-1">

@@ -72,6 +72,7 @@ export interface DictionaryType {
     loggedInAs: string;
     profile: string;
     blog: string;
+    affiliate: string;
   };
   footer: {
     description: string;
@@ -391,6 +392,7 @@ export interface DictionaryType {
       categories: string;
       coupons: string;
       students: string;
+      affiliates: string;
       settings: string;
       posts: string;
       createPost: string;

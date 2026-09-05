@@ -60,6 +60,7 @@ export const vi: DictionaryType = {
     loggedInAs: "Đang đăng nhập với quyền",
     profile: "Hồ sơ cá nhân",
     blog: "Blog Kiến Thức",
+    affiliate: "Tiếp thị liên kết",
   },
   footer: {
     description: "Nền tảng E-learning thực chiến hàng đầu về đầu tư tài chính, giao dịch chứng khoán, Forex và Crypto.",
@@ -379,6 +380,7 @@ export const vi: DictionaryType = {
       categories: "Quản lý Danh mục",
       coupons: "Quản lý Mã giảm giá",
       students: "Quản lý Học viên & Cấp quyền",
+      affiliates: "Tiếp thị liên kết",
       settings: "Cài đặt Hệ thống & VietQR",
       posts: "Quản lý Bài viết",
       createPost: "Viết Bài Mới",
@@ -926,7 +928,7 @@ export const vi: DictionaryType = {
     scanToVerify: "Quét mã QR để xác thực tính hợp lệ",
   },
   affiliate: {
-    title: "Tiếp Thị Liên Kết (Affiliate Hub)",
+    title: "Tiếp Thị Liên Kết",
     subtitle: "Chia sẻ khóa học chất lượng cùng bạn bè và cộng đồng, nhận hoa hồng hấp dẫn tự động lên đến 20% - 30% trên mỗi đơn hàng.",
     yourReferralCode: "MÃ GIỚI THIỆU CỦA BẠN",
     copyCode: "Sao chép mã",
@@ -981,7 +983,7 @@ export const vi: DictionaryType = {
     processingBalance: "Đang Chờ Giải Ngân",
   },
   adminAffiliate: {
-    title: "Quản Lý Tiếp Thị Liên Kết (Affiliate Management)",
+    title: "Quản Lý Tiếp Thị Liên Kết",
     subtitle: "Quản lý mạng lưới đối tác tiếp thị, theo dõi hoa hồng phát sinh và duyệt các lệnh rút tiền từ học viên.",
     tabsPartners: "Danh Sách Đối Tác",
     tabsCommissions: "Lịch Sử Hoa Hồng",

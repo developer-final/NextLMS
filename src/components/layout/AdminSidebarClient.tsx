@@ -86,7 +86,7 @@ export default function AdminSidebarClient({ userRole }: AdminSidebarClientProps
     },
     {
       href: "/admin/affiliates",
-      label: t.adminAffiliate.tabsPartners || "Tiếp thị liên kết",
+      label: t.admin.sidebar.affiliates,
       icon: Share2,
       color: "text-amber-400",
     },

@@ -60,6 +60,7 @@ export const en: DictionaryType = {
     loggedInAs: "Logged in as",
     profile: "My Profile",
     blog: "Blog & Insights",
+    affiliate: "Affiliate Program",
   },
   footer: {
     description: "Leading practical e-learning platform for financial investment, stock trading, Smart Money Concepts (SMC), and crypto.",
@@ -379,6 +380,7 @@ export const en: DictionaryType = {
       categories: "Manage Categories",
       coupons: "Manage Coupons",
       students: "Manage Students & Grants",
+      affiliates: "Affiliate Program",
       settings: "Settings & Gateway",
       posts: "Manage Articles",
       createPost: "Write New Article",
