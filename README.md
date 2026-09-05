@@ -11,8 +11,7 @@ Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rig
 
 ## 🚀 Trải Nghiệm & Triển Khai Nhanh
 
-* 🔗 **Website Demo Trực Tuyến (Showcase World Trading Lab)**: [https://worldtradinglab.vercel.app](https://worldtradinglab.vercel.app)  
-  *(Bản trình diễn học viện Giao dịch Tài chính SMC thực chiến xây dựng trên nền tảng NextLMS)*
+* 🔗 **Website Demo Trực Tuyến (Showcase World Trading Lab)**: [https://worldtradinglab.vercel.app](https://worldtradinglab.vercel.app?niche=ielts)  
 * ⚡ **Triển Khai 1-Click Lên Vercel**:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdeveloper-final%2FNextLMS&project-name=nextlms-platform&repository-name=nextlms-platform)
@@ -164,7 +163,7 @@ Tại trang Đăng nhập (`/auth/login`), hệ thống có sẵn các nút bấ
 | :--- | :--- | :--- | :--- |
 | 👑 **Quản trị viên (Admin)** | `admin@finlearn.vn` | `123456` | Xem Dashboard doanh thu, Duyệt đơn hàng 1-click, Tạo/Chỉnh sửa khóa học, Cấp quyền học viên |
 | 👨‍🏫 **Giảng viên (Instructor)** | `instructor@finlearn.vn` | `123456` | Tạo bài giảng, trả lời câu hỏi Q&A học viên |
-| 🎓 **Học viên mẫu (Student)** | `student@finlearn.vn` | `123456` | Đã sở hữu khóa học SMC Masterclass (tiến độ 40%), xem video bài giảng, thảo luận |
+| 🎓 **Học viên mẫu (Student)** | `student@finlearn.vn` | `123456` | Đã sở hữu khóa học Masterclass (tiến độ 40%), xem video bài giảng, thảo luận |
 
 > [!TIP]
 > **Trạng thái Xác thực Email của Tài khoản Mẫu & Cơ Chế Chống Khóa Quản Trị (Lockout Guard):**
@@ -298,7 +297,7 @@ Hệ thống được thiết kế sẵn 7 bộ nội dung & dữ liệu mẫu h
 
 | Mã Ngách (`niche`) | Tên Học Viện / Thương Hiệu | Giảng Viên Đại Diện | Lĩnh Vực Đào Tạo & Khóa Học Nổi Bật | Tông Màu & Phong Cách |
 | :--- | :--- | :--- | :--- | :--- |
-| **`trading`** *(Mặc định)* | **World Trading Lab** | Chuyên gia **Alex Vance** | SMC Masterclass, Phân tích Kỹ thuật, Crypto & Forex Algo | FinTech Dark Emerald, Đẳng cấp & Sang trọng |
+| **`trading`** *(Mặc định)* | **World Trading Lab** | Chuyên gia **Alex Vance** | Masterclass, Phân tích Kỹ thuật, Crypto & Forex Algo | FinTech Dark Emerald, Đẳng cấp & Sang trọng |
 | **`ielts`** | **IELTS Elite Academy** | Thầy **Đặng Tuấn Nam** *(8.5 IELTS)* | Luyện thi IELTS Intensive 7.5+, Phát âm Chuẩn Quốc tế Pro | Học thuật Indigo / Purple, Trí tuệ & Chuyên sâu |
 | **`baking`** | **La Crème Pastry Academy** | Chef **Mai Hương** | Nghệ thuật Bánh ngọt Pháp Cổ điển, Sourdough Men tự nhiên | Rose / Amber ấm áp, Tinh tế chuẩn Âu |
 | **`fitness`** | **IronPulse Fitness** | HLV **Trọng Dũng** | Biến đổi Hình thể Toàn diện 90 ngày, Khoa học Dinh dưỡng Gym | Orange / Slate mạnh mẽ, Tràn đầy năng lượng |
