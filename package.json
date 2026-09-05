@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
@@ -36,7 +37,10 @@
     "storage:upload": "dotenv -e .env.development.local -- node scripts/restore-storage.mjs",
     "storage:upload:prod": "dotenv -e .env.production.local -- node scripts/restore-storage.mjs",
     "storage:migrate-urls": "dotenv -e .env.development.local -- node scripts/migrate-storage-urls.mjs",
-    "storage:migrate-urls:prod": "dotenv -e .env.production.local -- node scripts/migrate-storage-urls.mjs"
+    "storage:migrate-urls:prod": "dotenv -e .env.production.local -- node scripts/migrate-storage-urls.mjs",
+    "db:migrate": "prisma migrate deploy",
+    "deploy:vps": "bash scripts/deploy-vps.sh",
+    "deploy:docker": "bash scripts/deploy-docker.sh"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

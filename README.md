@@ -52,6 +52,7 @@ Nền tảng tích hợp toàn diện quy trình: **Đăng ký học viên $\rig
   * [10.5. Triển Khai Lên Cloudflare Pages (Tùy Chọn)](#105-triển-khai-lên-cloudflare-pages-tùy-chọn)
   * [10.6. Quy Trình CI/CD Tự Động Với GitHub Actions](#106-quy-trình-cicd-tự-động-với-github-actions)
   * [10.7. Hướng Dẫn Triển Khai Tác Vụ Chạy Nền & Cron Jobs Tự Động](#107-hướng-dẫn-triển-khai-tác-vụ-chạy-nền--cron-jobs-tự-động-background-tasks--maintenance)
+  * [10.8. Triển Khai & Cập Nhật Tự Động Trên Máy Chủ Riêng / VPS (Self-Hosted VPS & Docker)](#108-triển-khai--cập-nhật-tự-động-trên-máy-chủ-riêng--vps-self-hosted-vps--docker)
 * [🛠️ Dịch Vụ Hỗ Trợ Triển Khai & Phát Triển Tính Năng Theo Yêu Cầu](#️-dịch-vụ-hỗ-trợ-triển-khai--phát-triển-tính-năng-theo-yêu-cầu)
 
 ---
@@ -266,7 +267,10 @@ Hệ thống tích hợp sẵn mạng lưới **Tiếp thị liên kết tự đ
 | `npm run lint` | Soát lỗi cú pháp và tiêu chuẩn mã nguồn |
 | `npm test` | Chạy bộ kiểm thử tự động 270+ test cases với Vitest |
 | `npm run ci` | Chạy toàn bộ chuỗi kiểm tra chất lượng (Type-check, Lint, Test) như GitHub Actions |
-| `npx prisma db push` | Đẩy các thay đổi trong file `prisma/schema.prisma` vào Database |
+| `npm run db:migrate` | Áp dụng các migration CSDL mới nhất vào Database (`prisma migrate deploy`) |
+| `npm run deploy:docker` | Kéo code mới, tự động chạy migration CSDL và triển khai lại toàn bộ container Docker |
+| `npm run deploy:vps` | Kéo code mới, chạy migration CSDL trước, build Next.js và reload PM2 trên VPS |
+| `npx prisma db push` | Đẩy trực tiếp thay đổi schema vào Database nội bộ (chỉ nên dùng khi local prototyping) |
 | `npx prisma studio` | Mở giao diện đồ họa GUI trên trình duyệt để xem và sửa trực tiếp dữ liệu DB |
 | `npm run db:seed` | Nạp dữ liệu mẫu 7 ngách cho môi trường Dev (Trading, IELTS, Bánh, Gym, IT, demo Affiliate) |
 | `npm run db:seed:prod` | Seed an toàn cho Production (`prisma/seed-prod.js`): Không xóa dữ liệu, upsert Settings (Affiliate, VietQR), Categories chuẩn & cấp `referralCode` cho User |
@@ -729,7 +733,11 @@ Vercel là nền tảng máy chủ tối ưu nhất cho Next.js với tốc đ�
    | `CRON_SECRET` | `wtl-cron-secret-key-32chars...` | Khóa bí mật bảo vệ API Cron (/api/cron/cleanup & study-reminders) |
 
 5. **Deploy**: Bấm nút **"Deploy"**.
-   - Vercel sẽ tự động tải mã nguồn, chạy `prisma generate` và `next build`.
+   - Vercel sẽ tự động ưu tiên thực thi script `"vercel-build"` được cấu hình sẵn trong `package.json`:
+     ```bash
+     prisma generate && prisma migrate deploy && next build
+     ```
+   - Quá trình này **tự động kết nối vào Database và áp dụng các migration mới nhất trước khi build mã nguồn**. Nếu migration có lỗi, Vercel sẽ tự động hủy đợt deploy để bảo toàn website hiện tại.
    - Trong vòng 1 - 2 phút, website sẽ chính thức online với chứng chỉ SSL HTTPS hoàn toàn miễn phí.
 
 ---
@@ -825,6 +833,97 @@ Trên các môi trường Serverless như Vercel hay AWS Lambda, việc gọi g�
 Hệ thống đã giải quyết triệt để vấn đề này bằng module [`src/lib/async-task.ts`](./src/lib/async-task.ts) (`runInBackground`) ứng dụng hook `after()` chuẩn của **Next.js 15**:
 * **Phạm vi bảo vệ:** Gửi email xác thực khi đăng ký, gửi lại mã kích hoạt, quên mật khẩu, email hóa đơn thanh toán thành công và thông báo phản hồi hỏi đáp Q&A.
 * **Lợi ích:** Phản hồi giao diện người dùng ngay lập tức (< 50ms), đồng thời máy chủ serverless tiếp tục giữ kết nối chạy ngầm để đảm bảo email được chuyển giao trọn vẹn qua Resend REST API.
+
+---
+
+### 10.8. Triển Khai & Cập Nhật Tự Động Trên Máy Chủ Riêng / VPS (Self-Hosted VPS & Docker)
+
+Đối với các tổ chức, doanh nghiệp muốn tự lưu trữ (Self-hosted) toàn bộ dữ liệu trên máy chủ riêng (VPS Ubuntu/Debian hoặc Cloud Server), hệ thống đã xây dựng sẵn bộ công cụ tự động hóa, **đảm bảo cơ sở dữ liệu luôn được chạy Migration an toàn trước khi chạy mã nguồn mới**:
+
+#### 🐳 Phương Án 1: Triển khai & Cập nhật bằng Docker (Khuyên Dùng Nhất)
+
+Hệ thống cung cấp sẵn [`Dockerfile`](./Dockerfile) đa tầng siêu nhẹ và [`docker-compose.yml`](./docker-compose.yml) tích hợp sẵn PostgreSQL 16 và Next.js 15 Standalone.
+
+1. **Khởi chạy hệ thống lần đầu:**
+   ```bash
+   # Bước 1: Tạo file cấu hình production từ mẫu
+   cp .env.example .env.production.local
+   # Chỉnh sửa các biến bí mật (DATABASE_URL, NEXTAUTH_SECRET, v.v.) trong .env.production.local
+
+   # Bước 2: Khởi chạy toàn bộ hệ thống
+   docker compose up -d
+   ```
+   > [!NOTE]
+   > File [`docker-entrypoint.sh`](./docker-entrypoint.sh) được cấu hình tự động kích hoạt trước khi container Next.js khởi động, tự động thực thi `prisma migrate deploy` để khởi tạo và đồng bộ cấu trúc CSDL hoàn chỉnh.
+
+2. **Cập nhật mã nguồn & Migration khi có phiên bản mới:**
+   Khi mã nguồn có các tính năng mới hoặc thay đổi schema, bạn chỉ cần chạy **duy nhất 1 lệnh**:
+   ```bash
+   npm run deploy:docker
+   # Hoặc chạy trực tiếp script: bash scripts/deploy-docker.sh
+   ```
+   **Quy trình tự động hóa thực hiện:**
+   - Tự động kéo mã nguồn mới nhất từ Git (`git pull origin main`).
+   - Biên dịch lại Docker image mới nhất.
+   - **Chạy Migration CSDL an toàn trước:** `docker compose run --rm app ./node_modules/.bin/prisma migrate deploy`. Nếu migration gặp sự cố, script sẽ dừng ngay lập tức để bảo vệ dữ liệu hiện tại.
+   - Khởi động lại các container mà không làm gián đoạn hệ thống (`docker compose up -d`).
+   - Tự động dọn dẹp các images cũ để giải phóng dung lượng ổ cứng.
+
+---
+
+#### ⚡ Phương Án 2: Triển khai & Cập nhật trên VPS Node.js / PM2 (Bare-Metal)
+
+Dành cho môi trường VPS chạy trực tiếp Node.js 20+ và quản lý tiến trình bằng PM2 hoặc Systemd:
+
+1. **Khởi tạo hệ thống lần đầu trên VPS:**
+   ```bash
+   # Bước 1: Cài đặt các gói phụ thuộc
+   npm install
+
+   # Bước 2: Tạo file cấu hình môi trường
+   cp .env.example .env.production.local
+   nano .env.production.local
+
+   # Bước 3: Áp dụng migration CSDL
+   npm run db:migrate:deploy:prod
+
+   # Bước 4: Khởi tạo tài khoản Super Admin & Seed dữ liệu an toàn
+   npm run db:seed:prod
+   npm run create-admin:prod
+
+   # Bước 5: Build và khởi động bằng PM2
+   npm run build
+   pm2 start npm --name "nextlms" -- start
+   pm2 save
+   ```
+
+2. **Cập nhật mã nguồn & Migration khi có phiên bản mới:**
+   Chỉ cần chạy lệnh cập nhật tự động:
+   ```bash
+   npm run deploy:vps
+   # Hoặc chạy trực tiếp script: bash scripts/deploy-vps.sh
+   ```
+   **Quy trình tự động hóa thực hiện:**
+   - `git pull origin main` kéo mã nguồn mới nhất.
+   - `npm install` cập nhật các thư viện mới.
+   - **Thực thi `prisma migrate deploy` CSDL trước**: Nếu migration thất bại, script sẽ dừng quy trình ngay lập tức để ngăn chặn tình trạng lệch cấu trúc schema giữa code và database.
+   - `npx prisma generate` sinh Prisma Client mới.
+   - `npm run build` đóng gói Next.js bản sản xuất.
+   - Tự động nạp lại tiến trình qua PM2 (`pm2 reload nextlms --update-env`) với Zero-Downtime.
+
+---
+
+#### 🗄️ Tiện Ích Chạy Migration CSDL Độc Lập
+
+Nếu bạn chỉ muốn kiểm tra hoặc áp dụng các migration CSDL mới mà không cần build lại mã nguồn:
+```bash
+# Tự động nhận diện môi trường (.env.production.local hoặc .env):
+./scripts/migrate-db.sh
+
+# Hoặc chỉ định rõ môi trường:
+./scripts/migrate-db.sh --prod   # Chạy trên môi trường Production
+./scripts/migrate-db.sh --dev    # Chạy trên môi trường Development
+```
 
 ---
 
