@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import {
   runCoursePlannerAgent,
   runCourseExecutorAgent,
@@ -57,6 +58,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Authorization guard for INSTRUCTOR
+      if (user.role === "INSTRUCTOR") {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { instructorId: true },
+        });
+        if (!course || course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to modify this course" },
+            { status: 403 }
+          );
+        }
+      }
+
       const initResult = await initCourseStructure(courseId, outline);
       return NextResponse.json({ success: true, ...initResult });
     }
@@ -77,6 +92,20 @@ export async function POST(req: NextRequest) {
           { error: "lessonId and lessonTitle are required" },
           { status: 400 }
         );
+      }
+
+      // Authorization guard for INSTRUCTOR
+      if (user.role === "INSTRUCTOR") {
+        const lesson = await prisma.lesson.findUnique({
+          where: { id: lessonId },
+          include: { section: { include: { course: { select: { instructorId: true } } } } },
+        });
+        if (!lesson || lesson.section?.course?.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to modify this lesson" },
+            { status: 403 }
+          );
+        }
       }
 
       const result = await generateSingleLesson(
@@ -100,6 +129,20 @@ export async function POST(req: NextRequest) {
           { error: "courseId and outline are required" },
           { status: 400 }
         );
+      }
+
+      // Authorization guard for INSTRUCTOR
+      if (user.role === "INSTRUCTOR") {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { instructorId: true },
+        });
+        if (!course || course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to modify this course" },
+            { status: 403 }
+          );
+        }
       }
 
       const result = await runCourseExecutorAgent({

@@ -188,8 +188,14 @@ export async function searchSimilarChunks(
 
     if (options.documentIds && options.documentIds.length > 0) {
       whereCondition.documentId = { in: options.documentIds };
-    } else if (options.courseId) {
+    }
+
+    // Strict Tenant Isolation: Enforce course boundary and prevent cross-tenant data leaks
+    if (options.courseId) {
       whereCondition.document = { courseId: options.courseId };
+    } else if (!options.documentIds || options.documentIds.length === 0) {
+      // If neither courseId nor documentIds is specified, strictly limit to global (unscoped) documents
+      whereCondition.document = { courseId: null };
     }
 
     // Query candidate chunks without restricting to just 50 recent chunks

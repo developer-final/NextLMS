@@ -67,7 +67,7 @@ export async function generateMetadata({
     post.summary ||
     `Đọc bài viết ${post.title} bởi ${post.author.name} tại ${siteName}.`;
 
-  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.vercel.app";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.edu.vn";
   const postUrl = `${baseUrl}/blog/${post.slug}`;
   const keywords = [
     post.title,

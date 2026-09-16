@@ -66,11 +66,13 @@ function getSmtpTransporter(): Transporter | null {
   return cachedTransporter;
 }
 
+import { isValidEmail } from "./validation";
+
 /**
  * Base email dispatcher.
- * Automatically switches between:
- * 1. SMTP Transporter (if SMTP_USER & SMTP_PASS are present, e.g. Gmail)
- * 2. Resend REST API (if RESEND_API_KEY is present)
+ * Automatically handles multi-channel delivery with active fallback:
+ * 1. SMTP Transporter (if configured)
+ * 2. Resend REST API (if configured, or as fallback if SMTP fails)
  * 3. Development console logging fallback (if neither is configured)
  */
 export async function sendEmail({
@@ -80,6 +82,14 @@ export async function sendEmail({
   text,
   actionUrl,
 }: SendEmailOptions): Promise<SendEmailResult> {
+  const cleanTo = (to || "").trim().toLowerCase();
+  if (!cleanTo || !isValidEmail(cleanTo)) {
+    return {
+      success: false,
+      error: `Invalid recipient email address: "${to}"`,
+    };
+  }
+
   const smtpUser = process.env.SMTP_USER?.trim();
   const resendApiKey = process.env.RESEND_API_KEY?.trim();
   const defaultFrom = smtpUser
@@ -88,13 +98,14 @@ export async function sendEmail({
   const from = process.env.EMAIL_FROM?.trim() || defaultFrom;
 
   const transporter = getSmtpTransporter();
+  let lastError = "";
 
-  // 1. SMTP Mode (Gmail, Google Workspace, Custom SMTP)
+  // 1. Attempt SMTP Mode (if configured)
   if (transporter) {
     try {
       const info = await transporter.sendMail({
         from,
-        to,
+        to: cleanTo,
         subject,
         html,
         text: text || undefined,
@@ -106,15 +117,14 @@ export async function sendEmail({
         simulated: false,
       };
     } catch (error: any) {
-      console.error("[Email Error] SMTP transmission failure:", error);
-      return {
-        success: false,
-        error: error?.message || "Failed to send email via SMTP",
-      };
+      lastError = error?.message || "Failed to send email via SMTP";
+      console.warn(
+        `[Email Warning] SMTP transmission failed: ${lastError}. Checking fallback...`
+      );
     }
   }
 
-  // 2. Resend REST API Mode
+  // 2. Attempt Resend REST API Mode (if configured directly or as fallback)
   if (resendApiKey) {
     try {
       const res = await fetch("https://api.resend.com/emails", {
@@ -125,7 +135,7 @@ export async function sendEmail({
         },
         body: JSON.stringify({
           from,
-          to: [to],
+          to: [cleanTo],
           subject,
           html,
           text: text || undefined,
@@ -135,10 +145,11 @@ export async function sendEmail({
       const data = await res.json();
 
       if (!res.ok) {
+        lastError = data?.message || "Failed to send email via Resend";
         console.error("[Email Error] Resend API responded with error:", data);
         return {
           success: false,
-          error: data?.message || "Failed to send email via Resend",
+          error: lastError,
         };
       }
 
@@ -148,18 +159,28 @@ export async function sendEmail({
         simulated: false,
       };
     } catch (error: any) {
-      console.error("[Email Error] Exception sending email:", error);
+      lastError = error?.message || "Internal email transmission failure";
+      console.error("[Email Error] Exception sending email via Resend:", error);
       return {
         success: false,
-        error: error?.message || "Internal email transmission failure",
+        error: lastError,
       };
     }
+  }
+
+  // If SMTP was attempted and failed, and Resend is not configured
+  if (transporter && lastError) {
+    console.error("[Email Error] SMTP transmission failure:", lastError);
+    return {
+      success: false,
+      error: lastError,
+    };
   }
 
   // 3. Fallback: If neither SMTP nor Resend is configured, simulate sending by logging to console
   console.log("\n" + "=".repeat(64));
   console.log("📧 [EMAIL SIMULATION] Neither SMTP nor Resend API Key is set (Dev mode)");
-  console.log(`   To:         ${to}`);
+  console.log(`   To:         ${cleanTo}`);
   console.log(`   From:       ${from}`);
   console.log(`   Subject:    ${subject}`);
   if (actionUrl) {

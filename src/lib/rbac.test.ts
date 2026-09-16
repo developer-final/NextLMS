@@ -117,6 +117,12 @@ describe("Role-Based Access Control - RBAC (TC-AUTH-03)", () => {
     });
 
     it("should redirect instructors from restricted financial/system pages to /admin/courses", () => {
+      const rootAdminDecision = evaluateRbacAccess("/admin", instructorToken);
+      expect(rootAdminDecision.allowed).toBe(false);
+      if (!rootAdminDecision.allowed) {
+        expect(rootAdminDecision.redirectUrl).toBe("http://localhost:3000/admin/courses");
+      }
+
       const ordersDecision = evaluateRbacAccess("/admin/orders", instructorToken);
       expect(ordersDecision.allowed).toBe(false);
       if (!ordersDecision.allowed) {
@@ -128,6 +134,18 @@ describe("Role-Based Access Control - RBAC (TC-AUTH-03)", () => {
 
       const couponsDecision = evaluateRbacAccess("/admin/coupons", instructorToken);
       expect(couponsDecision.allowed).toBe(false);
+
+      const affiliatesDecision = evaluateRbacAccess("/admin/affiliates", instructorToken);
+      expect(affiliatesDecision.allowed).toBe(false);
+      if (!affiliatesDecision.allowed) {
+        expect(affiliatesDecision.redirectUrl).toBe("http://localhost:3000/admin/courses");
+      }
+
+      const aiDecision = evaluateRbacAccess("/admin/ai", instructorToken);
+      expect(aiDecision.allowed).toBe(false);
+      if (!aiDecision.allowed) {
+        expect(aiDecision.redirectUrl).toBe("http://localhost:3000/admin/courses");
+      }
     });
 
     it("should return 403 Forbidden when instructors call restricted administrative APIs", () => {
@@ -136,6 +154,20 @@ describe("Role-Based Access Control - RBAC (TC-AUTH-03)", () => {
       if (!decision.allowed) {
         expect(decision.status).toBe(403);
         expect(decision.error).toContain("Instructors do not have permission");
+      }
+
+      const affiliatesApiDecision = evaluateRbacAccess("/api/admin/affiliates", instructorToken);
+      expect(affiliatesApiDecision.allowed).toBe(false);
+      if (!affiliatesApiDecision.allowed) {
+        expect(affiliatesApiDecision.status).toBe(403);
+        expect(affiliatesApiDecision.error).toContain("Instructors do not have permission");
+      }
+
+      const aiApiDecision = evaluateRbacAccess("/api/admin/ai", instructorToken);
+      expect(aiApiDecision.allowed).toBe(false);
+      if (!aiApiDecision.allowed) {
+        expect(aiApiDecision.status).toBe(403);
+        expect(aiApiDecision.error).toContain("Instructors do not have permission");
       }
     });
   });

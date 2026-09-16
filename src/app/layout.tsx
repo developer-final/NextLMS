@@ -14,11 +14,33 @@ const appSlogan = process.env.APP_SLOGAN || "Nền tảng Đào tạo Chuyên s�
 const appDescription =
   process.env.APP_DESCRIPTION ||
   "Học viện đào tạo trực tuyến thực chiến với hệ thống bài giảng video chất lượng cao.";
+const siteUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.edu.vn";
 
 export const metadata: Metadata = {
-  title: `${appName} - ${appSlogan}`,
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${appName} - ${appSlogan}`,
+    template: `%s | ${appName}`,
+  },
   description: appDescription,
   keywords: ["e-learning", appName.toLowerCase(), "online courses", "khoa hoc online", "lms platform"],
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    url: siteUrl,
+    siteName: appName,
+    title: `${appName} - ${appSlogan}`,
+    description: appDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${appName} - ${appSlogan}`,
+    description: appDescription,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

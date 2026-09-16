@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deleteFileFromStorage } from "@/lib/s3";
+import { deleteFileFromStorage, extractS3Key } from "@/lib/s3";
 
 export async function GET(req: Request) {
   return handleCleanupCron(req);
@@ -46,7 +46,19 @@ async function handleCleanupCron(req: Request) {
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
-    // 1. Cancel stale PENDING orders older than 24 hours
+    // 1. Cancel stale PENDING orders older than 24 hours and restore reserved coupon slots
+    let staleOrdersWithCoupons: { couponId: string | null }[] = [];
+    if (typeof prisma.order?.findMany === "function") {
+      staleOrdersWithCoupons = await prisma.order.findMany({
+        where: {
+          status: "PENDING",
+          createdAt: { lt: twentyFourHoursAgo },
+          couponId: { not: null },
+        },
+        select: { couponId: true },
+      });
+    }
+
     const cancelledOrdersResult = await prisma.order.updateMany({
       where: {
         status: "PENDING",
@@ -57,6 +69,24 @@ async function handleCleanupCron(req: Request) {
         adminNote: "Auto-cancelled by scheduled cleanup: Order expired after 24 hours without payment.",
       },
     });
+
+    const cancelledOrdersCount = cancelledOrdersResult?.count || 0;
+
+    // Restore coupon usage for auto-cancelled expired orders strictly when cancellations occurred
+    if (cancelledOrdersCount > 0 && staleOrdersWithCoupons.length > 0 && typeof prisma.coupon?.updateMany === "function") {
+      for (const staleOrder of staleOrdersWithCoupons) {
+        if (staleOrder.couponId) {
+          try {
+            await prisma.coupon.updateMany({
+              where: { id: staleOrder.couponId, usedCount: { gt: 0 } },
+              data: { usedCount: { decrement: 1 } },
+            });
+          } catch (couponErr) {
+            console.error(`[Cron Cleanup] Failed to restore coupon ${staleOrder.couponId}:`, couponErr);
+          }
+        }
+      }
+    }
 
     // 2. Delete expired authentication & verification tokens
     const deletedTokensResult = await prisma.verificationToken.deleteMany({
@@ -79,8 +109,11 @@ async function handleCleanupCron(req: Request) {
     let cleanedAttachmentsCount = 0;
     for (const attachment of orphanedAttachments) {
       try {
-        if (attachment.fileKey) {
-          await deleteFileFromStorage(attachment.fileKey);
+        const storageKey =
+          attachment.fileKey ||
+          (attachment.fileUrl ? extractS3Key(attachment.fileUrl) : null);
+        if (storageKey) {
+          await deleteFileFromStorage(storageKey);
         }
         await prisma.attachment.delete({
           where: { id: attachment.id },
@@ -162,14 +195,14 @@ async function handleCleanupCron(req: Request) {
       timestamp: now.toISOString(),
       durationMs,
       summary: {
-        cancelledOrders: cancelledOrdersResult.count,
+        cancelledOrders: cancelledOrdersCount,
         deletedTokens: deletedTokensResult.count,
         cleanedAttachments: cleanedAttachmentsCount,
         purgedSoftDeletedPosts: purgedPostsResult.count,
         purgedUnverifiedStudents: purgedUnverifiedUsersResult.count,
         approvedCommissions: approvedCommissionsCount,
       },
-      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersResult.count} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, approved ${approvedCommissionsCount} matured commissions.`,
+      message: `Cleanup completed in ${durationMs}ms. Cancelled ${cancelledOrdersCount} orders, deleted ${deletedTokensResult.count} expired tokens, cleaned ${cleanedAttachmentsCount} orphaned files, purged ${purgedPostsResult.count} old posts, approved ${approvedCommissionsCount} matured commissions.`,
     });
   } catch (error: any) {
     const durationMs = Date.now() - startTime;

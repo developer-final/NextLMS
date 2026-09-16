@@ -94,7 +94,7 @@ export default function CourseAIGeneratorModal({
 
   const handleGeneratePlan = async () => {
     if (!topic.trim()) {
-      toast.error("Vui lòng nhập chủ đề khóa học");
+      toast.error(t.admin.ai.topicRequired);
       return;
     }
 
@@ -118,10 +118,10 @@ export default function CourseAIGeneratorModal({
         setStep(2);
         toast.success(t.admin.ai.planReadyDesc);
       } else {
-        toast.error(data.error || "Lỗi khi sinh đề cương");
+        toast.error(data.error || t.admin.ai.generatePlanFailed);
       }
     } catch {
-      toast.error("Lỗi kết nối khi sinh đề cương");
+      toast.error(t.admin.ai.planNetworkError);
     } finally {
       setIsPlanning(false);
     }
@@ -133,7 +133,7 @@ export default function CourseAIGeneratorModal({
     setStep(3);
     setIsExecuting(true);
     setProgressPercent(5);
-    setProgressStatus("Đang thiết lập cấu trúc chương & bài học...");
+    setProgressStatus(t.admin.ai.settingUpStructure);
 
     try {
       // Step 3a: Fast Structure Initialization (~100ms)
@@ -149,7 +149,7 @@ export default function CourseAIGeneratorModal({
 
       const initData = await initRes.json();
       if (!initRes.ok || !initData.success || !Array.isArray(initData.lessons)) {
-        throw new Error(initData.error || "Lỗi thiết lập cấu trúc giáo trình");
+        throw new Error(initData.error || t.admin.ai.settingUpStructure);
       }
 
       const createdLessons = initData.lessons;
@@ -164,7 +164,7 @@ export default function CourseAIGeneratorModal({
         setProgressPercent(percent);
         setCompletedCount(currentIdx);
         setProgressStatus(
-          `Đang tạo nội dung cho "${les.lessonTitle}" (${currentIdx}/${total})...`
+          `${t.admin.ai.generatingLessonContent} "${les.lessonTitle}" (${currentIdx}/${total})...`
         );
 
         try {
@@ -187,16 +187,14 @@ export default function CourseAIGeneratorModal({
       }
 
       setProgressPercent(100);
-      setProgressStatus("Hoàn tất toàn bộ khóa học!");
-      toast.success(
-        `Khởi tạo thành công ${initData.sectionsCreated} chương và ${total} bài học!`
-      );
+      setProgressStatus(t.admin.ai.generationComplete);
+      toast.success(t.admin.ai.generationComplete);
       if (onSuccess) onSuccess();
       setTimeout(() => {
         onClose();
       }, 700);
     } catch (error: any) {
-      toast.error(error.message || "Lỗi khởi tạo bài học");
+      toast.error(error.message || t.admin.ai.generatePlanFailed);
       setStep(2);
     } finally {
       setIsExecuting(false);

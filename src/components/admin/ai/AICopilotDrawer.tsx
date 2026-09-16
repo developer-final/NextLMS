@@ -225,13 +225,13 @@ export default function AICopilotDrawer({
       const data = await res.json();
 
       if (res.ok && data.success) {
-        toast.success(`Đã tải lên và phân đoạn thành công: ${data.document.title}`);
+        toast.success(`${t.admin.ai.uploadDocSuccess}: ${data.document.title}`);
         fetchKnowledgeDocs();
       } else {
-        toast.error(data.error || "Tải lên tài liệu thất bại");
+        toast.error(data.error || t.admin.ai.uploadDocFailed);
       }
     } catch {
-      toast.error("Lỗi kết nối khi tải lên tài liệu");
+      toast.error(t.admin.ai.uploadDocNetworkError);
     } finally {
       setUploadingDoc(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -352,13 +352,13 @@ export default function AICopilotDrawer({
         if (onApplySEO && data.seo) {
           onApplySEO(data.seo);
         }
-        toast.success("Đã sinh bài viết và cấu hình SEO hoàn tất!");
+        toast.success(t.admin.ai.generateArticleSuccess);
         setIsOpen(false);
       } else {
-        toast.error(data.error || "Lỗi tạo bài viết");
+        toast.error(data.error || t.admin.ai.generateArticleFailed);
       }
     } catch {
-      toast.error("Lỗi kết nối khi tạo bài viết");
+      toast.error(t.admin.ai.generateArticleNetworkError);
     } finally {
       setIsGeneratingBlog(false);
     }
@@ -500,7 +500,7 @@ export default function AICopilotDrawer({
                                       type="button"
                                       onClick={() => {
                                         onApplyFullArticle(postData);
-                                        toast.success("Đã tự động áp dụng toàn bộ vào bài viết!");
+                                        toast.success(t.admin.ai.appliedAllToArticle);
                                       }}
                                       className="rounded-lg bg-brand-500 hover:bg-brand-400 text-slate-950 px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02]"
                                     >
@@ -514,7 +514,7 @@ export default function AICopilotDrawer({
                                       type="button"
                                       onClick={() => {
                                         onApplyTitle(postData.title!);
-                                        toast.success("Đã đặt tiêu đề bài viết!");
+                                        toast.success(t.admin.ai.appliedTitle);
                                       }}
                                       className="rounded-lg border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white px-2 py-1 text-[10px] font-semibold flex items-center gap-1"
                                     >
@@ -533,7 +533,7 @@ export default function AICopilotDrawer({
                                           summary: postData.summary || "",
                                           readingTime: 5,
                                         });
-                                        toast.success("Đã điền thông số SEO & Tóm tắt!");
+                                        toast.success(t.admin.ai.appliedSeo);
                                       }}
                                       className="rounded-lg border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white px-2 py-1 text-[10px] font-semibold flex items-center gap-1"
                                     >
@@ -565,7 +565,7 @@ export default function AICopilotDrawer({
                                 type="button"
                                 onClick={() => {
                                   onInsertText(m.content);
-                                  toast.success("Đã chèn nội dung vào Editor!");
+                                  toast.success(t.admin.ai.insertedToContent);
                                 }}
                                 className="rounded-lg px-2 py-1 text-[11px] text-brand-400 hover:bg-brand-500/10 flex items-center gap-1 font-semibold"
                               >
@@ -579,7 +579,7 @@ export default function AICopilotDrawer({
                                 type="button"
                                 onClick={() => {
                                   onReplaceText(m.content);
-                                  toast.success("Đã thay thế đoạn chọn!");
+                                  toast.success(t.admin.ai.replacedSelection);
                                 }}
                                 className="rounded-lg px-2 py-1 text-[11px] text-amber-400 hover:bg-amber-500/10 flex items-center gap-1 font-semibold"
                               >
@@ -610,8 +610,8 @@ export default function AICopilotDrawer({
                       onClick={() =>
                         handleSendMessage(
                           currentSelectedText
-                            ? `Sửa chính tả, ngữ pháp và tinh chỉnh văn phong cho đoạn này: "${currentSelectedText}"`
-                            : "Hãy góp ý cách viết mở bài hấp dẫn và cuốn hút hơn cho chủ đề này."
+                            ? `${t.admin.ai.promptImproveStyle}: "${currentSelectedText}"`
+                            : t.admin.ai.promptIntroHook
                         )
                       }
                       className="whitespace-nowrap rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-slate-300 hover:border-brand-500 hover:text-brand-400"
@@ -622,9 +622,7 @@ export default function AICopilotDrawer({
                     <button
                       type="button"
                       onClick={() =>
-                        handleSendMessage(
-                          "Mở rộng bài học này với các ví dụ thực tế và bước thực hành chi tiết."
-                        )
+                        handleSendMessage(t.admin.ai.promptExpandPractical)
                       }
                       className="whitespace-nowrap rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-slate-300 hover:border-brand-500 hover:text-brand-400"
                     >
@@ -634,9 +632,7 @@ export default function AICopilotDrawer({
                     <button
                       type="button"
                       onClick={() =>
-                        handleSendMessage(
-                          "Tạo 5 câu hỏi trắc nghiệm kèm đáp án và giải thích chi tiết cho nội dung này."
-                        )
+                        handleSendMessage(t.admin.ai.promptQuizGeneration)
                       }
                       className="whitespace-nowrap rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-slate-300 hover:border-brand-500 hover:text-brand-400"
                     >
@@ -683,10 +679,10 @@ export default function AICopilotDrawer({
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-white">
-                      Tài liệu Ngữ cảnh (pgvector RAG)
+                      {t.admin.ai.contextDocsTitle}
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Tích chọn tài liệu để AI trích xuất kiến thức khi trả lời
+                      {t.admin.ai.contextDocsSubtitle}
                     </p>
                   </div>
 

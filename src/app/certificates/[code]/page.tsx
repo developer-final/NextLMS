@@ -52,7 +52,6 @@ export default async function CertificatePage({ params }: CertificatePageProps) 
           select: {
             id: true,
             name: true,
-            email: true,
             avatarUrl: true,
           },
         },
@@ -100,7 +99,6 @@ export default async function CertificatePage({ params }: CertificatePageProps) 
     certificateCode: cert.certificateCode,
     issuedAt: cert.issueDate.toISOString(),
     studentName: cert.user.name,
-    studentEmail: cert.user.email,
     courseTitle: cert.course.title,
     courseSlug: cert.course.slug,
     instructorName: cert.course.instructor.name,

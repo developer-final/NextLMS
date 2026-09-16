@@ -43,6 +43,68 @@ export default function CourseDetailClient({
   const { data: session } = useSession();
   const [enrollingFree, setEnrollingFree] = useState(false);
 
+  // Reviews State
+  const [reviewsList, setReviewsList] = useState<any[]>(course.reviews || []);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user) {
+      router.push(`/auth/login?callbackUrl=/courses/${course.slug}`);
+      return;
+    }
+
+    if (!isEnrolled) {
+      toast.error(t.courseDetail.onlyEnrolledCanReview);
+      return;
+    }
+
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      toast.error(t.courseDetail.reviewRatingRequired);
+      return;
+    }
+
+    if (!reviewComment.trim() || reviewComment.trim().length < 5) {
+      toast.error(t.courseDetail.reviewCommentMin);
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: course.id,
+          rating: reviewRating,
+          comment: reviewComment,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || t.common.somethingWentWrong);
+        return;
+      }
+
+      toast.success(t.courseDetail.reviewSubmitted);
+      const updatedList = [
+        data.review,
+        ...reviewsList.filter(
+          (r) => r.user?.id !== session.user.id && r.id !== data.review?.id
+        ),
+      ];
+      setReviewsList(updatedList);
+      setReviewComment("");
+    } catch {
+      toast.error(t.common.somethingWentWrong);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const handleFreeEnroll = async () => {
     if (!session?.user) {
       router.push(`/auth/login?callbackUrl=/courses/${course.slug}`);
@@ -432,16 +494,77 @@ export default function CourseDetailClient({
             </div>
 
             {/* Reviews */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/40 p-8">
-              <h2 className="text-xl font-bold text-white mb-4">
-                {t.courseDetail.reviewsTab} ({course.reviews.length})
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/40 p-8 space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                <span>{t.courseDetail.reviewsTab} ({reviewsList.length})</span>
               </h2>
 
-              {course.reviews.length === 0 ? (
+              {/* Review Submission Form for Enrolled Students */}
+              {isEnrolled ? (
+                <form
+                  onSubmit={handleReviewSubmit}
+                  className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 space-y-4"
+                >
+                  <h3 className="text-sm font-bold text-white">
+                    {t.courseDetail.writeReview}
+                  </h3>
+
+                  {/* Star Picker */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400">{t.courseDetail.yourRating}</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                        >
+                          <Star
+                            className={`h-5 w-5 ${
+                              star <= reviewRating
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-slate-600"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comment Textarea */}
+                  <textarea
+                    rows={3}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder={t.courseDetail.reviewPlaceholder}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 text-xs text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none"
+                  />
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={submittingReview || !reviewComment.trim()}
+                      className="rounded-xl bg-brand-500 hover:bg-brand-400 px-5 py-2 text-xs font-bold text-slate-950 shadow-glow disabled:opacity-50 transition-all cursor-pointer"
+                    >
+                      {submittingReview
+                        ? t.courseDetail.submittingReview
+                        : t.courseDetail.submitReviewBtn}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 p-4 text-xs text-slate-400">
+                  {t.courseDetail.onlyEnrolledCanReview}
+                </div>
+              )}
+
+              {reviewsList.length === 0 ? (
                 <p className="text-xs text-slate-400">{t.courseDetail.noReviews}</p>
               ) : (
                 <div className="space-y-4">
-                  {course.reviews.map((rev: any) => (
+                  {reviewsList.map((rev: any) => (
                     <div
                       key={rev.id}
                       className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 space-y-2"
@@ -449,10 +572,10 @@ export default function CourseDetailClient({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="h-7 w-7 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-xs font-bold">
-                            {rev.user.name.charAt(0)}
+                            {rev.user?.name ? rev.user.name.charAt(0) : "U"}
                           </div>
                           <span className="text-xs font-semibold text-white">
-                            {rev.user.name}
+                            {rev.user?.name || "Học viên"}
                           </span>
                         </div>
                         <div className="flex items-center gap-0.5 text-amber-400">

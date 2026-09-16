@@ -176,6 +176,15 @@ export interface DictionaryType {
     reviewsTab: string;
     noReviews: string;
     attachmentsCount: string;
+    writeReview: string;
+    yourRating: string;
+    reviewPlaceholder: string;
+    submitReviewBtn: string;
+    submittingReview: string;
+    reviewSubmitted: string;
+    onlyEnrolledCanReview: string;
+    reviewRatingRequired: string;
+    reviewCommentMin: string;
   };
   learn: {
     backToCourse: string;
@@ -187,6 +196,8 @@ export interface DictionaryType {
     enrollToUnlockBtn: string;
     markCompleted: string;
     completed: string;
+    previousLessonRequired: string;
+    sequentialLocked: string;
     lessonContentTab: string;
     qaDiscussionTab: string;
     attachmentsTab: string;
@@ -770,6 +781,29 @@ export interface DictionaryType {
       generatingLessons: string;
       generationComplete: string;
       applyCourseBtn: string;
+      topicRequired: string;
+      generatePlanFailed: string;
+      planNetworkError: string;
+      settingUpStructure: string;
+      generatingLessonContent: string;
+      uploadDocSuccess: string;
+      uploadDocFailed: string;
+      uploadDocNetworkError: string;
+      generateArticleSuccess: string;
+      generateArticleFailed: string;
+      generateArticleNetworkError: string;
+      appliedAllToArticle: string;
+      appliedTitle: string;
+      appliedSeo: string;
+      insertedToContent: string;
+      replacedSelection: string;
+      insertedToCourseDesc: string;
+      contextDocsTitle: string;
+      contextDocsSubtitle: string;
+      promptImproveStyle: string;
+      promptIntroHook: string;
+      promptExpandPractical: string;
+      promptQuizGeneration: string;
     };
     posts: {
       title: string;

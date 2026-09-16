@@ -29,6 +29,27 @@ export async function GET(req: NextRequest) {
       whereCondition.courseId = courseId;
     }
 
+    // Role-based tenant scoping for INSTRUCTOR
+    if (user.role === "INSTRUCTOR") {
+      if (courseId) {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { instructorId: true },
+        });
+        if (!course || course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to view documents for this course" },
+            { status: 403 }
+          );
+        }
+      } else {
+        whereCondition.OR = [
+          { authorId: user.id },
+          { course: { instructorId: user.id } },
+        ];
+      }
+    }
+
     const docs = await prisma.knowledgeDocument.findMany({
       where: whereCondition,
       orderBy: { createdAt: "desc" },
@@ -135,6 +156,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Role-based authorization: Ensure INSTRUCTOR owns the target course
+    if (user.role === "INSTRUCTOR" && courseId) {
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { instructorId: true },
+      });
+      if (!course || course.instructorId !== user.id) {
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to add knowledge documents to this course" },
+          { status: 403 }
+        );
+      }
+    }
+
     // 1. Create document record in database
     const doc = await prisma.knowledgeDocument.create({
       data: {
@@ -196,6 +231,20 @@ export async function DELETE(req: NextRequest) {
         { error: "Document ID is required" },
         { status: 400 }
       );
+    }
+
+    // Role-based authorization: INSTRUCTOR can only delete their own documents
+    if (user.role === "INSTRUCTOR") {
+      const doc = await prisma.knowledgeDocument.findUnique({
+        where: { id },
+        include: { course: { select: { instructorId: true } } },
+      });
+      if (!doc || (doc.authorId !== user.id && doc.course?.instructorId !== user.id)) {
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to delete this knowledge document" },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.knowledgeDocument.delete({

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { streamCopilotChat } from "@/lib/ai/service";
 import { ChatMessage } from "@/lib/ai/types";
 import { searchSimilarChunks } from "@/lib/ai/rag/vector-store";
+import { getClientIp, aiRateLimiter } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +21,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const clientIp = getClientIp(req);
+    const rateCheck = aiRateLimiter.check(`${clientIp}_${user.id}`);
+    if (!rateCheck.allowed) {
+      const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: `AI rate limit exceeded. Please wait ${waitSeconds} seconds.` },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { messages, documentIds, courseId } = body;
 
@@ -27,6 +39,38 @@ export async function POST(req: NextRequest) {
         { error: "Messages array is required" },
         { status: 400 }
       );
+    }
+
+    // Tenant Isolation Check for INSTRUCTOR
+    if (user.role === "INSTRUCTOR") {
+      if (courseId) {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId },
+          select: { instructorId: true },
+        });
+        if (!course || course.instructorId !== user.id) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to access this course" },
+            { status: 403 }
+          );
+        }
+      }
+
+      if (Array.isArray(documentIds) && documentIds.length > 0) {
+        const docs = await prisma.knowledgeDocument.findMany({
+          where: { id: { in: documentIds } },
+          select: { id: true, authorId: true, course: { select: { instructorId: true } } },
+        });
+        const hasUnauthorizedDoc = docs.some(
+          (d) => d.authorId !== user.id && d.course?.instructorId !== user.id
+        );
+        if (hasUnauthorizedDoc || docs.length !== documentIds.length) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to access one or more requested knowledge documents" },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Retrieve RAG context if documentIds or courseId provided

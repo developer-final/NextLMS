@@ -24,8 +24,12 @@ export async function POST(req: Request) {
       ? [body.orderId]
       : [];
 
-    if (targetIds.length === 0) {
-      return NextResponse.json({ error: "Missing required orderId or orderIds" }, { status: 400 });
+    const MAX_BULK_LIMIT = 100;
+    if (targetIds.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} orders.` },
+        { status: 400 }
+      );
     }
 
     // Strict action validation

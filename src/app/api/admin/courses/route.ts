@@ -63,6 +63,14 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Missing course ID or IDs" }, { status: 400 });
     }
 
+    const MAX_BULK_LIMIT = 100;
+    if (targetIds.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} courses.` },
+        { status: 400 }
+      );
+    }
+
     const ALLOWED_COURSE_STATUSES = ["PUBLISHED", "DRAFT", "ARCHIVED"];
     if (status !== undefined && !ALLOWED_COURSE_STATUSES.includes(status)) {
       return NextResponse.json(
@@ -143,6 +151,14 @@ export async function DELETE(req: Request) {
 
     if (targetIds.length === 0) {
       return NextResponse.json({ error: "Missing course ID or IDs" }, { status: 400 });
+    }
+
+    const MAX_BULK_LIMIT = 100;
+    if (targetIds.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} courses.` },
+        { status: 400 }
+      );
     }
 
     // Check if any courses have existing order items

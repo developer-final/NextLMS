@@ -117,8 +117,9 @@ export async function completeOrderAndEnroll({
   const isInternationalGateway =
     paymentMethod === "PAYPAL" || paymentMethod === "STRIPE";
   const tolerance = isInternationalGateway ? 25000 : 1;
+  const minAcceptableAmount = Math.max(1000, expectedAmount - tolerance);
 
-  if (amount < expectedAmount - tolerance) {
+  if (amount <= 0 || amount < minAcceptableAmount) {
     return {
       success: false,
       message: `Insufficient payment: received ${amount}, expected ${expectedAmount}`,
@@ -178,15 +179,9 @@ export async function completeOrderAndEnroll({
       });
     }
 
-    // 4. Increment coupon usage count if coupon was attached
-    if (order.couponId) {
-      await tx.coupon.update({
-        where: { id: order.couponId },
-        data: {
-          usedCount: { increment: 1 },
-        },
-      });
-    }
+    // 4. Coupon usage: The coupon redemption slot is already atomically reserved
+    // during order creation (in orders/create/route.ts) with strict concurrency locking.
+    // Therefore, no duplicate increment is performed here to prevent over-counting.
 
     // 5. Create Affiliate Commission record if order has a valid referrer and affiliate is enabled
     const settings = await getSystemSettings();

@@ -27,6 +27,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId/userIds or courseId" }, { status: 400 });
     }
 
+    const MAX_BULK_LIMIT = 100;
+    if (targetUserIds.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} students.` },
+        { status: 400 }
+      );
+    }
+
     let grantedCount = 0;
     for (const uId of targetUserIds) {
       try {
@@ -125,6 +133,14 @@ export async function PATCH(req: Request) {
 
     if (targetUserIds.length === 0 || !status) {
       return NextResponse.json({ error: "Missing userId/userIds or status" }, { status: 400 });
+    }
+
+    const MAX_BULK_LIMIT = 100;
+    if (targetUserIds.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} students.` },
+        { status: 400 }
+      );
     }
 
     const ALLOWED_USER_STATUSES = ["ACTIVE", "BLOCKED"];

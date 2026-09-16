@@ -36,21 +36,11 @@ vi.mock("@/lib/prisma", () => ({
     },
     payoutRequest: {
       findFirst: vi.fn(),
-      create: vi.fn(),
+      create: vi.fn().mockResolvedValue({ id: "payout-new-1", amount: 500000 }),
     },
     $transaction: vi.fn(async (callback) => {
       if (typeof callback === "function") {
-        return callback({
-          payoutRequest: {
-            create: vi.fn().mockResolvedValue({ id: "payout-new-1", amount: 500000 }),
-          },
-          commission: {
-            updateMany: vi.fn().mockResolvedValue({ count: 2 }),
-          },
-          user: {
-            update: vi.fn().mockResolvedValue({ id: "user-aff-1" }),
-          },
-        });
+        return callback(prisma);
       }
       return Promise.all(callback);
     }),
@@ -203,10 +193,12 @@ describe("Affiliate System Integrity & Security", () => {
 
       vi.mocked(prisma.payoutRequest.findFirst).mockResolvedValueOnce(null);
 
-      // Only 100,000 VND available (min is 200,000 VND)
-      vi.mocked(prisma.commission.findMany).mockResolvedValueOnce([
-        { id: "comm-under", commissionAmount: 100000 as any },
-      ] as any);
+      // settleMaturedCommissions query returns empty, payout balance query returns 100,000 VND (min is 200,000 VND)
+      vi.mocked(prisma.commission.findMany)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: "comm-under", commissionAmount: 100000 as any },
+        ] as any);
 
       const req = new Request("http://localhost:3000/api/affiliate/payout", {
         method: "POST",
@@ -237,11 +229,15 @@ describe("Affiliate System Integrity & Security", () => {
 
       vi.mocked(prisma.payoutRequest.findFirst).mockResolvedValueOnce(null);
 
-      // Two cleared commissions totaling 500,000 VND
-      vi.mocked(prisma.commission.findMany).mockResolvedValueOnce([
-        { id: "comm-1", commissionAmount: 200000 as any },
-        { id: "comm-2", commissionAmount: 300000 as any },
-      ] as any);
+      // Settle query returns empty, two cleared commissions totaling 500,000 VND
+      vi.mocked(prisma.commission.findMany)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { id: "comm-1", commissionAmount: 200000 as any },
+          { id: "comm-2", commissionAmount: 300000 as any },
+        ] as any);
+
+      vi.mocked(prisma.commission.updateMany).mockResolvedValue({ count: 2 } as any);
 
       const req = new Request("http://localhost:3000/api/affiliate/payout", {
         method: "POST",

@@ -556,6 +556,58 @@ export function validateCommentInput(input: {
   return { isValid: true, sanitized: { content: cleanContent } };
 }
 
+export interface ReviewValidationResult {
+  isValid: boolean;
+  field?: "courseId" | "rating" | "comment";
+  error?: string;
+  sanitized?: {
+    courseId: string;
+    rating: number;
+    comment: string;
+  };
+}
+
+/**
+ * Validates and sanitizes course review / rating submission
+ */
+export function validateReviewInput(input: {
+  courseId?: string | null;
+  rating?: number | null;
+  comment?: string | null;
+}): ReviewValidationResult {
+  const { courseId, rating, comment } = input;
+
+  if (!courseId?.trim()) {
+    return { isValid: false, field: "courseId", error: "Missing course identifier" };
+  }
+
+  if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { isValid: false, field: "rating", error: "Rating must be an integer between 1 and 5 stars" };
+  }
+
+  if (!comment?.trim()) {
+    return { isValid: false, field: "comment", error: "Review comment cannot be empty" };
+  }
+
+  const cleanComment = sanitizePlainText(comment);
+  if (cleanComment.length < 5) {
+    return { isValid: false, field: "comment", error: "Review comment must have at least 5 characters" };
+  }
+
+  if (cleanComment.length > 1000) {
+    return { isValid: false, field: "comment", error: "Review comment cannot exceed 1000 characters" };
+  }
+
+  return {
+    isValid: true,
+    sanitized: {
+      courseId: courseId.trim(),
+      rating,
+      comment: cleanComment,
+    },
+  };
+}
+
 export type UploadTargetType = "thumbnail" | "attachment" | "video" | "avatar" | "receipt";
 
 export interface FileValidationOptions {

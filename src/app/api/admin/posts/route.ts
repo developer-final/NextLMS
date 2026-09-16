@@ -236,6 +236,14 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Missing or invalid post ids" }, { status: 400 });
     }
 
+    const MAX_BULK_LIMIT = 100;
+    if (ids.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} posts.` },
+        { status: 400 }
+      );
+    }
+
     const whereClause: any = { id: { in: ids } };
     if (user.role === "INSTRUCTOR") {
       whereClause.authorId = user.id;
@@ -299,6 +307,14 @@ export async function DELETE(req: Request) {
 
     if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json({ error: "Missing or invalid post ids" }, { status: 400 });
+    }
+
+    const MAX_BULK_LIMIT = 100;
+    if (ids.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} posts.` },
+        { status: 400 }
+      );
     }
 
     const whereClause: any = { id: { in: ids } };

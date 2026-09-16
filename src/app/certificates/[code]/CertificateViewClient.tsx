@@ -23,7 +23,7 @@ interface CertificateViewClientProps {
     certificateCode: string;
     issuedAt: string;
     studentName: string;
-    studentEmail: string;
+    studentEmail?: string;
     courseTitle: string;
     courseSlug: string;
     instructorName: string;

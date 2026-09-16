@@ -85,6 +85,9 @@ export async function generateMetadata({
     course.shortDescription ||
     `Course ${course.title} by ${course.instructor.name} at ${siteName}.`;
 
+  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.edu.vn";
+  const courseUrl = `${baseUrl}/courses/${course.slug}`;
+
   return {
     title,
     description,
@@ -96,10 +99,14 @@ export async function generateMetadata({
       "Online Courses",
       "Education Platform",
     ],
+    alternates: {
+      canonical: courseUrl,
+    },
     openGraph: {
       title,
       description,
       type: "website",
+      url: courseUrl,
       images: course.thumbnailUrl ? [{ url: course.thumbnailUrl }] : [],
     },
     twitter: {
@@ -122,15 +129,20 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     notFound();
   }
 
-  // Check enrollment
+  // Check enrollment and staff permissions
+  const userRole = (session?.user as any)?.role;
+  const isStaff =
+    userRole === "ADMIN" ||
+    userRole === "SUPER_ADMIN" ||
+    (userRole === "INSTRUCTOR" && course.instructorId === userId);
+
+  // Visibility Check: Unpublished courses can only be viewed by staff / instructor
+  if (course.status !== "PUBLISHED" && !isStaff) {
+    notFound();
+  }
+
   let isEnrolled = false;
   if (userId) {
-    const userRole = (session?.user as any)?.role;
-    const isStaff =
-      userRole === "ADMIN" ||
-      userRole === "SUPER_ADMIN" ||
-      (userRole === "INSTRUCTOR" && course.instructorId === userId);
-
     if (isStaff) {
       isEnrolled = true;
     } else {
@@ -160,6 +172,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
 
   // Course JSON-LD Schema for Google Search Rich Snippets
   const siteName = process.env.APP_NAME || "NextLMS";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://worldtradinglab.edu.vn";
   const courseJsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",
@@ -168,7 +181,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     provider: {
       "@type": "Organization",
       name: siteName,
-      sameAs: process.env.NEXTAUTH_URL || "https://worldtradinglab.vercel.app",
+      sameAs: baseUrl,
     },
     instructor: {
       "@type": "Person",
@@ -196,21 +209,51 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         "@type": "ListItem",
         position: 1,
         name: "Home",
-        item: "https://worldtradinglab.edu.vn",
+        item: baseUrl,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Courses",
-        item: "https://worldtradinglab.edu.vn/courses",
+        item: `${baseUrl}/courses`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: course.title,
-        item: `https://worldtradinglab.edu.vn/courses/${course.slug}`,
+        item: `${baseUrl}/courses/${course.slug}`,
       },
     ],
+  };
+
+  // Security Hardening: Redact private video URLs and paid content before serializing to client
+  const safeSections = course.sections.map((sec: any) => ({
+    ...sec,
+    lessons: sec.lessons.map((les: any) => {
+      const allowed = isEnrolled || les.isPreview;
+      return {
+        id: les.id,
+        sectionId: les.sectionId,
+        title: les.title,
+        slug: les.slug,
+        contentType: les.contentType,
+        videoUrl: allowed ? les.videoUrl : null,
+        videoDuration: les.videoDuration,
+        contentBody: allowed ? les.contentBody : null,
+        isPreview: les.isPreview,
+        orderIndex: les.orderIndex,
+        attachments: allowed ? les.attachments : [],
+      };
+    }),
+  }));
+
+  const safeCourse = {
+    ...course,
+    introVideoUrl: course.introVideoUrl
+      ? await getSecureStreamUrl(course.introVideoUrl, 7200)
+      : null,
+    attachments: isEnrolled ? course.attachments : [],
+    sections: safeSections,
   };
 
   return (
@@ -225,12 +268,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         dangerouslySetInnerHTML={{ __html: safeJsonLdStringify(breadcrumbJsonLd) }}
       />
       <CourseDetailClient
-        course={serializePrisma({
-          ...course,
-          introVideoUrl: course.introVideoUrl
-            ? await getSecureStreamUrl(course.introVideoUrl, 7200)
-            : null,
-        })}
+        course={serializePrisma(safeCourse)}
         isEnrolled={isEnrolled}
         totalLessons={totalLessons}
         totalHours={totalHours}

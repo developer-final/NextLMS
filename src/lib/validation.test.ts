@@ -9,6 +9,7 @@ import {
   validateCouponInput,
   validateBankSettingsInput,
   validateCommentInput,
+  validateReviewInput,
   validateFileUpload,
   validateProfileUpdate,
   validateChangePassword,
@@ -300,6 +301,55 @@ describe("Auth Validation Logic (TC-AUTH-01)", () => {
       const res = validateCommentInput({ lessonId: "l-1", content: longComment });
       expect(res.isValid).toBe(false);
       expect(res.error).toContain("Comment content cannot exceed 2000 characters");
+    });
+  });
+
+  describe("validateReviewInput (TC-LMS-04)", () => {
+    it("should accept valid reviews", () => {
+      const res = validateReviewInput({
+        courseId: "course-123",
+        rating: 5,
+        comment: "Khóa học rất hay và thực chiến, giảng viên hỗ trợ tận tình!",
+      });
+      expect(res.isValid).toBe(true);
+      expect(res.sanitized?.courseId).toBe("course-123");
+      expect(res.sanitized?.rating).toBe(5);
+      expect(res.sanitized?.comment).toContain("Khóa học rất hay");
+    });
+
+    it("should reject missing or empty courseId", () => {
+      const res1 = validateReviewInput({ courseId: "", rating: 5, comment: "Khóa học tuyệt vời" });
+      expect(res1.isValid).toBe(false);
+      expect(res1.field).toBe("courseId");
+
+      const res2 = validateReviewInput({ rating: 5, comment: "Khóa học tuyệt vời" });
+      expect(res2.isValid).toBe(false);
+      expect(res2.field).toBe("courseId");
+    });
+
+    it("should reject invalid ratings (< 1, > 5, floats, non-numbers)", () => {
+      expect(validateReviewInput({ courseId: "c1", rating: 0, comment: "Tốt lắm nha" }).isValid).toBe(false);
+      expect(validateReviewInput({ courseId: "c1", rating: 6, comment: "Tốt lắm nha" }).isValid).toBe(false);
+      expect(validateReviewInput({ courseId: "c1", rating: 4.5, comment: "Tốt lắm nha" }).isValid).toBe(false);
+      expect(validateReviewInput({ courseId: "c1", rating: null, comment: "Tốt lắm nha" }).isValid).toBe(false);
+    });
+
+    it("should reject empty, too short (< 5 chars), or too long (> 1000 chars) comments", () => {
+      expect(validateReviewInput({ courseId: "c1", rating: 5, comment: "" }).isValid).toBe(false);
+      expect(validateReviewInput({ courseId: "c1", rating: 5, comment: "   " }).isValid).toBe(false);
+      expect(validateReviewInput({ courseId: "c1", rating: 5, comment: "Good" }).isValid).toBe(false); // 4 chars
+      expect(validateReviewInput({ courseId: "c1", rating: 5, comment: "a".repeat(1001) }).isValid).toBe(false);
+    });
+
+    it("should sanitize potential XSS in review comment", () => {
+      const res = validateReviewInput({
+        courseId: "c1",
+        rating: 5,
+        comment: "Rất hay! <script>alert('pwned')</script> Học được nhiều điều.",
+      });
+      expect(res.isValid).toBe(true);
+      expect(res.sanitized?.comment).not.toContain("<script>");
+      expect(res.sanitized?.comment).toContain("Rất hay!");
     });
   });
 

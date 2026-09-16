@@ -86,15 +86,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Payout request not found" }, { status: 404 });
     }
 
-    if (payout.status === "COMPLETED") {
-      return NextResponse.json({ error: "Payout request has already been completed" }, { status: 400 });
+    if (payout.status !== "PENDING" && payout.status !== "PROCESSING") {
+      return NextResponse.json(
+        { error: `Payout request is already ${payout.status} and cannot be processed again.` },
+        { status: 400 }
+      );
     }
 
     if (action === "APPROVE") {
-      // Approve and mark commissions as PAID
+      // Approve atomically and mark associated commissions as PAID
       await prisma.$transaction(async (tx) => {
-        await tx.payoutRequest.update({
-          where: { id: payoutId },
+        const updated = await tx.payoutRequest.updateMany({
+          where: {
+            id: payoutId,
+            status: { in: ["PENDING", "PROCESSING"] },
+          },
           data: {
             status: "COMPLETED",
             adminNote: adminNote?.trim() || null,
@@ -102,6 +108,10 @@ export async function POST(req: Request) {
             processedAt: new Date(),
           },
         });
+
+        if (updated.count === 0) {
+          throw new Error("PAYOUT_ALREADY_PROCESSED");
+        }
 
         await tx.commission.updateMany({
           where: { payoutRequestId: payoutId },
@@ -116,10 +126,13 @@ export async function POST(req: Request) {
         message: "Payout request approved successfully. Funds marked as paid.",
       });
     } else if (action === "REJECT") {
-      // Reject and release commissions back to APPROVED state so affiliate can re-request
+      // Reject atomically and release commissions back to APPROVED state so affiliate can re-request
       await prisma.$transaction(async (tx) => {
-        await tx.payoutRequest.update({
-          where: { id: payoutId },
+        const updated = await tx.payoutRequest.updateMany({
+          where: {
+            id: payoutId,
+            status: { in: ["PENDING", "PROCESSING"] },
+          },
           data: {
             status: "REJECTED",
             adminNote: adminNote?.trim() || "Rejected by administrator",
@@ -127,9 +140,16 @@ export async function POST(req: Request) {
           },
         });
 
-        // Unlink commissions from this payout request so they can be withdrawn again
+        if (updated.count === 0) {
+          throw new Error("PAYOUT_ALREADY_PROCESSED");
+        }
+
+        // Unlink commissions that were not already marked as PAID
         await tx.commission.updateMany({
-          where: { payoutRequestId: payoutId },
+          where: {
+            payoutRequestId: payoutId,
+            status: { not: "PAID" },
+          },
           data: {
             payoutRequestId: null,
             status: "APPROVED",
@@ -145,6 +165,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Invalid action. Use APPROVE or REJECT." }, { status: 400 });
   } catch (error: any) {
+    if (error?.message === "PAYOUT_ALREADY_PROCESSED") {
+      return NextResponse.json(
+        { error: "Payout request has already been processed by another administrator." },
+        { status: 409 }
+      );
+    }
     console.error("[Admin Process Payout API] Error:", error);
     return NextResponse.json({ error: "Failed to process payout request" }, { status: 500 });
   }

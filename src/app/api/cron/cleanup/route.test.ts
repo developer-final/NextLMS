@@ -6,7 +6,11 @@ import * as s3Module from "@/lib/s3";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     order: {
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn(),
+    },
+    coupon: {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     verificationToken: {
       deleteMany: vi.fn(),

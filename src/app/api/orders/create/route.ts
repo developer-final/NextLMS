@@ -202,12 +202,19 @@ export async function POST(req: Request) {
           throw new Error("COUPON_LIMIT_EXCEEDED");
         }
 
-        // Only increment usedCount immediately if the order completes immediately (Free order)
-        if (isFreeOrder) {
-          await tx.coupon.update({
-            where: { id: validCouponId },
-            data: { usedCount: { increment: 1 } },
-          });
+        // Atomically reserve a coupon redemption slot for both free and pending orders
+        // with strict concurrency check (guarantees usedCount never exceeds maxUsage)
+        const reservedCoupon = await tx.coupon.updateMany({
+          where: {
+            id: validCouponId,
+            isActive: true,
+            usedCount: { lt: couponToUse.maxUsage },
+          },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        if (reservedCoupon.count === 0) {
+          throw new Error("COUPON_LIMIT_EXCEEDED");
         }
       }
 

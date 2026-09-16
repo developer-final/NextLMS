@@ -137,6 +137,14 @@ export async function PATCH(req: Request) {
       );
     }
 
+    const MAX_BULK_LIMIT = 100;
+    if (ids.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} coupons.` },
+        { status: 400 }
+      );
+    }
+
     const result = await prisma.coupon.updateMany({
       where: { id: { in: ids } },
       data: { isActive },
@@ -186,6 +194,14 @@ export async function DELETE(req: Request) {
 
     if (idsToDelete.length === 0) {
       return NextResponse.json({ error: "Missing coupon ID or ids" }, { status: 400 });
+    }
+
+    const MAX_BULK_LIMIT = 100;
+    if (idsToDelete.length > MAX_BULK_LIMIT) {
+      return NextResponse.json(
+        { error: `Batch size exceeds maximum limit of ${MAX_BULK_LIMIT} coupons.` },
+        { status: 400 }
+      );
     }
 
     const result = await prisma.coupon.deleteMany({

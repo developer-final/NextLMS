@@ -18,55 +18,64 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q")?.trim();
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+    const skip = (page - 1) * limit;
 
-    const users = await prisma.user.findMany({
-      where: {
-        AND: [
-          query
-            ? {
-                OR: [
-                  { name: { contains: query, mode: "insensitive" } },
-                  { email: { contains: query, mode: "insensitive" } },
-                  { referralCode: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {},
-          {
-            OR: [
-              { referralCode: { not: null } },
-              { commissions: { some: {} } },
-            ],
+    const whereClause: any = {
+      AND: [
+        query
+          ? {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { email: { contains: query, mode: "insensitive" } },
+                { referralCode: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        {
+          OR: [
+            { referralCode: { not: null } },
+            { commissions: { some: {} } },
+          ],
+        },
+      ],
+    };
+
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where: whereClause }),
+      prisma.user.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatarUrl: true,
+          referralCode: true,
+          customCommissionRate: true,
+          bankName: true,
+          bankAccountNo: true,
+          bankAccountName: true,
+          createdAt: true,
+          _count: {
+            select: {
+              referredOrders: true,
+              commissions: true,
+              payoutRequests: true,
+            },
           },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatarUrl: true,
-        referralCode: true,
-        customCommissionRate: true,
-        bankName: true,
-        bankAccountNo: true,
-        bankAccountName: true,
-        createdAt: true,
-        _count: {
-          select: {
-            referredOrders: true,
-            commissions: true,
-            payoutRequests: true,
+          commissions: {
+            select: {
+              commissionAmount: true,
+              status: true,
+            },
           },
         },
-        commissions: {
-          select: {
-            commissionAmount: true,
-            status: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
 
     const formattedAffiliates = users.map((u) => {
       let totalEarned = 0;
@@ -102,6 +111,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       affiliates: formattedAffiliates,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error: any) {
     console.error("[Admin Affiliates API] Error:", error);
@@ -137,7 +152,7 @@ export async function PATCH(req: Request) {
         if (isNaN(rate) || rate < 0 || rate > 100) {
           return NextResponse.json({ error: "Commission rate must be between 0 and 100" }, { status: 400 });
         }
-        dataToUpdate.customCommissionRate = rate;
+        dataToUpdate.customCommissionRate = Math.round(rate * 100) / 100;
       }
     }
 

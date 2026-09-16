@@ -31,6 +31,7 @@ export interface SystemConfig {
   paymentPaypalEnabled: boolean;
   paypalClientId: string;
   paypalSecret: string;
+  paypalWebhookId: string;
   paypalMode: "sandbox" | "live";
   paymentStripeEnabled: boolean;
   stripePublishableKey: string;
@@ -104,6 +105,7 @@ export const DEFAULT_CONFIG: SystemConfig = {
   paymentPaypalEnabled: true,
   paypalClientId: process.env.PAYPAL_CLIENT_ID || "",
   paypalSecret: process.env.PAYPAL_SECRET || "",
+  paypalWebhookId: process.env.PAYPAL_WEBHOOK_ID || "",
   paypalMode: "sandbox",
   paymentStripeEnabled: false,
   stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
@@ -198,6 +200,7 @@ export async function getSystemSettings(): Promise<SystemConfig> {
       paymentPaypalEnabled: parseBool(configMap["paymentPaypalEnabled"], DEFAULT_CONFIG.paymentPaypalEnabled),
       paypalClientId: configMap["paypalClientId"] || DEFAULT_CONFIG.paypalClientId,
       paypalSecret: configMap["paypalSecret"] || DEFAULT_CONFIG.paypalSecret,
+      paypalWebhookId: configMap["paypalWebhookId"] || DEFAULT_CONFIG.paypalWebhookId,
       paypalMode: (configMap["paypalMode"] === "live" ? "live" : "sandbox"),
       paymentStripeEnabled: parseBool(configMap["paymentStripeEnabled"], DEFAULT_CONFIG.paymentStripeEnabled),
       stripePublishableKey: configMap["stripePublishableKey"] || DEFAULT_CONFIG.stripePublishableKey,

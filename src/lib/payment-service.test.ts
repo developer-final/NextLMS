@@ -121,6 +121,35 @@ describe("Payment Processing & Fulfillment (payment-service)", () => {
     expect(result.message).toContain("Insufficient payment");
   });
 
+  it("should reject international payment if received amount is zero or negative even with tolerance", async () => {
+    vi.mocked(prisma.order.findUnique).mockResolvedValue({
+      id: "ord-zero",
+      orderCode: "ORD-ZERO-TEST",
+      status: "PENDING",
+      finalAmount: 20000 as any, // Less than international tolerance of 25000
+      orderItems: [],
+    } as any);
+
+    const zeroResult = await completeOrderAndEnroll({
+      orderCode: "ORD-ZERO-TEST",
+      amount: 0,
+      paymentMethod: "STRIPE",
+    });
+
+    expect(zeroResult.success).toBe(false);
+    expect(zeroResult.status).toBe(400);
+    expect(zeroResult.message).toContain("Insufficient payment");
+
+    const underMinResult = await completeOrderAndEnroll({
+      orderCode: "ORD-ZERO-TEST",
+      amount: 500, // Under minimum acceptable amount (1000)
+      paymentMethod: "PAYPAL",
+    });
+
+    expect(underMinResult.success).toBe(false);
+    expect(underMinResult.status).toBe(400);
+  });
+
   it("should successfully fulfill a pending order, activate enrollment, and update coupon", async () => {
     const mockOrder = {
       id: "ord-4",

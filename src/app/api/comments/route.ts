@@ -55,21 +55,48 @@ export async function GET(req: Request) {
       });
     }
 
-    // Default lesson comments (backward compatible array)
-    const comments = await prisma.comment.findMany({
+    // Default lesson comments with nested replies for Q&A discussion
+    const parentComments = await prisma.comment.findMany({
       where: {
         lessonId,
         parentId: null, // Get top level comments
       },
       include: {
         user: {
-          select: { name: true, avatarUrl: true, role: true },
+          select: { id: true, name: true, avatarUrl: true, role: true },
         },
       },
       orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json(comments);
+    const parentIds = parentComments.map((c) => c.id);
+    const replies = parentIds.length > 0
+      ? await prisma.comment.findMany({
+          where: { parentId: { in: parentIds } },
+          include: {
+            user: {
+              select: { id: true, name: true, avatarUrl: true, role: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+
+    const replyMap = new Map<string, typeof replies>();
+    for (const reply of replies) {
+      if (reply.parentId) {
+        const list = replyMap.get(reply.parentId) || [];
+        list.push(reply);
+        replyMap.set(reply.parentId, list);
+      }
+    }
+
+    const enrichedComments = parentComments.map((c) => ({
+      ...c,
+      replies: replyMap.get(c.id) || [],
+    }));
+
+    return NextResponse.json(enrichedComments);
   } catch (error: any) {
     console.error("Comments GET Error:", error);
     return NextResponse.json({ error: "Error loading comments" }, { status: 500 });

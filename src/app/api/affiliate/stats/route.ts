@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { ensureUserReferralCode } from "@/lib/affiliate";
+import { ensureUserReferralCode, settleMaturedCommissions } from "@/lib/affiliate";
 import { getSystemSettings } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,14 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+
+    // Real-time settlement: Automatically transition matured commissions (holding period passed)
+    try {
+      await settleMaturedCommissions(userId);
+    } catch (settleErr) {
+      console.warn("[Affiliate Stats] Settle matured commissions warning:", settleErr);
+    }
+
     const settings = await getSystemSettings();
 
     // Ensure the user has an active referral code

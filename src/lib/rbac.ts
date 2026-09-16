@@ -106,12 +106,15 @@ export function evaluateRbacAccess(
 
   // 4. Sub-path restrictions for INSTRUCTOR role
   if (role === "INSTRUCTOR") {
+    // Restrict financial and administrative APIs
     const restrictedApiPrefixes = [
       "/api/admin/orders",
       "/api/admin/settings",
       "/api/admin/coupons",
       "/api/admin/categories",
       "/api/admin/enrollments",
+      "/api/admin/affiliates",
+      "/api/admin/ai",
     ];
     if (
       isApiAdmin &&
@@ -124,12 +127,24 @@ export function evaluateRbacAccess(
       };
     }
 
+    // Redirect root admin dashboard to courses management for instructors
+    if (isAdminPage && (pathname === "/admin" || pathname === "/admin/")) {
+      return {
+        allowed: false,
+        status: 403,
+        redirectUrl: new URL("/admin/courses", origin).toString(),
+        error: "Forbidden: Instructors do not have permission to access platform-wide finance dashboard.",
+      };
+    }
+
     const restrictedPages = [
       "/admin/orders",
       "/admin/settings",
       "/admin/coupons",
       "/admin/categories",
       "/admin/students",
+      "/admin/affiliates",
+      "/admin/ai",
     ];
     if (
       isAdminPage &&

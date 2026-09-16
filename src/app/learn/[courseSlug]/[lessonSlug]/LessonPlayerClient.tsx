@@ -37,12 +37,15 @@ interface LessonPlayerClientProps {
   prevLesson: any;
   nextLesson: any;
   canAccessLesson: boolean;
+  isSequentialLocked?: boolean;
   isEnrolled: boolean;
+  isStaff?: boolean;
   completedLessonIds: string[];
   userProgressPercent: number;
   certificateCode: string | null;
   userId?: string;
   userName?: string;
+  watermarkText?: string;
 }
 
 export default function LessonPlayerClient({
@@ -53,12 +56,15 @@ export default function LessonPlayerClient({
   prevLesson,
   nextLesson,
   canAccessLesson,
+  isSequentialLocked = false,
   isEnrolled,
+  isStaff = false,
   completedLessonIds,
   userProgressPercent,
   certificateCode: initialCertCode,
   userId,
   userName,
+  watermarkText,
 }: LessonPlayerClientProps) {
   const router = useRouter();
   const { t, language } = useLanguage();
@@ -98,12 +104,21 @@ export default function LessonPlayerClient({
 
     setMarkingComplete(true);
     try {
+      let savedPosition = 0;
+      try {
+        const raw = localStorage.getItem(`wtl_video_pos_${currentLesson.id}`);
+        if (raw) savedPosition = parseInt(raw, 10) || 0;
+      } catch {
+        // Ignore storage errors
+      }
+
       const res = await fetch("/api/progress/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId: course.id,
           lessonId: currentLesson.id,
+          lastPositionSeconds: savedPosition,
         }),
       });
 
@@ -256,24 +271,43 @@ export default function LessonPlayerClient({
               <Lock className="mx-auto h-12 w-12 text-amber-400 mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">{t.learn.lessonLockedTitle}</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
-                {t.learn.lessonLockedDesc}
+                {isSequentialLocked ? t.learn.previousLessonRequired : t.learn.lessonLockedDesc}
               </p>
-              <Link
-                href={`/checkout/${course.slug}`}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow"
-              >
-                {t.learn.enrollToUnlockBtn} <ArrowRight className="h-4 w-4" />
-              </Link>
+              {isSequentialLocked ? (
+                prevLesson ? (
+                  <Link
+                    href={`/learn/${course.slug}/${prevLesson.slug}`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow"
+                  >
+                    <ChevronLeft className="h-4 w-4" /> {t.learn.prevLesson}: {prevLesson.title}
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/courses/${course.slug}`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> {t.learn.backToCourse}
+                  </Link>
+                )
+              ) : (
+                <Link
+                  href={`/checkout/${course.slug}`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-400 px-6 py-3 text-sm font-bold text-slate-950 shadow-glow"
+                >
+                  {t.learn.enrollToUnlockBtn} <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Media Player (Custom LMS Video Player with S3 Signed URL & YouTube Auto-detect) */}
+              {/* Media Player (Custom LMS Video Player with S3 Signed URL, YouTube Auto-detect & Dynamic Watermark) */}
               {currentLesson.videoUrl ? (
                 <CustomVideoPlayer
                   src={currentLesson.videoUrl}
                   title={currentLesson.title}
                   lessonId={currentLesson.id}
                   poster={course.thumbnailUrl}
+                  watermarkText={watermarkText}
                   onEnded={() => {
                     if (isEnrolled && !isCurrentCompleted) {
                       handleMarkComplete();
@@ -410,6 +444,39 @@ export default function LessonPlayerClient({
                             )}
                           </div>
                           <p className="text-xs text-slate-300">{comm.content}</p>
+
+                          {/* Nested replies from Mentor / Instructor / Students */}
+                          {comm.replies && comm.replies.length > 0 && (
+                            <div className="mt-3 space-y-2 border-l-2 border-brand-500/40 pl-3 pt-2">
+                              {comm.replies.map((rep: any) => (
+                                <div
+                                  key={rep.id}
+                                  className="rounded-xl bg-slate-950/70 p-3 space-y-1.5 border border-slate-800/80"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-5 w-5 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center font-bold text-[9px]">
+                                      {rep.user?.name?.charAt(0) || "U"}
+                                    </div>
+                                    <span className="text-[11px] font-bold text-white">
+                                      {rep.user?.name}
+                                    </span>
+                                    {rep.user?.role === "INSTRUCTOR" && (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-950 text-brand-400 border border-brand-800 font-bold">
+                                        {t.learn.instructorBadge}
+                                      </span>
+                                    )}
+                                    {(rep.user?.role === "ADMIN" ||
+                                      rep.user?.role === "SUPER_ADMIN") && (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-400 border border-purple-800 font-bold">
+                                        {t.learn.adminBadge}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-300 pl-7">{rep.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -571,18 +638,28 @@ export default function LessonPlayerClient({
                   {section.lessons.map((lesson: any) => {
                     const isCurrent = lesson.id === currentLesson.id;
                     const isDone = completedIds.includes(lesson.id);
-                    const canView = isEnrolled || lesson.isPreview;
+                    const lessonIndex = allLessons.findIndex((al: any) => al.id === lesson.id);
+                    const prevInList = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
+                    const isSequentialBlocked =
+                      isEnrolled &&
+                      !isStaff &&
+                      !lesson.isPreview &&
+                      prevInList &&
+                      !completedIds.includes(prevInList.id);
+                    const canView =
+                      isStaff || lesson.isPreview || (isEnrolled && !isSequentialBlocked);
 
                     return (
                       <Link
                         key={lesson.id}
-                        href={
-                          canView ? `/learn/${course.slug}/${lesson.slug}` : `#`
-                        }
+                        href={canView ? `/learn/${course.slug}/${lesson.slug}` : `#`}
+                        title={isSequentialBlocked ? t.learn.previousLessonRequired : undefined}
                         className={`flex items-center justify-between p-3 text-xs transition-colors ${
                           isCurrent
                             ? "bg-brand-950/60 border-l-4 border-brand-500 text-brand-300 font-bold"
-                            : "hover:bg-slate-800/40 text-slate-300"
+                            : canView
+                            ? "hover:bg-slate-800/40 text-slate-300"
+                            : "opacity-60 cursor-not-allowed text-slate-500"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 overflow-hidden">
@@ -591,7 +668,11 @@ export default function LessonPlayerClient({
                           ) : canView ? (
                             <PlayCircle className="h-4 w-4 text-brand-400 flex-shrink-0" />
                           ) : (
-                            <Lock className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                            <Lock
+                              className={`h-4 w-4 flex-shrink-0 ${
+                                isSequentialBlocked ? "text-amber-500/80" : "text-slate-600"
+                              }`}
+                            />
                           )}
                           <span className="truncate">{lesson.title}</span>
                         </div>
@@ -646,17 +727,31 @@ export default function LessonPlayerClient({
                     {section.lessons.map((lesson: any) => {
                       const isCurrent = lesson.id === currentLesson.id;
                       const isDone = completedIds.includes(lesson.id);
-                      const canView = isEnrolled || lesson.isPreview;
+                      const lessonIndex = allLessons.findIndex((al: any) => al.id === lesson.id);
+                      const prevInList = lessonIndex > 0 ? allLessons[lessonIndex - 1] : null;
+                      const isSequentialBlocked =
+                        isEnrolled &&
+                        !isStaff &&
+                        !lesson.isPreview &&
+                        prevInList &&
+                        !completedIds.includes(prevInList.id);
+                      const canView =
+                        isStaff || lesson.isPreview || (isEnrolled && !isSequentialBlocked);
 
                       return (
                         <Link
                           key={lesson.id}
                           href={canView ? `/learn/${course.slug}/${lesson.slug}` : `#`}
-                          onClick={() => setShowMobileSidebar(false)}
+                          onClick={() => {
+                            if (canView) setShowMobileSidebar(false);
+                          }}
+                          title={isSequentialBlocked ? t.learn.previousLessonRequired : undefined}
                           className={`flex items-center justify-between p-3 text-xs transition-colors ${
                             isCurrent
                               ? "bg-brand-950/60 border-l-4 border-brand-500 text-brand-300 font-bold"
-                              : "hover:bg-slate-800/40 text-slate-300"
+                              : canView
+                              ? "hover:bg-slate-800/40 text-slate-300"
+                              : "opacity-60 cursor-not-allowed text-slate-500"
                           }`}
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
@@ -665,7 +760,11 @@ export default function LessonPlayerClient({
                             ) : canView ? (
                               <PlayCircle className="h-4 w-4 text-brand-400 flex-shrink-0" />
                             ) : (
-                              <Lock className="h-4 w-4 text-slate-600 flex-shrink-0" />
+                              <Lock
+                                className={`h-4 w-4 flex-shrink-0 ${
+                                  isSequentialBlocked ? "text-amber-500/80" : "text-slate-600"
+                                }`}
+                              />
                             )}
                             <span className="truncate">{lesson.title}</span>
                           </div>

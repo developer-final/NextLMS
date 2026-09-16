@@ -27,10 +27,11 @@ export async function POST(req: Request) {
 
     // Verify PayPal Webhook Signature if credentials are set
     if (settings.paypalClientId && settings.paypalSecret) {
+      const webhookId = settings.paypalWebhookId?.trim() || process.env.PAYPAL_WEBHOOK_ID;
       const isSignatureValid = await verifyPayPalWebhookSignature(
         req.headers,
         rawBody,
-        process.env.PAYPAL_WEBHOOK_ID
+        webhookId
       );
 
       // In production, reject if signature verification fails

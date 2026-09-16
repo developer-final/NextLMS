@@ -113,14 +113,46 @@ export default async function LessonPage({ params }: LessonPageProps) {
     if (cert) certificateCode = cert.certificateCode;
   }
 
+  // Check Staff role
+  const userRole = session?.user?.role;
+  const isStaff =
+    userRole === "ADMIN" ||
+    userRole === "SUPER_ADMIN" ||
+    (userRole === "INSTRUCTOR" && course.instructorId === userId);
+
+  // Flatten all raw lessons to compute order and sequential progression
+  const rawFlatLessons: any[] = [];
+  course.sections.forEach((sec: any) => {
+    sec.lessons.forEach((les: any) => {
+      rawFlatLessons.push({ ...les, sectionTitle: sec.title });
+    });
+  });
+
+  const currentIndex = rawFlatLessons.findIndex((l: any) => l.id === currentLesson.id);
+  const prevLesson = currentIndex > 0 ? rawFlatLessons[currentIndex - 1] : null;
+  const nextLesson =
+    currentIndex < rawFlatLessons.length - 1 ? rawFlatLessons[currentIndex + 1] : null;
+
+  // Sequential Progression Check:
+  // If enrolled as student and lesson is not preview, previous lesson must be completed
+  let isSequentialLocked = false;
+  if (isEnrolled && !isStaff && !currentLesson.isPreview && prevLesson) {
+    const isPrevCompleted = completedLessonIds.includes(prevLesson.id);
+    if (!isPrevCompleted) {
+      isSequentialLocked = true;
+    }
+  }
+
   // If not enrolled AND lesson is NOT free preview -> Block access
-  const canAccessLesson = isEnrolled || currentLesson.isPreview;
+  // If enrolled but sequentially locked -> Block access
+  const canAccessLesson =
+    isStaff || currentLesson.isPreview || (isEnrolled && !isSequentialLocked);
 
   // Security Hardening: Redact private video URLs and paid content before serializing to client
   const safeSections = course.sections.map((sec) => ({
     ...sec,
     lessons: sec.lessons.map((les) => {
-      const allowed = isEnrolled || les.isPreview;
+      const allowed = isStaff || isEnrolled || les.isPreview;
       return {
         ...les,
         videoUrl: allowed ? les.videoUrl : null,
@@ -136,7 +168,6 @@ export default async function LessonPage({ params }: LessonPageProps) {
     sections: safeSections,
   };
 
-
   // Generate secure presigned streaming URL if video is on S3/R2 (Expires in 2 hours = 7200s)
   const signedVideoUrl =
     canAccessLesson && currentLesson?.videoUrl
@@ -150,7 +181,6 @@ export default async function LessonPage({ params }: LessonPageProps) {
     attachments: canAccessLesson ? currentLesson.attachments : [],
   };
 
-  // Flatten all lessons to compute Next / Prev buttons with sanitized payloads
   const allLessons: any[] = [];
   safeSections.forEach((sec) => {
     sec.lessons.forEach((les) => {
@@ -161,10 +191,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
     });
   });
 
-  const currentIndex = allLessons.findIndex((l) => l.id === currentLesson.id);
-  const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
-  const nextLesson =
-    currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
+  const watermarkText =
+    session?.user?.email || (userId ? `ID: ${userId.slice(0, 10)}` : undefined);
 
   return (
     <LessonPlayerClient
@@ -175,12 +203,15 @@ export default async function LessonPage({ params }: LessonPageProps) {
       prevLesson={prevLesson}
       nextLesson={nextLesson}
       canAccessLesson={canAccessLesson}
+      isSequentialLocked={isSequentialLocked}
       isEnrolled={isEnrolled}
+      isStaff={isStaff}
       completedLessonIds={completedLessonIds}
       userProgressPercent={userProgressPercent}
       certificateCode={certificateCode}
       userId={userId}
       userName={session?.user?.name || "Học viên"}
+      watermarkText={watermarkText}
     />
   );
 }

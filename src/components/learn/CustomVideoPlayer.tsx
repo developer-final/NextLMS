@@ -19,6 +19,7 @@ interface CustomVideoPlayerProps {
   poster?: string;
   autoPlay?: boolean;
   onEnded?: () => void;
+  watermarkText?: string;
 }
 
 export default function CustomVideoPlayer({
@@ -28,6 +29,7 @@ export default function CustomVideoPlayer({
   poster,
   autoPlay = false,
   onEnded,
+  watermarkText,
 }: CustomVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +40,22 @@ export default function CustomVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [resumedTime, setResumedTime] = useState<number | null>(null);
   const [hasRestoredProgress, setHasRestoredProgress] = useState(false);
+  const [watermarkPos, setWatermarkPos] = useState({ top: "20%", left: "15%" });
+
+  // Dynamic Floating Watermark - Random position drift every 12 seconds to prevent screen recording piracy
+  useEffect(() => {
+    if (!watermarkText) return;
+
+    const updatePosition = () => {
+      const randomTop = Math.floor(10 + Math.random() * 65);
+      const randomLeft = Math.floor(10 + Math.random() * 60);
+      setWatermarkPos({ top: `${randomTop}%`, left: `${randomLeft}%` });
+    };
+
+    updatePosition();
+    const interval = setInterval(updatePosition, 12000);
+    return () => clearInterval(interval);
+  }, [watermarkText]);
 
   // Check if the URL is a YouTube stream
   const isYouTube = Boolean(
@@ -168,6 +186,26 @@ export default function CustomVideoPlayer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isYouTube]);
 
+  // Dynamic Floating Anti-Piracy Watermark Renderer
+  const renderWatermark = () => {
+    if (!watermarkText) return null;
+    return (
+      <div
+        className="absolute z-20 pointer-events-none select-none text-[11px] font-mono tracking-wider text-white/25 transition-all duration-1000 ease-in-out"
+        style={{
+          top: watermarkPos.top,
+          left: watermarkPos.left,
+          textShadow: "0 0 4px rgba(0,0,0,0.9)",
+        }}
+      >
+        <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-0.5 rounded backdrop-blur-[1px] border border-white/10">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand-400/60 animate-pulse" />
+          <span>{watermarkText}</span>
+        </div>
+      </div>
+    );
+  };
+
   // If YouTube URL, render optimized responsive iframe
   if (isYouTube) {
     const embedUrl = getYouTubeEmbedUrl(src);
@@ -180,6 +218,7 @@ export default function CustomVideoPlayer({
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
+        {renderWatermark()}
       </div>
     );
   }
@@ -206,6 +245,9 @@ export default function CustomVideoPlayer({
         onEnded={onEnded}
         className="h-full w-full object-contain"
       />
+
+      {/* Dynamic Floating Watermark */}
+      {renderWatermark()}
 
       {/* Floating Control Badges (Top-Right overlay) */}
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

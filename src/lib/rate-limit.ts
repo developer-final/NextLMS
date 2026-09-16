@@ -127,3 +127,19 @@ export const loginRateLimiter = new MemoryRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 10, // max 10 login attempts per 15 mins per IP
 });
+
+export const reviewRateLimiter = new MemoryRateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  maxRequests: 5, // max 5 review submissions per 10 mins per IP/User
+});
+
+export const uploadRateLimiter = new MemoryRateLimiter({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  maxRequests: 30, // max 30 file uploads per 10 mins per IP/User
+});
+
+export const aiRateLimiter = new MemoryRateLimiter({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 30, // max 30 AI requests per minute per IP/User
+});
+

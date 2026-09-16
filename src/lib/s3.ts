@@ -59,6 +59,29 @@ export function getS3Client(): S3Client {
   return new S3Client(clientConfig);
 }
 
+/**
+ * Sanitizes an S3/Storage object key, stripping path traversal sequences (e.g. '../', '..\\')
+ * and leading slashes to prevent arbitrary directory escape.
+ */
+export function sanitizeStorageKey(key: string): string {
+  if (!key || typeof key !== "string") return "";
+
+  // Normalize backslashes to forward slashes
+  let sanitized = key.replace(/\\/g, "/").trim();
+
+  // Strip null bytes and control characters
+  sanitized = sanitized.replace(/[\x00-\x1f\x7f]/g, "");
+
+  // Repeatedly remove '../' and '..' path traversal patterns
+  sanitized = sanitized.replace(/\.\.+[/\\]?/g, "");
+  sanitized = sanitized.replace(/^\/+/, "");
+
+  // Collapse consecutive slashes
+  sanitized = sanitized.replace(/\/+/g, "/");
+
+  return sanitized;
+}
+
 export interface UploadResult {
   key: string;
   url: string;
@@ -80,7 +103,10 @@ export async function uploadFileToStorage({
   contentType: string;
   isPublic?: boolean;
 }): Promise<UploadResult> {
-  const cleanKey = key.replace(/^\/+/, "");
+  const cleanKey = sanitizeStorageKey(key);
+  if (!cleanKey) {
+    throw new Error("Invalid or empty storage key");
+  }
 
   if (isS3Configured()) {
     const s3 = getS3Client();
@@ -114,8 +140,14 @@ export async function uploadFileToStorage({
   }
 
   // Development Fallback: Store locally in public/uploads if S3 is not configured yet
-  const localUploadDir = path.join(process.cwd(), "public", "uploads");
-  const localFilePath = path.join(localUploadDir, cleanKey);
+  const localUploadDir = path.resolve(process.cwd(), "public", "uploads");
+  const localFilePath = path.resolve(localUploadDir, cleanKey);
+
+  // Path Traversal Guard: Ensure resolved path strictly resides within localUploadDir
+  if (!localFilePath.startsWith(localUploadDir)) {
+    throw new Error(`Security Violation: Path traversal detected for key "${key}"`);
+  }
+
   const localFileDir = path.dirname(localFilePath);
 
   await fs.mkdir(localFileDir, { recursive: true });
@@ -140,7 +172,8 @@ export async function uploadFileToStorage({
  * Deletes a file from S3 / Cloudflare R2 or local dev storage.
  */
 export async function deleteFileFromStorage(key: string): Promise<boolean> {
-  const cleanKey = key.replace(/^\/+/, "");
+  const cleanKey = sanitizeStorageKey(key);
+  if (!cleanKey) return false;
 
   if (isS3Configured()) {
     try {
@@ -158,9 +191,14 @@ export async function deleteFileFromStorage(key: string): Promise<boolean> {
     }
   }
 
-  // Fallback: delete local file
+  // Fallback: delete local file with path traversal check
   try {
-    const localFilePath = path.join(process.cwd(), "public", "uploads", cleanKey);
+    const localUploadDir = path.resolve(process.cwd(), "public", "uploads");
+    const localFilePath = path.resolve(localUploadDir, cleanKey);
+    if (!localFilePath.startsWith(localUploadDir)) {
+      console.error(`Security Violation: Path traversal detected on delete for key "${key}"`);
+      return false;
+    }
     await fs.unlink(localFilePath);
     return true;
   } catch {
@@ -181,7 +219,10 @@ export async function getSecureDownloadUrl({
   fileName?: string;
   expiresInSeconds?: number;
 }): Promise<string> {
-  const cleanKey = key.replace(/^\/+/, "");
+  const cleanKey = sanitizeStorageKey(key);
+  if (!cleanKey) {
+    throw new Error("Invalid or empty storage key for download");
+  }
 
   if (isS3Configured()) {
     const s3 = getS3Client();
@@ -196,7 +237,13 @@ export async function getSecureDownloadUrl({
     return await getSignedUrl(s3, command, { expiresIn: expiresInSeconds });
   }
 
-  // Local dev mode fallback
+  // Local dev mode fallback with traversal verification
+  const localUploadDir = path.resolve(process.cwd(), "public", "uploads");
+  const localFilePath = path.resolve(localUploadDir, cleanKey);
+  if (!localFilePath.startsWith(localUploadDir)) {
+    throw new Error(`Security Violation: Path traversal detected on download for key "${key}"`);
+  }
+
   return `/uploads/${cleanKey.replace(/\\/g, "/")}`;
 }
 
@@ -307,7 +354,8 @@ export async function getSecureStreamUrl(
     return urlOrKey;
   }
 
-  const cleanKey = key.replace(/^\/+/, "");
+  const cleanKey = sanitizeStorageKey(key);
+  if (!cleanKey) return urlOrKey;
 
   if (isS3Configured()) {
     try {
@@ -325,6 +373,13 @@ export async function getSecureStreamUrl(
     }
   }
 
-  // Local development fallback
+  // Local development fallback with path traversal verification
+  const localUploadDir = path.resolve(process.cwd(), "public", "uploads");
+  const localFilePath = path.resolve(localUploadDir, cleanKey);
+  if (!localFilePath.startsWith(localUploadDir)) {
+    console.error(`Security Violation: Path traversal detected on stream for key "${key}"`);
+    return urlOrKey;
+  }
+
   return `/uploads/${cleanKey.replace(/\\/g, "/")}`;
 }

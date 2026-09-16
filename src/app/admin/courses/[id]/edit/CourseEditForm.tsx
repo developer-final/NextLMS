@@ -1095,7 +1095,7 @@ export default function CourseEditForm({ course, categories }: CourseEditFormPro
         currentSelectedText={selectedText}
         onInsertText={(text) => {
           setDescription((prev: string) => (prev ? `${prev}\n\n${text}` : text));
-          toast.success("Đã chèn nội dung vào mô tả khóa học!");
+          toast.success(t.admin.ai.insertedToCourseDesc);
         }}
         onReplaceText={(text) => {
           const textarea = document.getElementById("course-description-textarea") as HTMLTextAreaElement;

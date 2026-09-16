@@ -54,3 +54,69 @@ export async function ensureUserReferralCode(userId: string): Promise<string> {
   });
   return fallbackCode;
 }
+
+/**
+ * Automatically settles matured affiliate commissions whose holding period has passed.
+ * Commissions with availableAt <= now and COMPLETED orders transition from PENDING -> APPROVED.
+ * Commissions with CANCELLED or REFUNDED orders transition from PENDING -> REJECTED.
+ *
+ * @param userId Optional userId to restrict settlement to a single affiliate partner.
+ */
+export async function settleMaturedCommissions(userId?: string): Promise<{ approved: number; rejected: number }> {
+  const now = new Date();
+  const whereClause: any = {
+    status: "PENDING",
+    availableAt: { lte: now },
+  };
+
+  if (userId) {
+    whereClause.affiliateId = userId;
+  }
+
+  const maturedCommissions = await prisma.commission.findMany({
+    where: whereClause,
+    select: {
+      id: true,
+      order: {
+        select: { status: true },
+      },
+    },
+    take: 200,
+  });
+
+  if (maturedCommissions.length === 0) {
+    return { approved: 0, rejected: 0 };
+  }
+
+  const commIdsToApprove: string[] = [];
+  const commIdsToReject: string[] = [];
+
+  for (const c of maturedCommissions) {
+    if (c.order?.status === "COMPLETED") {
+      commIdsToApprove.push(c.id);
+    } else if (c.order?.status === "CANCELLED" || c.order?.status === "REFUNDED") {
+      commIdsToReject.push(c.id);
+    }
+  }
+
+  let approvedCount = 0;
+  let rejectedCount = 0;
+
+  if (commIdsToApprove.length > 0) {
+    const res = await prisma.commission.updateMany({
+      where: { id: { in: commIdsToApprove } },
+      data: { status: "APPROVED" },
+    });
+    approvedCount = res.count;
+  }
+
+  if (commIdsToReject.length > 0) {
+    const res = await prisma.commission.updateMany({
+      where: { id: { in: commIdsToReject } },
+      data: { status: "REJECTED", payoutRequestId: null },
+    });
+    rejectedCount = res.count;
+  }
+
+  return { approved: approvedCount, rejected: rejectedCount };
+}

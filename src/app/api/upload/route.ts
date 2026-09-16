@@ -7,8 +7,11 @@ import {
   validateFileUpload,
   UploadTargetType,
 } from "@/lib/validation";
+import { getClientIp, uploadRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const SAFE_ID_REGEX = /^[a-zA-Z0-9_-]+$/;
 
 export async function POST(req: Request) {
   try {
@@ -21,6 +24,18 @@ export async function POST(req: Request) {
     }
 
     const user = session.user;
+    const clientIp = getClientIp(req);
+    const rateCheck = uploadRateLimiter.check(`${clientIp}_${user.id}`);
+    if (!rateCheck.allowed) {
+      const waitSeconds = Math.ceil((rateCheck.resetTime - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          error: `Upload rate limit exceeded. Please wait ${waitSeconds} seconds before trying again.`,
+        },
+        { status: 429 }
+      );
+    }
+
     const isStaff =
       user.role === "ADMIN" ||
       user.role === "SUPER_ADMIN" ||
@@ -32,6 +47,17 @@ export async function POST(req: Request) {
     const courseId = (formData.get("courseId") as string) || undefined;
     const lessonId = (formData.get("lessonId") as string) || undefined;
     const postId = (formData.get("postId") as string) || undefined;
+
+    // Validate ID formats to prevent path manipulation
+    if (courseId && !SAFE_ID_REGEX.test(courseId)) {
+      return NextResponse.json({ error: "Invalid courseId parameter" }, { status: 400 });
+    }
+    if (lessonId && !SAFE_ID_REGEX.test(lessonId)) {
+      return NextResponse.json({ error: "Invalid lessonId parameter" }, { status: 400 });
+    }
+    if (postId && !SAFE_ID_REGEX.test(postId)) {
+      return NextResponse.json({ error: "Invalid postId parameter" }, { status: 400 });
+    }
 
     // Permissions: 'avatar' and 'receipt' can be uploaded by any authenticated user.
     // Course and blog assets ('thumbnail', 'video', 'attachment') require staff privileges.
@@ -94,7 +120,7 @@ export async function POST(req: Request) {
           where: { id: courseId },
           select: { instructorId: true },
         });
-        if (course && course.instructorId !== user.id) {
+        if (!course || course.instructorId !== user.id) {
           return NextResponse.json(
             { error: "Forbidden: You do not have permission to add resources to this course" },
             { status: 403 }
@@ -106,7 +132,7 @@ export async function POST(req: Request) {
           where: { id: lessonId },
           include: { section: { include: { course: true } } },
         });
-        if (lesson && lesson.section.course.instructorId !== user.id) {
+        if (!lesson || lesson.section.course.instructorId !== user.id) {
           return NextResponse.json(
             { error: "Forbidden: You do not have permission to add resources to this lesson" },
             { status: 403 }
@@ -118,7 +144,7 @@ export async function POST(req: Request) {
           where: { id: postId },
           select: { authorId: true },
         });
-        if (post && post.authorId !== user.id) {
+        if (!post || post.authorId !== user.id) {
           return NextResponse.json(
             { error: "Forbidden: You do not have permission to add resources to this article" },
             { status: 403 }

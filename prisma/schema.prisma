@@ -123,6 +123,7 @@ model User {
   payoutRequests  PayoutRequest[]
   knowledgeDocs   KnowledgeDocument[]
 
+  @@index([role, status, createdAt(sort: Desc)])
   @@map("users")
 }
 
@@ -311,6 +312,7 @@ model Enrollment {
   @@unique([userId, courseId])
   @@index([courseId])
   @@index([status])
+  @@index([userId, status])
   @@map("enrollments")
 }
 
@@ -425,6 +427,7 @@ model Review {
 
   @@index([courseId])
   @@index([userId])
+  @@index([courseId, isApproved])
   @@map("reviews")
 }
 
@@ -530,6 +533,7 @@ model Commission {
 
   @@index([affiliateId])
   @@index([status])
+  @@index([status, availableAt])
   @@index([payoutRequestId])
   @@map("commissions")
 }

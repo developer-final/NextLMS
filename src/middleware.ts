@@ -22,6 +22,7 @@ export async function middleware(req: NextRequest) {
 
   // 1. RBAC & Authenticated route protection
   const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
+  const isProtectedUserPage = ["/my-courses", "/checkout"].some((prefix) => pathname.startsWith(prefix));
   const isProtectedApiRoute = [
     "/api/orders",
     "/api/progress",
@@ -33,7 +34,7 @@ export async function middleware(req: NextRequest) {
     "/api/affiliate",
   ].some((prefix) => pathname.startsWith(prefix));
 
-  if (isAdminRoute || isProtectedApiRoute) {
+  if (isAdminRoute || isProtectedApiRoute || isProtectedUserPage) {
     const secret = (() => {
       const s = process.env.NEXTAUTH_SECRET;
       if (!s && process.env.NODE_ENV === "production") {
@@ -57,6 +58,20 @@ export async function middleware(req: NextRequest) {
       }
     }
 
+    // Protected user UI pages (/my-courses, /checkout)
+    if (isProtectedUserPage) {
+      if (!token) {
+        const loginUrl = new URL("/auth/login", req.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      if (token.status === "BLOCKED") {
+        const blockedUrl = new URL("/auth/login", req.url);
+        blockedUrl.searchParams.set("error", "BlockedAccount");
+        return NextResponse.redirect(blockedUrl);
+      }
+    }
+
     // Non-admin authenticated API routes
     if (isProtectedApiRoute && !isAdminRoute) {
       if (!token) {
@@ -67,7 +82,7 @@ export async function middleware(req: NextRequest) {
       }
     }
 
-    // Block BLOCKED users from all protected routes
+    // Block BLOCKED users from all protected API routes
     if (token && token.status === "BLOCKED") {
       return NextResponse.json(
         { error: "Your account has been suspended. Please contact support." },

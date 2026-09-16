@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     const userId = session.user.id;
-    const { lessonId, courseId } = await req.json();
+    const { lessonId, courseId, lastPositionSeconds } = await req.json();
 
     if (!lessonId || !courseId) {
       return NextResponse.json({ error: "Missing required parameters: lessonId and courseId" }, { status: 400 });
@@ -46,6 +46,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const parsedPos =
+      typeof lastPositionSeconds === "number" && lastPositionSeconds >= 0
+        ? Math.floor(lastPositionSeconds)
+        : undefined;
+
     // 1. Mark lesson progress as completed
     await prisma.lessonProgress.upsert({
       where: {
@@ -54,12 +59,14 @@ export async function POST(req: Request) {
       update: {
         isCompleted: true,
         completedAt: new Date(),
+        ...(parsedPos !== undefined ? { lastPositionSeconds: parsedPos } : {}),
       },
       create: {
         userId,
         lessonId,
         isCompleted: true,
         completedAt: new Date(),
+        lastPositionSeconds: parsedPos || 0,
       },
     });
 

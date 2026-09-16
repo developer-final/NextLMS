@@ -227,5 +227,43 @@ describe("File Upload & Security Validation", () => {
       expect(res.error).toContain("is not supported for lesson videos");
     });
   });
+
+  describe("sanitizeStorageKey & Path Traversal Guards", () => {
+    it("should strip directory traversal sequences from storage keys", async () => {
+      const { sanitizeStorageKey } = await import("./s3");
+
+      expect(sanitizeStorageKey("../../secret.txt")).toBe("secret.txt");
+      expect(sanitizeStorageKey("..\\..\\windows\\system32.dll")).toBe("windows/system32.dll");
+      expect(sanitizeStorageKey("///attachments/../../etc/passwd")).toBe("attachments/etc/passwd");
+      expect(sanitizeStorageKey("courses///videos//intro.mp4")).toBe("courses/videos/intro.mp4");
+      expect(sanitizeStorageKey("")).toBe("");
+    });
+
+    it("should reject path traversal in uploadFileToStorage when escaping local directory", async () => {
+      const { uploadFileToStorage } = await import("./s3");
+
+      // Even if attacker attempts double dots, sanitizeStorageKey eliminates them
+      const res = await uploadFileToStorage({
+        buffer: Buffer.from("test content", "utf8"),
+        key: "safe-folder/test-doc.txt",
+        contentType: "text/plain",
+      });
+
+      expect(res.key).toBe("safe-folder/test-doc.txt");
+      expect(res.storageProvider).toBe("local_dev");
+    });
+
+    it("should safely sanitize download key in getSecureDownloadUrl", async () => {
+      const { getSecureDownloadUrl } = await import("./s3");
+
+      const url = await getSecureDownloadUrl({
+        key: "../../attachments/lesson.pdf",
+        fileName: "lesson.pdf",
+      });
+
+      expect(url).toContain("/uploads/attachments/lesson.pdf");
+      expect(url).not.toContain("..");
+    });
+  });
 });
 

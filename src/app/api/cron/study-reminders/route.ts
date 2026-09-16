@@ -54,9 +54,12 @@ async function handleCronReminders(req: Request) {
     });
 
     let sentCount = 0;
+    const sentUserIds = new Set<string>();
 
     for (const enrollment of inactiveEnrollments) {
       if (!enrollment.user?.email) continue;
+      // Prevent spamming students enrolled in multiple courses in the same batch
+      if (sentUserIds.has(enrollment.user.id)) continue;
 
       try {
         await sendStudyReminderEmail({
@@ -72,6 +75,7 @@ async function handleCronReminders(req: Request) {
           data: { lastStudyReminderSentAt: new Date() },
         });
 
+        sentUserIds.add(enrollment.user.id);
         sentCount++;
       } catch (sendErr) {
         console.error(
